@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Header from "./header/Header";
 import { SalonProvider, useSalon } from "@/context/SalonContext";
+import { getSession } from "@/lib/api-client";
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -30,6 +32,27 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [checked, setChecked] = useState(false);
+
+  const isLoginRoute = pathname === "/login";
+
+  useEffect(() => {
+    if (isLoginRoute) return;
+    if (!getSession()) {
+      router.replace("/login");
+      return;
+    }
+    setChecked(true);
+  }, [isLoginRoute, router]);
+
+  // /login renders full-screen with no sidebar/header chrome.
+  if (isLoginRoute) return <>{children}</>;
+
+  // Avoid flashing dashboard content before the session check resolves.
+  if (!checked) return null;
+
   return (
     <SalonProvider>
       <DashboardLayoutContent>{children}</DashboardLayoutContent>
