@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Download,
@@ -16,13 +16,27 @@ import {
   Clock,
   AlertTriangle,
   Activity,
+  Building2,
 } from "lucide-react";
+import { ApiError, getTenants, type Tenant } from "@/lib/api-client";
 
 export default function DashboardHubPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [tenants, setTenants] = useState<Tenant[] | null>(null);
+  const [tenantsError, setTenantsError] = useState<string | null>(null);
+
+  const loadTenants = () => {
+    setTenantsError(null);
+    getTenants()
+      .then(setTenants)
+      .catch((err) => setTenantsError(err instanceof ApiError ? err.message : "Failed to load tenants."));
+  };
+
+  useEffect(loadTenants, []);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
+    loadTenants();
     setTimeout(() => {
       setIsRefreshing(false);
     }, 800);
@@ -221,6 +235,57 @@ export default function DashboardHubPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* Live Tenants Panel — real data from GET /tenants (service-business), not mock */}
+      <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-2xs">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="h-9 w-9 rounded-xl flex items-center justify-center border bg-blue-50 text-blue-600 border-blue-100">
+              <Building2 size={18} />
+            </div>
+            <h3 className="text-sm font-bold text-slate-900">Platform Tenants</h3>
+          </div>
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            Live from service-business
+          </span>
+        </div>
+
+        {tenantsError && (
+          <p className="text-xs font-semibold text-rose-600" role="alert">
+            {tenantsError}
+          </p>
+        )}
+        {!tenantsError && tenants === null && (
+          <p className="text-xs font-medium text-slate-400">Loading tenants…</p>
+        )}
+        {!tenantsError && tenants !== null && tenants.length === 0 && (
+          <p className="text-xs font-medium text-slate-400">No tenants have registered yet.</p>
+        )}
+        {!tenantsError && tenants !== null && tenants.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="text-slate-400 uppercase text-[10px] tracking-wider">
+                  <th className="py-2 pr-4 font-bold">Name</th>
+                  <th className="py-2 pr-4 font-bold">Subdomain</th>
+                  <th className="py-2 pr-4 font-bold">Business Type</th>
+                  <th className="py-2 pr-4 font-bold">Contact Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tenants.map((tenant) => (
+                  <tr key={tenant.id} className="border-t border-slate-50">
+                    <td className="py-2.5 pr-4 font-bold text-slate-900">{tenant.name}</td>
+                    <td className="py-2.5 pr-4 text-slate-500">{tenant.subdomain}</td>
+                    <td className="py-2.5 pr-4 text-slate-500">{tenant.businessType}</td>
+                    <td className="py-2.5 pr-4 text-slate-500">{tenant.contactEmail}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Bottom Summary KPI Bar */}
