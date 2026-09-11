@@ -1,359 +1,211 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import Link from "next/link";
-import {
-  Download,
-  RotateCw,
-  TrendingUp,
-  BarChart3,
-  CreditCard,
-  Radio,
-  ShieldCheck,
-  Zap,
-  ArrowRight,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  Activity,
-  Building2,
-} from "lucide-react";
-import { ApiError, getTenants, type Tenant } from "@/lib/api-client";
+import Link from 'next/link';
+import { ArrowUpRight, RotateCw } from 'lucide-react';
+import { usePlatform } from '@/lib/usePlatform';
+import { vitalityOf } from '@/lib/api/platform';
+import { brandColor, compact, count, money, since } from '@/lib/format';
+import { Button, Canvas, Failed, Loading, PageHead, Panel, Stat } from '@/components/ui/primitives';
+import { Ranked, Split } from '@/components/chart/Chart';
+import Mark from '@/components/ui/Mark';
+import { VitalityTag } from '@/components/ui/Vitals';
 
-export default function DashboardHubPage() {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [tenants, setTenants] = useState<Tenant[] | null>(null);
-  const [tenantsError, setTenantsError] = useState<string | null>(null);
+export default function OverviewPage() {
+  const platform = usePlatform();
+  const { tenants, vitals, totals, loading, sweeping, swept, error, reload } = platform;
 
-  const loadTenants = () => {
-    setTenantsError(null);
-    getTenants()
-      .then(setTenants)
-      .catch((err) => setTenantsError(err instanceof ApiError ? err.message : "Failed to load tenants."));
-  };
-
-  useEffect(loadTenants, []);
-
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    loadTenants();
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 800);
-  };
-
-  const navCards = [
-    {
-      id: "overview",
-      title: "Dashboard Overview",
-      icon: TrendingUp,
-      iconBg: "bg-blue-50 text-blue-600 border-blue-100",
-      accentBg: "from-blue-50/50 to-transparent",
-      graphic: (
-        <svg className="w-16 h-16 text-blue-100/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M3 3v18h18" />
-          <path d="M18 9l-5 5-4-4-3 3" />
-        </svg>
-      ),
-      description:
-        "View real-time platform statistics, today's activities, booking summary, revenue summary, pending approvals, and system alerts.",
-      buttonText: "Open Dashboard Overview →",
-      href: "/admin/dashboard/overview",
-    },
-    {
-      id: "executive",
-      title: "Executive Dashboard",
-      icon: BarChart3,
-      iconBg: "bg-emerald-50 text-emerald-600 border-emerald-100",
-      accentBg: "from-emerald-50/50 to-transparent",
-      graphic: (
-        <svg className="w-16 h-16 text-emerald-100/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M12 20V10" />
-          <path d="M18 20V4" />
-          <path d="M6 20v-4" />
-        </svg>
-      ),
-      description:
-        "Designed for CEO / Founder. High-level business intelligence, growth metrics, and business forecasts.",
-      buttonText: "View Executive Dashboard →",
-      href: "/admin/dashboard/executive",
-    },
-    {
-      id: "revenue",
-      title: "Revenue Dashboard",
-      icon: CreditCard,
-      iconBg: "bg-purple-50 text-purple-600 border-purple-100",
-      accentBg: "from-purple-50/50 to-transparent",
-      graphic: (
-        <svg className="w-16 h-16 text-purple-100/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <rect width="20" height="14" x="2" y="5" rx="2" />
-          <line x1="2" x2="22" y1="10" y2="10" />
-        </svg>
-      ),
-      description:
-        "Comprehensive financial tracking including Taxes, Commission, Refunds, and Profit analysis.",
-      buttonText: "View Revenue Dashboard →",
-      href: "/admin/dashboard/revenue",
-    },
-    {
-      id: "live",
-      title: "Live Monitoring",
-      icon: Radio,
-      iconBg: "bg-rose-50 text-rose-600 border-rose-100",
-      isLive: true,
-      hasLeftBorder: true,
-      accentBg: "from-rose-50/50 to-transparent",
-      graphic: (
-        <svg className="w-16 h-16 text-rose-100/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <circle cx="12" cy="12" r="9" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      ),
-      description:
-        "Real-time command center for new customers, bookings, and system errors. Refreshes every 5 seconds.",
-      buttonText: "Open Live Monitor →",
-      href: "/admin/dashboard/live-monitoring",
-    },
-    {
-      id: "health",
-      title: "Platform Health",
-      icon: ShieldCheck,
-      iconBg: "bg-teal-50 text-teal-600 border-teal-100",
-      accentBg: "from-teal-50/50 to-transparent",
-      graphic: (
-        <svg className="w-16 h-16 text-teal-100/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <rect width="18" height="8" x="3" y="3" rx="2" />
-          <rect width="18" height="8" x="3" y="13" rx="2" />
-        </svg>
-      ),
-      description:
-        "Infrastructure status for CPU, RAM, Database, Redis, and API response times.",
-      buttonText: "Check System Health →",
-      href: "/admin/dashboard/platform-health",
-    },
-    {
-      id: "actions",
-      title: "Quick Actions",
-      icon: Zap,
-      iconBg: "bg-amber-50 text-amber-600 border-amber-100",
-      accentBg: "from-amber-50/50 to-transparent",
-      graphic: (
-        <svg className="w-16 h-16 text-amber-100/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-        </svg>
-      ),
-      description:
-        "One-click shortcuts for approvals, coupons, notifications, and system backups.",
-      buttonText: "View Quick Actions →",
-      href: "/admin/dashboard/quick-actions",
-    },
-  ];
+  const sweepNote = tenants
+    ? sweeping
+      ? `Reading ${swept} of ${tenants.length} shops`
+      : `${tenants.length} shops read`
+    : null;
 
   return (
-    <main className="flex-1 overflow-y-auto bg-[#f8fafc] px-6 py-8 lg:px-10 lg:py-10 space-y-8">
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Dashboard</h1>
-          <p className="text-sm font-semibold text-slate-500 mt-1">
-            Welcome back, Super Admin. Monitor your entire Barber Pro platform from one place.
-          </p>
-        </div>
+    <>
+      <PageHead
+        eyebrow="Platform"
+        title="Overview"
+        lede="Totals across every shop on the platform. There is no cross-tenant aggregate in the backend, so these are summed from each shop in turn — the figures fill in as the sweep runs."
+        actions={
+          <>
+            {sweepNote && (
+              <span className="tabular flex items-center gap-1.5 text-[11px] text-ink-2">
+                {sweeping && (
+                  <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-ink-3" aria-hidden />
+                )}
+                {sweepNote}
+              </span>
+            )}
+            <Button onClick={reload} disabled={loading || sweeping}>
+              <RotateCw size={12} className={sweeping ? 'animate-spin' : ''} />
+              Refresh
+            </Button>
+          </>
+        }
+      />
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-3 self-start md:self-auto">
-          <button
-            onClick={() => alert("Generating full executive summary report...")}
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer"
-          >
-            <Download size={15} />
-            <span>Export Report</span>
-          </button>
+      <Canvas>
+        {error && <Failed message={error} onRetry={reload} />}
+        {loading && !error && <Loading label="Loading the shop roster" />}
 
-          <button
-            onClick={handleRefresh}
-            className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 text-xs font-bold shadow-sm transition-all cursor-pointer active:scale-98"
-          >
-            <RotateCw size={15} className={isRefreshing ? "animate-spin" : ""} />
-            <span>Refresh Global Data</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 6 Navigation Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {navCards.map((card) => {
-          const Icon = card.icon;
-
-          return (
-            <div
-              key={card.id}
-              className={`bg-white rounded-2xl border border-slate-100 p-6 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden group ${
-                card.hasLeftBorder ? "border-l-4 border-l-rose-500" : ""
-              }`}
-            >
-              {/* Card Header & Graphic */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`h-11 w-11 rounded-xl flex items-center justify-center border ${card.iconBg} shadow-2xs`}
-                    >
-                      <Icon size={22} />
-                    </div>
-                    {card.isLive && (
-                      <span className="bg-rose-500 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full animate-pulse">
-                        LIVE
-                      </span>
-                    )}
-                  </div>
-                  {/* Subtle Graphic background */}
-                  <div className="absolute top-3 right-3 opacity-40 group-hover:opacity-80 transition-opacity">
-                    {card.graphic}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 pt-1">
-                  <h3 className="text-lg font-bold text-slate-900 tracking-tight group-hover:text-blue-600 transition-colors">
-                    {card.title}
-                  </h3>
-                  <p className="text-xs font-medium text-slate-500 leading-relaxed">
-                    {card.description}
-                  </p>
-                </div>
-              </div>
-
-              {/* Bottom Link Button */}
-              <div className="pt-6 mt-4 border-t border-slate-50">
-                <Link
-                  href={card.href}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 hover:gap-2.5 transition-all cursor-pointer"
-                >
-                  <span>{card.buttonText}</span>
-                </Link>
-              </div>
+        {tenants && totals && !error && (
+          <>
+            <div className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-3 xl:grid-cols-5">
+              <Stat
+                label="Shops"
+                value={count(totals.tenants)}
+                sub={`${count(totals.listed)} visible to customers`}
+              />
+              <Stat
+                label="Bookings"
+                value={compact(totals.appointments)}
+                sub={`${count(totals.upcoming)} still upcoming`}
+                pending={sweeping && totals.appointments === 0}
+              />
+              <Stat
+                label="Settled revenue"
+                value={money(totals.revenue)}
+                sub="Completed transactions only"
+                pending={sweeping && totals.revenue === 0}
+              />
+              <Stat
+                label="Barbers on staff"
+                value={count(totals.staff)}
+                sub={`${count(totals.services)} services listed`}
+                pending={sweeping && totals.staff === 0}
+              />
+              <Stat
+                label="Never set up"
+                value={count(totals.dormant)}
+                tone={totals.dormant > 0 ? 'signal' : 'live'}
+                sub="Signed up with no staff and no services"
+                pending={sweeping && swept === 0}
+              />
             </div>
-          );
-        })}
-      </div>
 
-      {/* Live Tenants Panel — real data from GET /tenants (service-business), not mock */}
-      <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-2xs">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl flex items-center justify-center border bg-blue-50 text-blue-600 border-blue-100">
-              <Building2 size={18} />
+            {totals.incomplete > 0 && (
+              <p className="border border-signal/25 bg-signal-soft px-4 py-2.5 text-[12px] text-signal">
+                {count(totals.incomplete)} shop{totals.incomplete === 1 ? '' : 's'} did not answer
+                every request, so the totals above are short by whatever those hold. Open the shop
+                to see which service is not responding.
+              </p>
+            )}
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Panel
+                title="How the platform is being used"
+                note="Every shop, grouped by how far it has got."
+              >
+                <Split
+                  height={10}
+                  segments={[
+                    { key: 'live', label: 'Taking bookings', value: totals.live, color: '#186a50' },
+                    { key: 'idle', label: 'Set up, no bookings', value: totals.idle, color: '#9a9ea6' },
+                    { key: 'dormant', label: 'Never set up', value: totals.dormant, color: '#b23a0e' },
+                  ]}
+                />
+                <p className="mt-4 max-w-[56ch] border-t border-rule-soft pt-3 text-[12px] leading-relaxed text-ink-2">
+                  A shop counts as never set up when it has no barbers and no services. Nothing in
+                  the backend records this — it is worked out from what each shop actually holds.
+                </p>
+              </Panel>
+
+              <Panel title="Bookings by outcome" note="Across every shop, for all time.">
+                <Split
+                  height={10}
+                  segments={[
+                    { key: 'completed', label: 'Completed', value: totals.completed, color: '#186a50' },
+                    {
+                      key: 'open',
+                      label: 'Open',
+                      value: Math.max(
+                        0,
+                        totals.appointments - totals.completed - totals.cancelled,
+                      ),
+                      color: '#15171b',
+                    },
+                    {
+                      key: 'cancelled',
+                      label: 'Cancelled or no-show',
+                      value: totals.cancelled,
+                      color: '#b23a0e',
+                    },
+                  ]}
+                />
+                <p className="mt-4 max-w-[56ch] border-t border-rule-soft pt-3 text-[12px] leading-relaxed text-ink-2">
+                  {totals.reviews > 0
+                    ? `${count(totals.reviews)} reviews left across the platform.`
+                    : 'No reviews have been left on the platform yet.'}
+                </p>
+              </Panel>
             </div>
-            <h3 className="text-sm font-bold text-slate-900">Platform Tenants</h3>
-          </div>
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-            Live from service-business
-          </span>
-        </div>
 
-        {tenantsError && (
-          <p className="text-xs font-semibold text-rose-600" role="alert">
-            {tenantsError}
-          </p>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Panel
+                title="Busiest shops"
+                note="By bookings taken."
+                actions={
+                  <Link href="/shops" className="flex items-center gap-1 text-[12px] text-ink-2 hover:text-ink">
+                    All shops <ArrowUpRight size={12} />
+                  </Link>
+                }
+              >
+                <Ranked
+                  format={(v) => count(v)}
+                  rows={tenants
+                    .map((t) => ({
+                      key: t.id,
+                      label: t.name,
+                      value: vitals[t.id]?.appointments ?? 0,
+                      color: brandColor(t.brandColor),
+                    }))
+                    .filter((r) => r.value > 0)
+                    .sort((a, b) => b.value - a.value)
+                    .slice(0, 6)}
+                />
+              </Panel>
+
+              <Panel title="Needs attention" note="Shops that signed up but never furnished themselves.">
+                {(() => {
+                  const dormant = tenants
+                    .filter((t) => vitalityOf(vitals[t.id]) === 'dormant')
+                    .slice(0, 6);
+                  if (dormant.length === 0) {
+                    return (
+                      <p className="py-6 text-[12px] text-ink-2">
+                        {sweeping
+                          ? 'Still reading the roster.'
+                          : 'Every shop on the platform has at least a barber or a service.'}
+                      </p>
+                    );
+                  }
+                  return (
+                    <ul className="divide-y divide-rule-soft">
+                      {dormant.map((t) => (
+                        <li key={t.id}>
+                          <Link
+                            href={`/shops/${t.id}`}
+                            className="flex items-center gap-3 py-2.5 hover:opacity-70"
+                          >
+                            <Mark name={t.name} logoUrl={t.logoUrl} color={t.brandColor} size={24} />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[13px]">{t.name}</span>
+                              <span className="tabular block text-[11px] text-ink-3">
+                                signed up {since(t.createdAt)}
+                              </span>
+                            </span>
+                            <VitalityTag vitality="dormant" />
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()}
+              </Panel>
+            </div>
+          </>
         )}
-        {!tenantsError && tenants === null && (
-          <p className="text-xs font-medium text-slate-400">Loading tenants…</p>
-        )}
-        {!tenantsError && tenants !== null && tenants.length === 0 && (
-          <p className="text-xs font-medium text-slate-400">No tenants have registered yet.</p>
-        )}
-        {!tenantsError && tenants !== null && tenants.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="text-slate-400 uppercase text-[10px] tracking-wider">
-                  <th className="py-2 pr-4 font-bold">Name</th>
-                  <th className="py-2 pr-4 font-bold">Subdomain</th>
-                  <th className="py-2 pr-4 font-bold">Business Type</th>
-                  <th className="py-2 pr-4 font-bold">Contact Email</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tenants.map((tenant) => (
-                  <tr key={tenant.id} className="border-t border-slate-50">
-                    <td className="py-2.5 pr-4 font-bold text-slate-900">{tenant.name}</td>
-                    <td className="py-2.5 pr-4 text-slate-500">{tenant.subdomain}</td>
-                    <td className="py-2.5 pr-4 text-slate-500">{tenant.businessType}</td>
-                    <td className="py-2.5 pr-4 text-slate-500">{tenant.contactEmail}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Bottom Summary KPI Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1 */}
-        <div className="bg-[#f0f5ff]/80 border border-slate-100 rounded-2xl p-5 flex flex-col justify-between">
-          <p className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">
-            ACTIVE SESSIONS
-          </p>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-black text-slate-900">1,284</span>
-            <span className="text-xs font-bold text-emerald-600 flex items-center gap-0.5">
-              <TrendingUp size={13} /> +12.5% vs LW
-            </span>
-          </div>
-        </div>
-
-        {/* Card 2 */}
-        <div className="bg-[#f0f5ff]/80 border border-slate-100 rounded-2xl p-5 flex flex-col justify-between">
-          <p className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">
-            PROCESSING VOLUME
-          </p>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-black text-slate-900">$42,850</span>
-            <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
-              <CheckCircle2 size={13} /> Target Reached
-            </span>
-          </div>
-        </div>
-
-        {/* Card 3 */}
-        <div className="bg-[#f0f5ff]/80 border border-slate-100 rounded-2xl p-5 flex flex-col justify-between">
-          <p className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">
-            SYSTEM UPTIME
-          </p>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-black text-slate-900">99.98%</span>
-            <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
-              <Clock size={13} /> Last 30 Days
-            </span>
-          </div>
-        </div>
-
-        {/* Card 4 */}
-        <div className="bg-[#f0f5ff]/80 border border-slate-100 rounded-2xl p-5 flex flex-col justify-between">
-          <p className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">
-            PENDING ALERTS
-          </p>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-black text-slate-900">3</span>
-            <span className="text-xs font-bold text-rose-600 flex items-center gap-1">
-              <AlertTriangle size={13} /> Action Required
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <footer className="pt-6 border-t border-slate-200/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-medium text-slate-400">
-        <p>© 2024 Barber Pro Executive Management System. All Rights Reserved.</p>
-        <div className="flex items-center gap-4">
-          <a href="#" className="hover:text-slate-600 transition-colors">Documentation</a>
-          <span>•</span>
-          <a href="#" className="hover:text-slate-600 transition-colors">Security Audit</a>
-          <span>•</span>
-          <a href="#" className="hover:text-slate-600 transition-colors">Privacy Policy</a>
-        </div>
-      </footer>
-    </main>
+      </Canvas>
+    </>
   );
 }
