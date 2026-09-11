@@ -1,0 +1,171 @@
+import { apiFetch } from '../api-client';
+
+/** Mirrors service-business/prisma/schema.prisma `model Tenant`. Decimal columns arrive as strings. */
+export interface Tenant {
+  id: string;
+  name: string;
+  subdomain: string;
+  businessType: string;
+  brandColor: string | null;
+  logoUrl: string | null;
+  tagline: string | null;
+  contactEmail: string;
+  contactPhone: string | null;
+  joinCode: string | null;
+  description: string | null;
+  coverImageUrl: string | null;
+  gallery: string[];
+  amenities: string[];
+  establishedYear: number | null;
+  ratingAvg: string | number;
+  ratingCount: number;
+  isListed: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Location {
+  id: string;
+  tenantId: string;
+  name: string;
+  address: string;
+  phone: string;
+  isPrimary: boolean;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export interface CreateTenantInput {
+  name: string;
+  subdomain: string;
+  businessType: string;
+  contactEmail: string;
+  contactPhone?: string;
+  brandColor?: string;
+  tagline?: string;
+  logoUrl?: string;
+}
+
+/** Only the subset of UpdateTenantDto this console actually edits. */
+export interface UpdateTenantInput {
+  name?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  brandColor?: string;
+  tagline?: string;
+  logoUrl?: string;
+  isListed?: boolean;
+}
+
+/**
+ * The whole platform. SUPER_ADMIN-only and unpaginated — `TenantService.findAll()` is a bare
+ * `findMany()` with no take/skip, so this returns every shop in one response. Fine at the current
+ * scale and the reason the roster can compute platform totals client-side; if the platform grows
+ * past a few hundred shops this is the first call that needs a page parameter on the backend.
+ */
+export function listTenants(): Promise<Tenant[]> {
+  return apiFetch<Tenant[]>('/tenants');
+}
+
+export function getTenant(id: string): Promise<Tenant> {
+  return apiFetch<Tenant>(`/tenants/${id}`);
+}
+
+export function createTenant(input: CreateTenantInput): Promise<Tenant> {
+  return apiFetch<Tenant>('/tenants', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export function updateTenant(id: string, input: UpdateTenantInput): Promise<Tenant> {
+  return apiFetch<Tenant>(`/tenants/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+}
+
+/** Answers 204 with no body. */
+export function deleteTenant(id: string): Promise<void> {
+  return apiFetch<void>(`/tenants/${id}`, { method: 'DELETE' });
+}
+
+export function listLocations(tenantId: string): Promise<Location[]> {
+  return apiFetch<Location[]>(`/locations?tenantId=${encodeURIComponent(tenantId)}`);
+}
+
+export interface DaySchedule {
+  day: string;
+  isOpen: boolean;
+  openTime?: string;
+  closeTime?: string;
+}
+
+export interface ShopHours {
+  id?: string;
+  tenantId: string;
+  schedule: DaySchedule[];
+  bufferBeforeMin: number;
+  bufferAfterMin: number;
+  minNotice: string;
+  bookingWindow: string;
+}
+
+export function getShopHours(tenantId: string): Promise<ShopHours> {
+  return apiFetch<ShopHours>(`/shop-hours/${encodeURIComponent(tenantId)}`);
+}
+
+export interface Product {
+  id: string;
+  tenantId: string;
+  name: string;
+  sku: string | null;
+  barcode: string | null;
+  brand: string | null;
+  categoryId: string | null;
+  quantity: number;
+  reorderLevel: number;
+  unit: string | null;
+  unitCost: string | number;
+  salePrice: string | number | null;
+  onSale: boolean;
+  category?: { id: string; name: string } | null;
+}
+
+export function listProducts(tenantId: string): Promise<Product[]> {
+  return apiFetch<Product[]>(`/inventory/products?tenantId=${encodeURIComponent(tenantId)}`);
+}
+
+export interface ClientAllergy {
+  id: string;
+  name: string;
+  severity: string;
+  note: string | null;
+}
+
+export interface Client {
+  id: string;
+  tenantId: string;
+  customerId: string | null;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  gender: string | null;
+  allergies?: ClientAllergy[];
+  createdAt: string;
+}
+
+export function listClients(tenantId: string): Promise<Client[]> {
+  return apiFetch<Client[]>(`/clients?tenantId=${encodeURIComponent(tenantId)}`);
+}
+
+export interface StoredFile {
+  id: string;
+  tenantId: string;
+  name: string;
+  url: string;
+  kind: string;
+  sizeBytes: number;
+  createdAt: string;
+}
+
+export function listFiles(tenantId: string): Promise<StoredFile[]> {
+  return apiFetch<StoredFile[]>(`/files?tenantId=${encodeURIComponent(tenantId)}`);
+}
+
+
