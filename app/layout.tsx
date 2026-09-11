@@ -1,44 +1,55 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import DashboardLayout from "@/components/common/DashboardLayout";
+import type { Metadata } from 'next';
+import { Bricolage_Grotesque, Inter_Tight, JetBrains_Mono } from 'next/font/google';
+import './globals.css';
+import AppShell from '@/components/shell/AppShell';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+/**
+ * Three faces, each with a job.
+ *
+ * Bricolage carries headings and the big figures — a grotesque with enough character to give the
+ * console a voice without a display serif's formality. Inter Tight is the reading face, chosen
+ * narrow because these screens are dense tables. JetBrains Mono is not decorative: every
+ * identifier, count, timestamp and money figure is set in it so uuids can be read character by
+ * character and numeric columns line up down the page.
+ */
+const display = Bricolage_Grotesque({
+  variable: '--font-bricolage',
+  subsets: ['latin'],
+  weight: ['600', '700', '800'],
+  display: 'swap',
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const body = Inter_Tight({
+  variable: '--font-inter-tight',
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  display: 'swap',
+});
+
+const data = JetBrains_Mono({
+  variable: '--font-jetbrains',
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: "Super Admin Dashboard - Financial & Payroll Management",
-  description: "A premium, responsive dashboard for super admins to manage salon payroll, pending taxes, budgeting, and compliance analytics.",
+  title: 'Platform console — SalunBD',
+  description:
+    'Operator console for the SalunBD platform: every shop on the platform, what it has been set up with, and what it is doing.',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <head>
-        <title>Super Admin Dashboard - Financial & Payroll Management</title>
-      </head>
-      <body className="min-h-full bg-bg-main text-slate-800">
-        <a href="#main-content" className="sr-only focus:not-sr-only focus:p-4 focus:bg-white focus:absolute focus:z-50">
-          Skip to main content
+    <html lang="en" className={`${display.variable} ${body.variable} ${data.variable}`}>
+      <body>
+        <a
+          href="#console"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:bg-ink focus:px-4 focus:py-2 focus:text-sm focus:text-white"
+        >
+          Skip to content
         </a>
-        <h1 className="sr-only">Super Admin Dashboard</h1>
-        <main id="main-content" className="h-full">
-          <DashboardLayout>{children}</DashboardLayout>
-        </main>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
