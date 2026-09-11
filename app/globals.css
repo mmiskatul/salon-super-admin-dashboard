@@ -1,60 +1,100 @@
 @import "tailwindcss";
 
+/*
+ * The switchboard palette.
+ *
+ * Design thesis: this console operates many independent businesses, each of which already owns a
+ * brand colour (Tenant.brandColor in service-business). So the chrome here is deliberately
+ * achromatic — greys, one alarm, one all-clear — and every saturated hue on screen belongs to a
+ * tenant rather than to the interface. That rule is what keeps a roster of forty shops readable:
+ * if the furniture were coloured too, the tenants' own colours would stop meaning anything.
+ */
 @theme {
-  --color-brand: #5c60f5;
-  --color-brand-light: #eef2ff;
-  --color-brand-dark: #4338ca;
-  --color-bg-main: #f4f6fa;
-  
-  --color-kpi-yellow-bg: #fffbf0;
-  --color-kpi-yellow-icon-bg: #fef3c7;
-  --color-kpi-yellow-text: #d97706;
-  
-  --color-kpi-teal-bg: #e6fcf5;
-  --color-kpi-teal-icon-bg: #c3fae8;
-  --color-kpi-teal-text: #0ca678;
+  --color-ink: #15171b;
+  --color-ink-2: #5f636b;
+  --color-ink-3: #9a9ea6;
+  --color-ground: #e9e9ec;
+  --color-surface: #ffffff;
+  --color-rule: #d6d7db;
+  --color-rule-soft: #e6e6ea;
 
-  --color-kpi-purple-bg: #f3f0ff;
-  --color-kpi-purple-icon-bg: #e5dbff;
-  --color-kpi-purple-text: #7048e8;
+  /* Reserved. --color-signal means "an operator has to look at this"; nothing decorative may
+     use it, or it stops working as an alarm. --color-live is its opposite number. */
+  --color-signal: #b23a0e;
+  --color-signal-soft: #fbeee8;
+  --color-live: #186a50;
+  --color-live-soft: #e8f3ee;
 
-  --color-kpi-pink-bg: #fff0f6;
-  --color-kpi-pink-icon-bg: #ffdeeb;
-  --color-kpi-pink-text: #e64980;
-
-  --color-status-high-bg: #ffe3e3;
-  --color-status-high-text: #e03131;
-  --color-status-medium-bg: #fff3bf;
-  --color-status-medium-text: #f08c00;
-  --color-status-low-bg: #ebfbee;
-  --color-status-low-text: #2f9e44;
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
+  --font-data: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
 }
 
-:root {
-  --background: #f4f6fa;
-  --foreground: #1e293b;
+html {
+  background: var(--color-ground);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  overflow-x: hidden;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Custom scrollbar */
+/* Every identifier, count, timestamp and money figure is set in the data face so columns align
+   and a uuid can be scanned character by character. */
+.tabular {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Section eyebrows. Caps + wide tracking is doing structural work here: it marks the boundary
+   between panels in a layout that has almost no other dividers. */
+.eyebrow {
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+  background: var(--color-rule);
+  border: 3px solid var(--color-ground);
+  border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--color-ink-3);
 }
 
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
