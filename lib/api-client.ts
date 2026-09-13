@@ -7,7 +7,7 @@
  * role check at login: this console is useless to anyone but a SUPER_ADMIN, so it refuses the
  * session up front rather than letting every panel 403 one by one.
  */
-export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api').replace(/\/$/, '');
+export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'https://salunbd-backend-service.onrender.com/api').replace(/\/$/, '');
 
 /** Deliberately distinct from the owner dashboard's 'salon_session_v1'. */
 const SESSION_KEY = 'salon_platform_session_v1';
