@@ -41,8 +41,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} ${data.variable}`}>
-      <body>
+    <html lang="en" suppressHydrationWarning className={`${display.variable} ${body.variable} ${data.variable}`}>
+      <body suppressHydrationWarning>
         <a
           href="#console"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:bg-ink focus:px-4 focus:py-2 focus:text-sm focus:text-white"
