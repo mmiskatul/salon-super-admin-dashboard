@@ -1,0 +1,336 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { ExternalLink, RotateCw, Search } from 'lucide-react';
+import { useApi, useMutation } from '@/lib/useApi';
+import { listSubscriptions, updateSubscription, type Subscription } from '@/lib/api/subscriptions';
+import { listTenants } from '@/lib/api/tenants';
+import { count, date, shortId } from '@/lib/format';
+import {
+  Badge,
+  Button,
+  Canvas,
+  Empty,
+  Failed,
+  Loading,
+  PageHead,
+  Panel,
+  Stat,
+} from '@/components/ui/primitives';
+import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
+import { Field, FormError, Modal, Select, TextInput } from '@/components/ui/Form';
+
+export default function SubscriptionsPage() {
+  const [query, setQuery] = useState('');
+  const [planFilter, setPlanFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [editingSub, setEditingSub] = useState<Subscription | null>(null);
+
+  const subsApi = useApi(() => listSubscriptions(), []);
+  const tenantsApi = useApi(() => listTenants(), []);
+
+  const tenantsMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of tenantsApi.data ?? []) {
+      map.set(t.id, t.name);
+    }
+    return map;
+  }, [tenantsApi.data]);
+
+  const allSubs = subsApi.data ?? [];
+  const needle = query.trim().toLowerCase();
+
+  const filtered = allSubs.filter((s) => {
+    if (planFilter !== 'ALL' && s.plan !== planFilter) return false;
+    if (statusFilter !== 'ALL' && s.status !== statusFilter) return false;
+    if (!needle) return true;
+    const shopName = (tenantsMap.get(s.tenantId) ?? '').toLowerCase();
+    return (
+      s.tenantId.toLowerCase().includes(needle) ||
+      s.plan.toLowerCase().includes(needle) ||
+      s.status.toLowerCase().includes(needle) ||
+      shopName.includes(needle)
+    );
+  });
+
+  const totalSubs = allSubs.length;
+  const activeSubs = allSubs.filter((s) => s.status === 'ACTIVE').length;
+  const trialingSubs = allSubs.filter((s) => s.status === 'TRIALING').length;
+  const pastDueSubs = allSubs.filter((s) => s.status === 'PAST_DUE' || s.status === 'CANCELLED').length;
+
+  return (
+    <>
+      <PageHead
+        eyebrow="Activity"
+        title="Shop subscriptions"
+        lede="Platform SaaS tiers, recurring billing cycles, and subscription statuses across all salon storefronts."
+        actions={
+          <div className="flex items-center gap-2">
+            <Button onClick={subsApi.refresh} disabled={subsApi.loading}>
+              <RotateCw size={12} className={subsApi.loading ? 'animate-spin' : ''} />
+              Refresh
+            </Button>
+          </div>
+        }
+      />
+
+      <Canvas>
+        {subsApi.error && <Failed message={subsApi.error} onRetry={subsApi.refresh} />}
+        {subsApi.loading && !subsApi.data && <Loading label="Loading shop subscriptions" />}
+
+        {subsApi.data && !subsApi.error && (
+          <>
+            <div className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-4">
+              <Stat label="Total subscriptions" value={count(totalSubs)} pending={subsApi.loading} />
+              <Stat
+                label="Active subscriptions"
+                value={count(activeSubs)}
+                tone="live"
+                sub="Active billing cycle"
+              />
+              <Stat
+                label="In trial period"
+                value={count(trialingSubs)}
+                sub="Evaluation phase"
+              />
+              <Stat
+                label="Past due / cancelled"
+                value={count(pastDueSubs)}
+                tone={pastDueSubs > 0 ? 'signal' : 'plain'}
+                sub="Attention required"
+              />
+            </div>
+
+            <Panel
+              flush
+              title={`${count(filtered.length)} subscription${filtered.length === 1 ? '' : 's'}`}
+              actions={
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="relative">
+                    <Search
+                      size={13}
+                      className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-ink-3"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Search shop or tenant…"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      className="h-7 w-48 rounded border border-rule bg-canvas pl-8 pr-2 text-xs text-ink placeholder:text-ink-3 focus:border-ink-2 focus:outline-none"
+                    />
+                  </label>
+
+                  <select
+                    value={planFilter}
+                    onChange={(e) => setPlanFilter(e.target.value)}
+                    className="h-7 rounded border border-rule bg-canvas px-2 text-xs text-ink focus:border-ink-2 focus:outline-none"
+                  >
+                    <option value="ALL">All plans</option>
+                    <option value="STARTER">Starter</option>
+                    <option value="PRO">Pro</option>
+                    <option value="ENTERPRISE">Enterprise</option>
+                  </select>
+
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="h-7 rounded border border-rule bg-canvas px-2 text-xs text-ink focus:border-ink-2 focus:outline-none"
+                  >
+                    <option value="ALL">All statuses</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="TRIALING">Trialing</option>
+                    <option value="PAST_DUE">Past due</option>
+                    <option value="CANCELLED">Cancelled</option>
+                  </select>
+                </div>
+              }
+            >
+              {filtered.length === 0 ? (
+                <Empty
+                  title="No subscriptions match your query"
+                  hint="Try adjusting your search criteria or filter options."
+                />
+              ) : (
+                <Scroll>
+                  <Table>
+                    <thead>
+                      <Tr>
+                        <Th align="left">Shop / Tenant</Th>
+                        <Th align="left">Current plan</Th>
+                        <Th align="left">Status</Th>
+                        <Th align="left">Period ends</Th>
+                        <Th align="right">Actions</Th>
+                      </Tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((sub) => {
+                        const shopName = tenantsMap.get(sub.tenantId) ?? sub.tenantId;
+                        return (
+                          <Tr key={sub.id}>
+                            <Td align="left">
+                              <div className="flex flex-col gap-0.5">
+                                <Link
+                                  href={`/shops/${sub.tenantId}`}
+                                  className="group inline-flex items-center gap-1 font-medium text-ink hover:text-accent"
+                                >
+                                  <span>{shopName}</span>
+                                  <ExternalLink
+                                    size={11}
+                                    className="text-ink-3 group-hover:text-accent"
+                                  />
+                                </Link>
+                                <span className="font-mono text-[10px] text-ink-3">
+                                  {shortId(sub.tenantId)}
+                                </span>
+                              </div>
+                            </Td>
+                            <Td align="left">
+                              <PlanBadge plan={sub.plan} />
+                            </Td>
+                            <Td align="left">
+                              <StatusBadge status={sub.status} />
+                            </Td>
+                            <Td align="left">
+                              <span className="text-xs text-ink-2">
+                                {sub.currentPeriodEnd ? date(sub.currentPeriodEnd) : '—'}
+                              </span>
+                            </Td>
+                            <Td align="right">
+                              <Button
+                                variant="secondary"
+                                onClick={() => setEditingSub(sub)}
+                              >
+                                Edit plan
+                              </Button>
+                            </Td>
+                          </Tr>
+                        );
+                      })}
+                    </tbody>
+                  </Table>
+                </Scroll>
+              )}
+            </Panel>
+          </>
+        )}
+      </Canvas>
+
+      {editingSub && (
+        <EditSubscriptionModal
+          sub={editingSub}
+          shopName={tenantsMap.get(editingSub.tenantId) ?? editingSub.tenantId}
+          onClose={() => setEditingSub(null)}
+          onSuccess={() => {
+            setEditingSub(null);
+            subsApi.refresh();
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function PlanBadge({ plan }: { plan: string }) {
+  switch (plan) {
+    case 'ENTERPRISE':
+      return <Badge tone="live">Enterprise</Badge>;
+    case 'PRO':
+      return <Badge tone="signal">Pro</Badge>;
+    case 'STARTER':
+      return <Badge tone="plain">Starter</Badge>;
+    default:
+      return <Badge tone="plain">{plan}</Badge>;
+  }
+}
+
+function StatusBadge({ status }: { status: string }) {
+  switch (status) {
+    case 'ACTIVE':
+      return <Badge tone="live">Active</Badge>;
+    case 'TRIALING':
+      return <Badge tone="signal">Trialing</Badge>;
+    case 'PAST_DUE':
+      return <Badge tone="signal">Past due</Badge>;
+    case 'CANCELLED':
+      return <Badge tone="plain">Cancelled</Badge>;
+    default:
+      return <Badge tone="plain">{status}</Badge>;
+  }
+}
+
+interface EditModalProps {
+  sub: Subscription;
+  shopName: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function EditSubscriptionModal({ sub, shopName, onClose, onSuccess }: EditModalProps) {
+  const [plan, setPlan] = useState(sub.plan);
+  const [status, setStatus] = useState(sub.status);
+  const [periodEnd, setPeriodEnd] = useState(
+    sub.currentPeriodEnd ? sub.currentPeriodEnd.slice(0, 10) : '',
+  );
+
+  const mutation = useMutation(async () => {
+    await updateSubscription(sub.tenantId, {
+      plan,
+      status,
+      currentPeriodEnd: periodEnd ? new Date(periodEnd).toISOString() : undefined,
+    });
+    onSuccess();
+  });
+
+  return (
+    <Modal
+      title="Modify shop subscription"
+      note={`Adjust billing tier or state for ${shopName}`}
+      onClose={onClose}
+    >
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          mutation.mutate();
+        }}
+        className="space-y-3.5"
+      >
+        {mutation.error && <FormError message={mutation.error} />}
+
+        <Field label="Target plan tier">
+          <Select value={plan} onChange={(e) => setPlan(e.target.value)}>
+            <option value="STARTER">Starter Plan</option>
+            <option value="PRO">Pro Plan</option>
+            <option value="ENTERPRISE">Enterprise Plan</option>
+          </Select>
+        </Field>
+
+        <Field label="Billing status">
+          <Select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="ACTIVE">Active</option>
+            <option value="TRIALING">Trialing</option>
+            <option value="PAST_DUE">Past due</option>
+            <option value="CANCELLED">Cancelled</option>
+          </Select>
+        </Field>
+
+        <Field label="Current period renewal date" hint="End date of currently paid cycle">
+          <TextInput
+            type="date"
+            value={periodEnd}
+            onChange={(e) => setPeriodEnd(e.target.value)}
+          />
+        </Field>
+
+        <div className="flex justify-end gap-2 border-t border-rule-soft pt-4">
+          <Button onClick={onClose} disabled={mutation.pending}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={mutation.pending} variant="primary">
+            {mutation.pending ? 'Updating…' : 'Save changes'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
