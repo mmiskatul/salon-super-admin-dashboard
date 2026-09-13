@@ -6,6 +6,7 @@ import { ArrowRight, Loader2 } from 'lucide-react';
 import { getSession, login } from '@/lib/api-client';
 import { useMutation } from '@/lib/useApi';
 import { Field, FormError, TextInput } from '@/components/ui/Form';
+import { SalunIcon } from '@/components/brand/SalunLogo';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -33,9 +34,12 @@ export default function SignInPage() {
       */}
       <aside className="flex flex-col justify-between bg-ink px-8 py-10 lg:px-14 lg:py-14">
         <div>
-          <p className="font-display text-[20px] leading-none font-extrabold tracking-[-0.02em] text-white">
-            SalunBD
-          </p>
+          <div className="flex items-center gap-2.5">
+            <SalunIcon size={30} />
+            <p className="font-display text-[20px] leading-none font-extrabold tracking-[-0.02em] text-white">
+              Salun<span className="text-[#635BFF]">BD</span>
+            </p>
+          </div>
           <p className="eyebrow mt-2 !text-white/40">Platform console</p>
         </div>
 

@@ -22,6 +22,7 @@ import {
   X,
 } from 'lucide-react';
 import { logout, type Session } from '@/lib/api-client';
+import { SalunIcon } from '@/components/brand/SalunLogo';
 
 interface NavItem {
   href: string;
@@ -82,10 +83,13 @@ export default function Rail({ session }: { session: Session }) {
   const nav = (
     <nav className="flex h-full flex-col">
       <div className="px-5 pt-6 pb-7">
-        <Link href="/" className="block" onClick={() => setOpen(false)}>
-          <span className="font-display text-[19px] leading-none font-extrabold tracking-[-0.02em] text-white">
-            SalunBD
-          </span>
+        <Link href="/" className="block group" onClick={() => setOpen(false)}>
+          <div className="flex items-center gap-2.5">
+            <SalunIcon size={28} className="transition-transform duration-200 group-hover:scale-105" />
+            <span className="font-display text-[19px] leading-none font-extrabold tracking-[-0.02em] text-white">
+              Salun<span className="text-[#635BFF]">BD</span>
+            </span>
+          </div>
           <span className="eyebrow mt-2 block !text-white/40">Platform console</span>
         </Link>
       </div>

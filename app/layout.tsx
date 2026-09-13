@@ -37,6 +37,10 @@ export const metadata: Metadata = {
   title: 'Platform console — SalunBD',
   description:
     'Operator console for the SalunBD platform: every shop on the platform, what it has been set up with, and what it is doing.',
+  icons: {
+    icon: '/salun-icon.svg',
+    apple: '/apple-touch-icon.png',
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

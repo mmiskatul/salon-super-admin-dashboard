@@ -1,0 +1,19 @@
+<svg width="800" height="200" viewBox="0 0 400 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="salunFullDarkGrad" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="#938AFF" />
+      <stop offset="100%" stop-color="#6054FF" />
+    </linearGradient>
+  </defs>
+  <g transform="translate(14, 15) scale(0.7)">
+    <rect width="100" height="100" rx="28" fill="url(#salunFullDarkGrad)" />
+    <line x1="51" y1="18" x2="51" y2="65.5" stroke="#FFFFFF" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round" />
+    <line x1="51" y1="47" x2="72.5" y2="47" stroke="#FFFFFF" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round" />
+    <line x1="33" y1="47" x2="51" y2="47" stroke="#FFFFFF" stroke-width="5.4" stroke-linejoin="round" />
+    <circle cx="25.5" cy="47" r="7.5" stroke="#FFFFFF" stroke-width="5.4" fill="none" />
+    <circle cx="51" cy="73" r="7.5" stroke="#FFFFFF" stroke-width="5.4" fill="none" />
+  </g>
+  <text x="100" y="65" font-family="system-ui, -apple-system, 'Inter', 'Manrope', sans-serif" font-size="52" font-weight="800" letter-spacing="-0.5">
+    <tspan fill="#FFFFFF">Salun</tspan><tspan fill="#7B73FF">BD</tspan>
+  </text>
+</svg>
