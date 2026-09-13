@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { getSession, type Session } from '@/lib/api-client';
+import { clearSession, getSession, type Session } from '@/lib/api-client';
 import Rail from './Rail';
 
 /**
@@ -13,6 +13,12 @@ import Rail from './Rail';
  * nothing at all (a flash of the roster before a redirect is worse than a blank moment), while a
  * confirmed missing session redirects rather than showing an error, because there is nothing the
  * operator could do with an error at that point except go and sign in.
+ *
+ * A session whose role isn't SUPER_ADMIN is treated the same as no session at all: `login()`
+ * refuses to mint one in the first place, but this is the backstop for a session left over from
+ * before a role change, or for anyone poking a session object into storage by hand. Real
+ * enforcement is server-side on every endpoint this app calls — this is defense-in-depth, not the
+ * only barrier.
  */
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -32,7 +38,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       return;
     }
     const current = getSession();
-    if (!current) {
+    if (!current || current.user.role !== 'SUPER_ADMIN') {
+      if (current) clearSession();
       router.replace('/sign-in');
       return;
     }

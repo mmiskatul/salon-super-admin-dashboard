@@ -10,12 +10,26 @@ export interface PlatformUser {
   updatedAt: string;
 }
 
-export function listUsers(query?: { search?: string; role?: string }): Promise<PlatformUser[]> {
+export interface PlatformUserPage {
+  data: PlatformUser[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export function listUsers(query?: {
+  search?: string;
+  role?: string;
+  page?: number;
+  limit?: number;
+}): Promise<PlatformUserPage> {
   const params = new URLSearchParams();
   if (query?.search) params.set('search', query.search);
   if (query?.role) params.set('role', query.role);
+  if (query?.page) params.set('page', String(query.page));
+  if (query?.limit) params.set('limit', String(query.limit));
   const qs = params.toString();
-  return apiFetch<PlatformUser[]>(`/auth/users${qs ? `?${qs}` : ''}`);
+  return apiFetch<PlatformUserPage>(`/auth/users${qs ? `?${qs}` : ''}`);
 }
 
 export interface UserWallet {

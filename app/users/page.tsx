@@ -28,18 +28,35 @@ import { Modal } from '@/components/ui/Form';
 const ROLES = ['ALL', 'CUSTOMER', 'BARBER', 'STAFF', 'OWNER', 'SUPER_ADMIN'] as const;
 type RoleFilter = (typeof ROLES)[number];
 
+const PAGE_SIZE = 50;
+
 export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
   const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<PlatformUser | null>(null);
 
   const users = useApi(
-    () => listUsers({ role: roleFilter === 'ALL' ? undefined : roleFilter }),
-    [roleFilter],
+    () =>
+      listUsers({
+        role: roleFilter === 'ALL' ? undefined : roleFilter,
+        page,
+        limit: PAGE_SIZE,
+      }),
+    [roleFilter, page],
   );
 
+  function selectRole(r: RoleFilter) {
+    setRoleFilter(r);
+    setPage(1);
+  }
+
+  // The backend paginates (up to 50 accounts per page), so `rows` is only the current page —
+  // not the whole roster. `total` below comes from the server's count, not rows.length.
+  const rows = users.data?.data ?? [];
+
   const needle = query.trim().toLowerCase();
-  const visible = (users.data ?? []).filter((u) => {
+  const visible = rows.filter((u) => {
     if (!needle) return true;
     return (
       u.email.toLowerCase().includes(needle) ||
@@ -48,11 +65,12 @@ export default function UsersPage() {
     );
   });
 
-  const total = users.data?.length ?? 0;
-  const customers = (users.data ?? []).filter((u) => u.role === 'CUSTOMER').length;
-  const barbers = (users.data ?? []).filter((u) => u.role === 'BARBER' || u.role === 'STAFF').length;
-  const owners = (users.data ?? []).filter((u) => u.role === 'OWNER').length;
-  const admins = (users.data ?? []).filter((u) => u.role === 'SUPER_ADMIN').length;
+  const total = users.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const customers = rows.filter((u) => u.role === 'CUSTOMER').length;
+  const barbers = rows.filter((u) => u.role === 'BARBER' || u.role === 'STAFF').length;
+  const owners = rows.filter((u) => u.role === 'OWNER').length;
+  const admins = rows.filter((u) => u.role === 'SUPER_ADMIN').length;
 
   return (
     <>
@@ -76,14 +94,14 @@ export default function UsersPage() {
           <>
             <div className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-5">
               <Stat label="Total accounts" value={count(total)} pending={users.loading} />
-              <Stat label="Customers" value={count(customers)} tone="plain" />
-              <Stat label="Barbers & Staff" value={count(barbers)} />
-              <Stat label="Shop Owners" value={count(owners)} tone="live" />
+              <Stat label="Customers" value={count(customers)} tone="plain" sub="This page" />
+              <Stat label="Barbers & Staff" value={count(barbers)} sub="This page" />
+              <Stat label="Shop Owners" value={count(owners)} tone="live" sub="This page" />
               <Stat
                 label="Super Admins"
                 value={count(admins)}
                 tone={admins > 1 ? 'signal' : 'plain'}
-                sub="Platform operators"
+                sub="This page"
               />
             </div>
 
@@ -98,7 +116,7 @@ export default function UsersPage() {
                       <button
                         key={r}
                         type="button"
-                        onClick={() => setRoleFilter(r)}
+                        onClick={() => selectRole(r)}
                         className={`rounded-[2px] px-2 py-1 text-[11px] font-medium transition-colors ${
                           roleFilter === r
                             ? 'bg-ink text-white'
@@ -208,6 +226,27 @@ export default function UsersPage() {
                   </Table>
                 </Scroll>
               )}
+
+              <div className="flex items-center justify-between border-t border-rule-soft px-4 py-2.5 text-[12px] text-ink-2">
+                <span>
+                  Page {page} of {totalPages} &middot; {count(total)} account{total === 1 ? '' : 's'}{' '}
+                  platform-wide
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1 || users.loading}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages || users.loading}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
             </Panel>
           </>
         )}
