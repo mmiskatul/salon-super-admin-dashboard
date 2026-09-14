@@ -19,10 +19,12 @@ export function Th({
   children,
   align = 'left',
   width,
+  className = '',
 }: {
   children?: React.ReactNode;
   align?: 'left' | 'right';
   width?: number | string;
+  className?: string;
 }) {
   return (
     <th
@@ -30,7 +32,7 @@ export function Th({
       style={width ? { width } : undefined}
       className={`eyebrow border-b border-rule px-3 py-2.5 font-medium whitespace-nowrap ${
         align === 'right' ? 'text-right' : 'text-left'
-      }`}
+      } ${className}`}
     >
       {children}
     </th>
@@ -41,18 +43,20 @@ export function Tr({
   children,
   onClick,
   accent,
+  className = '',
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   /** The shop's own brand colour, drawn as the row's left identity edge. */
   accent?: string;
+  className?: string;
 }) {
   return (
     <tr
       onClick={onClick}
       className={`border-b border-rule-soft last:border-b-0 ${
         onClick ? 'cursor-pointer hover:bg-ground/70' : ''
-      }`}
+      } ${className}`}
       style={accent ? { boxShadow: `inset 3px 0 0 0 ${accent}` } : undefined}
     >
       {children}
@@ -66,18 +70,20 @@ export function Td({
   mono,
   muted,
   nowrap = true,
+  className = '',
 }: {
   children?: React.ReactNode;
   align?: 'left' | 'right';
   mono?: boolean;
   muted?: boolean;
   nowrap?: boolean;
+  className?: string;
 }) {
   return (
     <td
       className={`px-3 py-2.5 text-[13px] ${align === 'right' ? 'text-right' : 'text-left'} ${
         mono ? 'tabular text-[12px]' : ''
-      } ${muted ? 'text-ink-2' : ''} ${nowrap ? 'whitespace-nowrap' : ''}`}
+      } ${muted ? 'text-ink-2' : ''} ${nowrap ? 'whitespace-nowrap' : ''} ${className}`}
     >
       {children}
     </td>

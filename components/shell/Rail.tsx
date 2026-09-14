@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   BadgeEuro,
+  Briefcase,
   CalendarRange,
   CreditCard,
   Gauge,
@@ -41,6 +42,7 @@ const GROUPS: { heading: string; items: NavItem[] }[] = [
     heading: 'Platform',
     items: [
       { href: '/', label: 'Overview', icon: Gauge },
+      { href: '/owners', label: 'Owner Dashboards', icon: Briefcase },
       { href: '/shops', label: 'Shops', icon: Store },
       { href: '/barbers', label: 'Independent barbers', icon: Scissors },
       { href: '/users', label: 'Users & accounts', icon: Users },
