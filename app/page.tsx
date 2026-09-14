@@ -203,6 +203,94 @@ export default function OverviewPage() {
                 })()}
               </Panel>
             </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Panel
+                title="Set up, never booked"
+                note="Has a barber and a service, but no bookings yet — worth a check-in."
+              >
+                {(() => {
+                  const idle = tenants
+                    .filter((t) => vitalityOf(vitals[t.id]) === 'idle')
+                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                    .slice(0, 6);
+                  if (idle.length === 0) {
+                    return (
+                      <p className="py-6 text-[12px] text-ink-2">
+                        {sweeping
+                          ? 'Still reading the roster.'
+                          : 'Every furnished shop on the platform has taken at least one booking.'}
+                      </p>
+                    );
+                  }
+                  return (
+                    <ul className="divide-y divide-rule-soft">
+                      {idle.map((t) => (
+                        <li key={t.id}>
+                          <Link
+                            href={`/shops/${t.id}`}
+                            className="flex items-center gap-3 py-2.5 hover:opacity-70"
+                          >
+                            <Mark name={t.name} logoUrl={t.logoUrl} color={t.brandColor} size={24} />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[13px]">{t.name}</span>
+                              <span className="tabular block text-[11px] text-ink-3">
+                                {count(vitals[t.id]?.staff ?? 0)} staff ·{' '}
+                                {count(vitals[t.id]?.services ?? 0)} services
+                              </span>
+                            </span>
+                            <VitalityTag vitality="idle" />
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()}
+              </Panel>
+
+              <Panel
+                title="No barbers on staff"
+                note="Has at least one service listed but nobody to perform it — cannot actually take a booking."
+              >
+                {(() => {
+                  const staffless = tenants
+                    .filter((t) => {
+                      const v = vitals[t.id];
+                      return v && v.staff === 0 && (v.services ?? 0) > 0;
+                    })
+                    .slice(0, 6);
+                  if (staffless.length === 0) {
+                    return (
+                      <p className="py-6 text-[12px] text-ink-2">
+                        {sweeping
+                          ? 'Still reading the roster.'
+                          : 'Every shop with a service listed has at least one barber on staff.'}
+                      </p>
+                    );
+                  }
+                  return (
+                    <ul className="divide-y divide-rule-soft">
+                      {staffless.map((t) => (
+                        <li key={t.id}>
+                          <Link
+                            href={`/shops/${t.id}`}
+                            className="flex items-center gap-3 py-2.5 hover:opacity-70"
+                          >
+                            <Mark name={t.name} logoUrl={t.logoUrl} color={t.brandColor} size={24} />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[13px]">{t.name}</span>
+                              <span className="tabular block text-[11px] text-ink-3">
+                                {count(vitals[t.id]?.services ?? 0)} services, 0 staff
+                              </span>
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()}
+              </Panel>
+            </div>
           </>
         )}
       </Canvas>

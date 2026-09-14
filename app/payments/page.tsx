@@ -2,10 +2,11 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { RotateCw } from 'lucide-react';
+import { RotateCw, Undo2 } from 'lucide-react';
 import type { Tenant } from '@/lib/api/tenants';
-import { listTransactions, type Transaction } from '@/lib/api/finance';
+import { listTransactions, refundTransaction, type Transaction } from '@/lib/api/finance';
 import { useTenantSweep } from '@/lib/useTenantSweep';
+import { useMutation } from '@/lib/useApi';
 import { brandColor, count, dateTime, money, shortId, toNumber } from '@/lib/format';
 import {
   Badge,
@@ -18,9 +19,14 @@ import {
   Panel,
   Stat,
 } from '@/components/ui/primitives';
+import { FormError, Modal } from '@/components/ui/Form';
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Ranked } from '@/components/chart/Chart';
 import Mark from '@/components/ui/Mark';
+
+/** Refunding a PAYOUT/TIP/COMMISSION/REFUND row makes no sense as a support action even though the
+ *  backend's refund() technically accepts any type — PAYMENT is the only real "money owed back". */
+const REFUNDABLE_TYPE = 'PAYMENT';
 
 const SETTLED = ['COMPLETED', 'PAID', 'SUCCEEDED', 'CAPTURED'];
 
@@ -34,6 +40,7 @@ const SETTLED = ['COMPLETED', 'PAID', 'SUCCEEDED', 'CAPTURED'];
  */
 export default function PaymentsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [refunding, setRefunding] = useState<{ row: Transaction; tenant: Tenant } | null>(null);
 
   const fetcher = useCallback((tenant: Tenant) => listTransactions(tenant.id), []);
   const { tenants, rows, loading, error, failedShops, reload } = useTenantSweep<Transaction>(fetcher);
@@ -192,38 +199,55 @@ export default function PaymentsPage() {
                         <Th>Status</Th>
                         <Th>Booking</Th>
                         <Th align="right">Amount</Th>
+                        <Th align="right">Actions</Th>
                       </tr>
                     </thead>
                     <tbody>
-                      {visible.slice(0, 250).map(({ row, tenant }) => (
-                        <Tr key={row.id} accent={brandColor(tenant.brandColor)}>
-                          <Td mono>{dateTime(row.createdAt)}</Td>
-                          <Td nowrap={false}>
-                            <Link
-                              href={`/shops/${tenant.id}`}
-                              className="flex items-center gap-2 hover:opacity-70"
-                            >
-                              <Mark
-                                name={tenant.name}
-                                logoUrl={tenant.logoUrl}
-                                color={tenant.brandColor}
-                                size={20}
-                              />
-                              <span className="truncate">{tenant.name}</span>
-                            </Link>
-                          </Td>
-                          <Td muted>{row.type}</Td>
-                          <Td>
-                            {SETTLED.includes(String(row.status).toUpperCase()) ? (
-                              <Badge tone="live">{String(row.status).toLowerCase()}</Badge>
-                            ) : (
-                              <Badge>{String(row.status).toLowerCase()}</Badge>
-                            )}
-                          </Td>
-                          <Td mono muted>{shortId(row.appointmentId)}</Td>
-                          <Td align="right" mono>{money(row.amount)}</Td>
-                        </Tr>
-                      ))}
+                      {visible.slice(0, 250).map(({ row, tenant }) => {
+                        const status = String(row.status).toUpperCase();
+                        const canRefund = row.type === REFUNDABLE_TYPE && status !== 'REFUNDED';
+                        return (
+                          <Tr key={row.id} accent={brandColor(tenant.brandColor)}>
+                            <Td mono>{dateTime(row.createdAt)}</Td>
+                            <Td nowrap={false}>
+                              <Link
+                                href={`/shops/${tenant.id}`}
+                                className="flex items-center gap-2 hover:opacity-70"
+                              >
+                                <Mark
+                                  name={tenant.name}
+                                  logoUrl={tenant.logoUrl}
+                                  color={tenant.brandColor}
+                                  size={20}
+                                />
+                                <span className="truncate">{tenant.name}</span>
+                              </Link>
+                            </Td>
+                            <Td muted>{row.type}</Td>
+                            <Td>
+                              {SETTLED.includes(status) ? (
+                                <Badge tone="live">{status.toLowerCase()}</Badge>
+                              ) : (
+                                <Badge>{status.toLowerCase()}</Badge>
+                              )}
+                            </Td>
+                            <Td mono muted>{shortId(row.appointmentId)}</Td>
+                            <Td align="right" mono>{money(row.amount)}</Td>
+                            <Td align="right">
+                              {canRefund && (
+                                <button
+                                  type="button"
+                                  onClick={() => setRefunding({ row, tenant })}
+                                  className="inline-flex items-center gap-1 text-[12px] font-medium text-ink-2 hover:text-signal"
+                                >
+                                  <Undo2 size={12} />
+                                  Refund
+                                </button>
+                              )}
+                            </Td>
+                          </Tr>
+                        );
+                      })}
                     </tbody>
                   </Table>
                   {visible.length > 250 && (
@@ -237,6 +261,64 @@ export default function PaymentsPage() {
           </>
         )}
       </Canvas>
+
+      {refunding && (
+        <RefundDialog
+          row={refunding.row}
+          tenant={refunding.tenant}
+          onClose={() => setRefunding(null)}
+          onRefunded={() => {
+            setRefunding(null);
+            reload();
+          }}
+        />
+      )}
     </>
+  );
+}
+
+/**
+ * Refunding a transaction.
+ *
+ * Not typed-confirm like deleting a shop — this reverses one payment rather than orphaning
+ * records across services, so a clear statement of what's being refunded is enough friction.
+ */
+function RefundDialog({
+  row,
+  tenant,
+  onClose,
+  onRefunded,
+}: {
+  row: Transaction;
+  tenant: Tenant;
+  onClose: () => void;
+  onRefunded: () => void;
+}) {
+  const { mutate, pending, error } = useMutation(refundTransaction);
+
+  async function confirm() {
+    const result = await mutate(row.id);
+    if (result !== null) onRefunded();
+  }
+
+  return (
+    <Modal title="Refund transaction" onClose={onClose}>
+      <div className="space-y-4">
+        <p className="max-w-[56ch] text-[13px] leading-relaxed">
+          Refund <strong>{money(row.amount)}</strong> from <strong>{tenant.name}</strong>&apos;s
+          books, recorded {dateTime(row.createdAt)}? If this payment was funded from a customer
+          wallet, the balance is credited back. This cannot be undone.
+        </p>
+
+        <FormError message={error} />
+
+        <div className="flex justify-end gap-2 border-t border-rule-soft pt-4">
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="danger" onClick={confirm} disabled={pending}>
+            {pending ? 'Refunding' : 'Refund'}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 }

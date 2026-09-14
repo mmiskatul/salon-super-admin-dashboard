@@ -17,11 +17,13 @@ export interface Ticket {
   category?: string;
   status: string;
   createdAt: string;
-  updatedAt: string;
   messages?: TicketMessage[];
 }
 
-export const TICKET_STATUSES = ['OPEN', 'PENDING', 'RESOLVED', 'CLOSED'] as const;
+/** Must match TICKET_STATUSES in the backend's ticket.dto.ts exactly — this previously said
+ *  'PENDING', which the backend has never accepted (its real value is 'IN_PROGRESS'), so setting
+ *  that status from this console always failed and filtering by it always returned nothing. */
+export const TICKET_STATUSES = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'] as const;
 
 /**
  * Lists tickets across the platform with optional status and category filters.

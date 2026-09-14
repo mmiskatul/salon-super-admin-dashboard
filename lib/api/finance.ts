@@ -14,3 +14,8 @@ export interface Transaction {
 export function listTransactions(tenantId: string): Promise<Transaction[]> {
   return apiFetch<Transaction[]>(`/transactions?tenantId=${encodeURIComponent(tenantId)}`);
 }
+
+/** SUPER_ADMIN may refund any tenant's transaction — see transaction.controller.ts's `refund`. */
+export function refundTransaction(id: string): Promise<Transaction> {
+  return apiFetch<Transaction>(`/transactions/${encodeURIComponent(id)}/refund`, { method: 'PATCH' });
+}

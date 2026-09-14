@@ -14,7 +14,7 @@ import { count, dateTime, shortId, since } from '@/lib/format';
 import { Badge, Button, Canvas, Empty, Failed, Loading, PageHead, Panel, Stat } from '@/components/ui/primitives';
 import { FormError, TextInput } from '@/components/ui/Form';
 
-const FILTER_STATUSES = ['ALL', 'OPEN', 'PENDING', 'RESOLVED', 'CLOSED'] as const;
+const FILTER_STATUSES = ['ALL', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'] as const;
 type StatusFilter = (typeof FILTER_STATUSES)[number];
 
 export default function SupportPage() {
@@ -69,7 +69,7 @@ export default function SupportPage() {
 
   const allTickets = tickets.data ?? [];
   const openCount = allTickets.filter((t) => t.status === 'OPEN').length;
-  const pendingCount = allTickets.filter((t) => t.status === 'PENDING').length;
+  const pendingCount = allTickets.filter((t) => t.status === 'IN_PROGRESS').length;
   const resolvedCount = allTickets.filter((t) => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
 
   const needle = searchQuery.trim().toLowerCase();
@@ -145,7 +145,7 @@ export default function SupportPage() {
                         statusFilter === s ? 'bg-ink text-white' : 'text-ink-2 hover:bg-ground hover:text-ink'
                       }`}
                     >
-                      {s === 'ALL' ? 'All' : s.toLowerCase()}
+                      {s === 'ALL' ? 'All' : s === 'IN_PROGRESS' ? 'In progress' : s.toLowerCase()}
                     </button>
                   ))}
                 </div>
@@ -260,7 +260,7 @@ export default function SupportPage() {
                       >
                         {TICKET_STATUSES.map((s) => (
                           <option key={s} value={s}>
-                            {s.toLowerCase()}
+                            {s === 'IN_PROGRESS' ? 'in progress' : s.toLowerCase()}
                           </option>
                         ))}
                       </select>
@@ -361,8 +361,8 @@ function TicketBadge({ status }: { status: string }) {
   switch (norm) {
     case 'OPEN':
       return <Badge tone="signal">Open</Badge>;
-    case 'PENDING':
-      return <Badge>Pending</Badge>;
+    case 'IN_PROGRESS':
+      return <Badge>In progress</Badge>;
     case 'RESOLVED':
     case 'CLOSED':
       return <Badge tone="live">{norm.toLowerCase()}</Badge>;
