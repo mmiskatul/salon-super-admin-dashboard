@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, ExternalLink, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Pencil, ShieldAlert, ShieldCheck, Trash2 } from 'lucide-react';
 import { useApi, useMutation } from '@/lib/useApi';
 import {
   deleteTenant,
@@ -13,12 +13,14 @@ import {
   listFiles,
   listLocations,
   listProducts,
+  suspendTenant,
+  unsuspendTenant,
   updateTenant,
   type Tenant,
 } from '@/lib/api/tenants';
 import { listStaff } from '@/lib/api/people';
 import { listServices } from '@/lib/api/catalog';
-import { listAppointments, listReviews } from '@/lib/api/bookings';
+import { listAppointments, listReviews, removeReview } from '@/lib/api/bookings';
 import { listTransactions } from '@/lib/api/finance';
 import { brandColor, count, date, dateTime, money, rating, since, shortId } from '@/lib/format';
 import {
@@ -57,7 +59,11 @@ export default function ShopPage() {
   const [tab, setTab] = useState<Tab>('Barbers');
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [suspending, setSuspending] = useState(false);
+  const unsuspend = useMutation(unsuspendTenant);
   const [selectedBarber, setSelectedBarber] = useState<{ userId: string; name: string } | null>(null);
+  const [confirmingReviewRemoval, setConfirmingReviewRemoval] = useState<string | null>(null);
+  const removeReviewMutation = useMutation(removeReview);
 
   const shop = useApi(() => getTenant(tenantId), [tenantId]);
   const staff = useApi(() => listStaff(tenantId), [tenantId]);
@@ -129,6 +135,7 @@ export default function ShopPage() {
                   <p className="mt-2 max-w-[60ch] text-[13px] text-ink-2">{tenant.tagline}</p>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  {tenant.isSuspended && <Badge tone="signal">Suspended</Badge>}
                   {tenant.isListed ? (
                     <Badge tone="live">Visible to customers</Badge>
                   ) : (
@@ -137,6 +144,11 @@ export default function ShopPage() {
                   {tenant.joinCode && <Badge>Join code {tenant.joinCode}</Badge>}
                   <Badge tone="quiet">{shortId(tenant.id)}</Badge>
                 </div>
+                {tenant.isSuspended && tenant.suspendedReason && (
+                  <p className="mt-2 max-w-[60ch] text-[12px] text-signal">
+                    Suspended: {tenant.suspendedReason}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -145,6 +157,23 @@ export default function ShopPage() {
                 <Pencil size={12} />
                 Edit shop
               </Button>
+              {tenant.isSuspended ? (
+                <Button
+                  onClick={async () => {
+                    const result = await unsuspend.mutate(tenant.id);
+                    if (result) shop.setData(result);
+                  }}
+                  disabled={unsuspend.pending}
+                >
+                  <ShieldCheck size={12} />
+                  {unsuspend.pending ? 'Unsuspending' : 'Unsuspend'}
+                </Button>
+              ) : (
+                <Button onClick={() => setSuspending(true)}>
+                  <ShieldAlert size={12} />
+                  Suspend
+                </Button>
+              )}
               <Button variant="danger" onClick={() => setConfirmingDelete(true)}>
                 <Trash2 size={12} />
                 Delete
@@ -348,17 +377,57 @@ export default function ShopPage() {
                       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                       .map((r) => (
                         <li key={r.id} className="py-3 first:pt-0">
-                          <div className="flex items-center gap-2">
-                            <span className="tabular text-[13px] font-semibold">{r.rating}/5</span>
-                            <span className="tabular text-[11px] text-ink-3">
-                              {date(r.createdAt)}
-                            </span>
-                            {r.replyText ? (
-                              <Badge tone="live">Replied</Badge>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="tabular text-[13px] font-semibold">{r.rating}/5</span>
+                              <span className="tabular text-[11px] text-ink-3">
+                                {date(r.createdAt)}
+                              </span>
+                              {r.replyText ? (
+                                <Badge tone="live">Replied</Badge>
+                              ) : (
+                                <Badge tone="quiet">No reply</Badge>
+                              )}
+                            </div>
+                            {confirmingReviewRemoval === r.id ? (
+                              <div className="flex shrink-0 items-center gap-2 text-[11px]">
+                                <span className="text-ink-2">Remove this review?</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmingReviewRemoval(null)}
+                                  className="text-ink-2 hover:text-ink"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={removeReviewMutation.pending}
+                                  onClick={async () => {
+                                    const result = await removeReviewMutation.mutate(r.id);
+                                    if (result !== null) {
+                                      setConfirmingReviewRemoval(null);
+                                      void reviews.refresh();
+                                    }
+                                  }}
+                                  className="font-medium text-signal hover:opacity-70"
+                                >
+                                  {removeReviewMutation.pending ? 'Removing…' : 'Confirm'}
+                                </button>
+                              </div>
                             ) : (
-                              <Badge tone="quiet">No reply</Badge>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmingReviewRemoval(r.id)}
+                                className="shrink-0 text-ink-3 hover:text-signal"
+                                title="Remove this review"
+                              >
+                                <Trash2 size={13} />
+                              </button>
                             )}
                           </div>
+                          {removeReviewMutation.error && confirmingReviewRemoval === r.id && (
+                            <p className="mt-1.5 text-[11px] text-signal">{removeReviewMutation.error}</p>
+                          )}
                           {r.comment && (
                             <p className="mt-1.5 max-w-[70ch] text-[13px] leading-relaxed">{r.comment}</p>
                           )}
@@ -671,6 +740,17 @@ export default function ShopPage() {
         />
       )}
 
+      {suspending && (
+        <SuspendShopDialog
+          tenant={tenant}
+          onClose={() => setSuspending(false)}
+          onSuspended={(next) => {
+            shop.setData(next);
+            setSuspending(false);
+          }}
+        />
+      )}
+
       {selectedBarber && (
         <BarberDetailModal
           userId={selectedBarber.userId}
@@ -809,6 +889,56 @@ function EditShopDialog({
           <Button onClick={onClose}>Cancel</Button>
           <Button type="submit" variant="primary" disabled={pending}>
             {pending ? 'Saving' : 'Save changes'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+/**
+ * Suspending a shop.
+ *
+ * Lighter than the delete dialog's typed confirmation — this is fully reversible (Unsuspend is
+ * right there once it's done) and touches no other data, unlike delete. A reason is optional but
+ * encouraged: it's shown on the shop page and recorded in the admin audit log either way.
+ */
+function SuspendShopDialog({
+  tenant,
+  onClose,
+  onSuspended,
+}: {
+  tenant: Tenant;
+  onClose: () => void;
+  onSuspended: (next: Tenant) => void;
+}) {
+  const [reason, setReason] = useState('');
+  const { mutate, pending, error } = useMutation(suspendTenant);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    const result = await mutate(tenant.id, reason.trim() || undefined);
+    if (result) onSuspended(result);
+  }
+
+  return (
+    <Modal title={`Suspend ${tenant.name}`} onClose={onClose}>
+      <form onSubmit={submit} className="space-y-4">
+        <p className="max-w-[56ch] text-[13px] leading-relaxed">
+          Blocks this shop from taking any new bookings platform-wide, immediately. Existing
+          bookings, reviews, and staff records are untouched, and this can be reversed at any time.
+        </p>
+
+        <FormError message={error} />
+
+        <Field label="Reason (optional)" hint="Shown on the shop page and recorded in the audit log.">
+          <TextInput value={reason} onChange={(e) => setReason(e.target.value)} autoFocus />
+        </Field>
+
+        <div className="flex justify-end gap-2 border-t border-rule-soft pt-4">
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="danger" disabled={pending}>
+            {pending ? 'Suspending' : 'Suspend shop'}
           </Button>
         </div>
       </form>

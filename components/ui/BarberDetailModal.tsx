@@ -4,6 +4,7 @@ import { ImageOff } from 'lucide-react';
 import { useApi } from '@/lib/useApi';
 import { listGallery } from '@/lib/api/profiles';
 import { getScheduleRange, type ScheduleDay } from '@/lib/api/schedule';
+import { getWorkingHoursFor } from '@/lib/api/workingHours';
 import { date as formatDate } from '@/lib/format';
 import { Badge, Loading } from './primitives';
 import { Modal } from './Form';
@@ -37,6 +38,7 @@ export default function BarberDetailModal({
 }) {
   const gallery = useApi(() => listGallery(userId), [userId]);
   const schedule = useApi(() => getScheduleRange(userId, todayIso(), inDaysIso(6)), [userId]);
+  const workingHours = useApi(() => getWorkingHoursFor(userId), [userId]);
 
   return (
     <Modal title={name} note="Portfolio, upcoming schedule, and wallet." onClose={onClose} wide>
@@ -98,6 +100,33 @@ export default function BarberDetailModal({
                         </Badge>
                       )}
                     </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section>
+          <p className="eyebrow mb-2">Weekly working hours</p>
+          {workingHours.loading && <Loading label="Loading working hours" />}
+          {workingHours.error && (
+            <p className="text-[12px] text-ink-3">Could not load this barber's working hours.</p>
+          )}
+          {workingHours.data && (
+            <div className="space-y-1 rounded-lg border border-rule-soft bg-ground px-3 py-2">
+              {workingHours.data.schedule.map((day) => (
+                <div key={day.day} className="flex items-center justify-between text-[12px]">
+                  <span className={day.isOpen ? 'text-ink' : 'text-ink-3'}>{day.day}</span>
+                  {day.isOpen ? (
+                    <span className="tabular text-ink-2">
+                      {day.startTime} – {day.endTime}
+                      {day.breakTime && (
+                        <span className="text-ink-3"> (break {day.breakTime}{day.breakEndTime ? `–${day.breakEndTime}` : ''})</span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-ink-3">Closed</span>
                   )}
                 </div>
               ))}

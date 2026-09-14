@@ -8,6 +8,7 @@ import {
   CalendarRange,
   CreditCard,
   Gauge,
+  History,
   LifeBuoy,
   LogOut,
   type LucideIcon,
@@ -60,6 +61,7 @@ const GROUPS: { heading: string; items: NavItem[] }[] = [
     items: [
       { href: '/broadcasts', label: 'Broadcasts', icon: Megaphone },
       { href: '/support', label: 'Support', icon: LifeBuoy },
+      { href: '/audit-log', label: 'Audit log', icon: History },
       { href: '/system', label: 'API coverage', icon: Network },
     ],
   },

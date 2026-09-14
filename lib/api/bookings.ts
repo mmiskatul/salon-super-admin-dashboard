@@ -64,3 +64,9 @@ export function listAppointments(tenantId: string, day?: string): Promise<Appoin
 export function listReviews(tenantId: string): Promise<Review[]> {
   return apiFetch<Review[]>(`/reviews?tenantId=${encodeURIComponent(tenantId)}`);
 }
+
+/** Platform moderation — removes a review outright. SUPER_ADMIN only; no self-service equivalent
+ *  exists for an OWNER/barber. Answers 204 with no body. */
+export function removeReview(id: string): Promise<void> {
+  return apiFetch<void>(`/reviews/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}

@@ -20,6 +20,9 @@ export interface Tenant {
   ratingAvg: string | number;
   ratingCount: number;
   isListed: boolean;
+  isSuspended: boolean;
+  suspendedReason: string | null;
+  suspendedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -82,6 +85,15 @@ export function updateTenant(id: string, input: UpdateTenantInput): Promise<Tena
 /** Answers 204 with no body. */
 export function deleteTenant(id: string): Promise<void> {
   return apiFetch<void>(`/tenants/${id}`, { method: 'DELETE' });
+}
+
+/** Freezes new bookings platform-wide — distinct from isListed, which only affects discovery. */
+export function suspendTenant(id: string, reason?: string): Promise<Tenant> {
+  return apiFetch<Tenant>(`/tenants/${id}/suspend`, { method: 'PATCH', body: JSON.stringify({ reason }) });
+}
+
+export function unsuspendTenant(id: string): Promise<Tenant> {
+  return apiFetch<Tenant>(`/tenants/${id}/unsuspend`, { method: 'PATCH' });
 }
 
 export function listLocations(tenantId: string): Promise<Location[]> {

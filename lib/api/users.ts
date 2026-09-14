@@ -6,6 +6,9 @@ export interface PlatformUser {
   role: 'CUSTOMER' | 'BARBER' | 'STAFF' | 'OWNER' | 'SUPER_ADMIN' | string;
   tenantId: string | null;
   emailVerified: boolean;
+  isBanned: boolean;
+  bannedReason: string | null;
+  bannedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -56,5 +59,18 @@ export function getUserWallet(ownerId: string): Promise<UserWallet> {
 
 export function getUserWalletEntries(ownerId: string): Promise<UserWalletEntry[]> {
   return apiFetch<UserWalletEntry[]>(`/wallets/${encodeURIComponent(ownerId)}/entries`);
+}
+
+/** Blocks login and any future token refresh — see AuthService.banUser(). A SUPER_ADMIN account
+ *  cannot be targeted (rejected server-side). */
+export function banUser(id: string, reason?: string): Promise<PlatformUser> {
+  return apiFetch<PlatformUser>(`/auth/users/${encodeURIComponent(id)}/ban`, {
+    method: 'PATCH',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export function unbanUser(id: string): Promise<PlatformUser> {
+  return apiFetch<PlatformUser>(`/auth/users/${encodeURIComponent(id)}/unban`, { method: 'PATCH' });
 }
 

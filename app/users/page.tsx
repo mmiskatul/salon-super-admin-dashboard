@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { RotateCw, Search, ExternalLink } from 'lucide-react';
-import { useApi } from '@/lib/useApi';
-import { listUsers, type PlatformUser } from '@/lib/api/users';
+import { RotateCw, Search, ExternalLink, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { useApi, useMutation } from '@/lib/useApi';
+import { banUser, listUsers, unbanUser, type PlatformUser } from '@/lib/api/users';
 import { count, date, initials, shortId, since } from '@/lib/format';
 import {
   Badge,
@@ -18,7 +18,7 @@ import {
   Stat,
 } from '@/components/ui/primitives';
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
-import { Modal } from '@/components/ui/Form';
+import { Field, FormError, Modal, TextInput } from '@/components/ui/Form';
 import WalletPanel from '@/components/ui/WalletPanel';
 
 const ROLES = ['ALL', 'CUSTOMER', 'BARBER', 'STAFF', 'OWNER', 'SUPER_ADMIN'] as const;
@@ -31,6 +31,10 @@ export default function UsersPage() {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<PlatformUser | null>(null);
+  const [banning, setBanning] = useState(false);
+  const [banReason, setBanReason] = useState('');
+  const ban = useMutation(banUser);
+  const unban = useMutation(unbanUser);
 
   const users = useApi(
     () =>
@@ -198,11 +202,14 @@ export default function UsersPage() {
                             )}
                           </Td>
                           <Td>
-                            {u.emailVerified ? (
-                              <Badge tone="live">Verified</Badge>
-                            ) : (
-                              <Badge tone="signal">Pending</Badge>
-                            )}
+                            <div className="flex flex-wrap items-center gap-1">
+                              {u.emailVerified ? (
+                                <Badge tone="live">Verified</Badge>
+                              ) : (
+                                <Badge tone="signal">Pending</Badge>
+                              )}
+                              {u.isBanned && <Badge tone="signal">Banned</Badge>}
+                            </div>
                           </Td>
                           <Td align="right" mono muted>
                             <span title={date(u.createdAt)}>{since(u.createdAt)}</span>
@@ -249,17 +256,31 @@ export default function UsersPage() {
       </Canvas>
 
       {selectedUser && (
-        <Modal title="User Account Details" onClose={() => setSelectedUser(null)}>
+        <Modal
+          title="User Account Details"
+          onClose={() => {
+            setSelectedUser(null);
+            setBanning(false);
+            setBanReason('');
+          }}
+        >
           <div className="space-y-4 text-[13px]">
             <div className="flex items-center gap-3 border-b border-rule-soft pb-4">
               <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-ground font-bold text-ink">
                 {initials(selectedUser.email)}
               </span>
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="font-semibold">{selectedUser.email}</p>
                 <p className="tabular font-mono text-[11px] text-ink-3">{selectedUser.id}</p>
               </div>
+              {selectedUser.isBanned && <Badge tone="signal">Banned</Badge>}
             </div>
+
+            {selectedUser.isBanned && selectedUser.bannedReason && (
+              <p className="rounded-lg border border-signal/25 bg-signal-soft px-3 py-2 text-[12px] text-signal">
+                Reason: {selectedUser.bannedReason}
+              </p>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -297,8 +318,72 @@ export default function UsersPage() {
 
             <WalletPanel userId={selectedUser.id} />
 
+            {selectedUser.role !== 'SUPER_ADMIN' && (
+              <div className="border-t border-rule-soft pt-4">
+                <FormError message={ban.error ?? unban.error} />
+
+                {banning ? (
+                  <div className="space-y-3">
+                    <Field label="Reason (optional)" hint="Recorded in the admin audit log.">
+                      <TextInput value={banReason} onChange={(e) => setBanReason(e.target.value)} autoFocus />
+                    </Field>
+                    <div className="flex justify-end gap-2">
+                      <Button onClick={() => setBanning(false)}>Cancel</Button>
+                      <Button
+                        variant="danger"
+                        disabled={ban.pending}
+                        onClick={async () => {
+                          const result = await ban.mutate(selectedUser.id, banReason.trim() || undefined);
+                          if (result) {
+                            setSelectedUser(result);
+                            setBanning(false);
+                            setBanReason('');
+                            void users.refresh();
+                          }
+                        }}
+                      >
+                        <ShieldAlert size={12} />
+                        {ban.pending ? 'Banning' : 'Confirm ban'}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-end">
+                    {selectedUser.isBanned ? (
+                      <Button
+                        disabled={unban.pending}
+                        onClick={async () => {
+                          const result = await unban.mutate(selectedUser.id);
+                          if (result) {
+                            setSelectedUser(result);
+                            void users.refresh();
+                          }
+                        }}
+                      >
+                        <ShieldCheck size={12} />
+                        {unban.pending ? 'Unbanning' : 'Unban account'}
+                      </Button>
+                    ) : (
+                      <Button variant="danger" onClick={() => setBanning(true)}>
+                        <ShieldAlert size={12} />
+                        Ban account
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex justify-end border-t border-rule-soft pt-4">
-              <Button onClick={() => setSelectedUser(null)}>Close</Button>
+              <Button
+                onClick={() => {
+                  setSelectedUser(null);
+                  setBanning(false);
+                  setBanReason('');
+                }}
+              >
+                Close
+              </Button>
             </div>
           </div>
         </Modal>
