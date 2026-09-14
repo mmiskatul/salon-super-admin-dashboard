@@ -37,7 +37,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`relative w-full border border-rule bg-surface shadow-xl ${wide ? 'max-w-2xl' : 'max-w-lg'}`}
+        className={`relative w-full rounded-lg border border-rule bg-surface shadow-xl ${wide ? 'max-w-2xl' : 'max-w-lg'}`}
       >
         <div className="flex items-start justify-between gap-4 border-b border-rule px-5 py-4">
           <div>
@@ -73,7 +73,7 @@ export function Field({
 }
 
 const CONTROL =
-  'mt-1.5 w-full rounded-[3px] border border-rule bg-surface px-2.5 py-2 text-[13px] text-ink placeholder:text-ink-3 focus:border-ink focus:outline-none';
+  'mt-1.5 w-full rounded-lg border border-rule bg-surface px-2.5 py-2 text-[13px] text-ink placeholder:text-ink-3 focus:border-primary focus:outline-none';
 
 export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={`${CONTROL} ${props.className ?? ''}`} />;
@@ -91,7 +91,7 @@ export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
 export function FormError({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <p role="alert" className="border border-signal/25 bg-signal-soft px-3 py-2 text-[12px] text-signal">
+    <p role="alert" className="rounded-lg border border-signal/25 bg-signal-soft px-3 py-2 text-[12px] text-signal">
       {message}
     </p>
   );

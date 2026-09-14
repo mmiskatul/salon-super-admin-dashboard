@@ -111,9 +111,9 @@ export function shortId(id: string | null | undefined): string {
  * screen, an unparseable value has to fall back to the chrome's ink rather than colouring nothing.
  */
 export function brandColor(value: string | null | undefined): string {
-  if (typeof value !== 'string') return '#15171b';
+  if (typeof value !== 'string') return '#1e293b';
   const trimmed = value.trim();
-  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed) ? trimmed : '#15171b';
+  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed) ? trimmed : '#1e293b';
 }
 
 export function initials(name: string | null | undefined): string {

@@ -45,7 +45,7 @@ export function Panel({
   flush?: boolean;
 }) {
   return (
-    <section className="border border-rule bg-surface">
+    <section className="overflow-hidden rounded-lg border border-rule bg-surface shadow-sm">
       {(title || actions) && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule-soft px-4 py-3">
           <div className="min-w-0">
@@ -83,7 +83,7 @@ export function Stat({
   const toneClass =
     tone === 'signal' ? 'text-signal' : tone === 'live' ? 'text-live' : 'text-ink';
   return (
-    <div className="border border-rule bg-surface px-4 py-4">
+    <div className="rounded-lg border border-rule bg-surface px-4 py-4 shadow-sm">
       <p className="eyebrow">{label}</p>
       <p
         className={`font-display mt-2.5 text-[27px] leading-none font-extrabold tracking-[-0.035em] tabular-nums ${
@@ -112,7 +112,7 @@ export function Badge({
   } as const;
   return (
     <span
-      className={`tabular inline-flex items-center rounded-[2px] border px-1.5 py-[3px] text-[10px] font-medium tracking-[0.06em] uppercase ${tones[tone]}`}
+      className={`tabular inline-flex items-center rounded-full border px-2 py-[3px] text-[10px] font-medium tracking-[0.06em] uppercase ${tones[tone]}`}
     >
       {children}
     </span>
@@ -135,7 +135,7 @@ export function Button({
   title?: string;
 }) {
   const variants = {
-    primary: 'bg-ink text-white hover:bg-ink/85 disabled:bg-ink-3',
+    primary: 'bg-primary text-white hover:bg-primary-hover disabled:bg-ink-3',
     secondary: 'border border-rule bg-surface text-ink hover:bg-ground disabled:text-ink-3',
     danger: 'border border-signal/40 bg-surface text-signal hover:bg-signal-soft disabled:opacity-50',
   } as const;
@@ -145,7 +145,7 @@ export function Button({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`inline-flex items-center gap-1.5 rounded-[3px] px-3 py-[7px] text-[12px] font-medium transition-colors disabled:cursor-not-allowed ${variants[variant]}`}
+      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-[7px] text-[12px] font-medium transition-colors disabled:cursor-not-allowed ${variants[variant]}`}
     >
       {children}
     </button>

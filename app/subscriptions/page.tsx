@@ -81,7 +81,7 @@ export default function SubscriptionsPage() {
 
         {subsApi.data && !subsApi.error && (
           <>
-            <div className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <Stat label="Total subscriptions" value={count(totalSubs)} pending={subsApi.loading} />
               <Stat
                 label="Active subscriptions"
@@ -117,14 +117,14 @@ export default function SubscriptionsPage() {
                       placeholder="Search shop or tenant…"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      className="h-7 w-48 rounded border border-rule bg-canvas pl-8 pr-2 text-xs text-ink placeholder:text-ink-3 focus:border-ink-2 focus:outline-none"
+                      className="h-7 w-48 rounded border border-rule bg-canvas pl-8 pr-2 text-xs text-ink placeholder:text-ink-3 focus:border-primary-2 focus:outline-none"
                     />
                   </label>
 
                   <select
                     value={planFilter}
                     onChange={(e) => setPlanFilter(e.target.value)}
-                    className="h-7 rounded border border-rule bg-canvas px-2 text-xs text-ink focus:border-ink-2 focus:outline-none"
+                    className="h-7 rounded border border-rule bg-canvas px-2 text-xs text-ink focus:border-primary-2 focus:outline-none"
                   >
                     <option value="ALL">All plans</option>
                     <option value="STARTER">Starter</option>
@@ -135,7 +135,7 @@ export default function SubscriptionsPage() {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="h-7 rounded border border-rule bg-canvas px-2 text-xs text-ink focus:border-ink-2 focus:outline-none"
+                    className="h-7 rounded border border-rule bg-canvas px-2 text-xs text-ink focus:border-primary-2 focus:outline-none"
                   >
                     <option value="ALL">All statuses</option>
                     <option value="ACTIVE">Active</option>

@@ -3,27 +3,33 @@
 /*
  * The switchboard palette.
  *
- * Design thesis: this console operates many independent businesses, each of which already owns a
- * brand colour (Tenant.brandColor in service-business). So the chrome here is deliberately
- * achromatic — greys, one alarm, one all-clear — and every saturated hue on screen belongs to a
- * tenant rather than to the interface. That rule is what keeps a roster of forty shops readable:
- * if the furniture were coloured too, the tenants' own colours would stop meaning anything.
+ * Matched to salon-owner-dashboard's palette deliberately: this console and the owner dashboard are
+ * both surfaces of the same product, and an operator who also runs their own shop's owner dashboard
+ * should recognise the same brand purple, the same light surfaces, and the same status colours here
+ * rather than landing on what used to read as a different, achromatic product. Tenant brand colours
+ * (Tenant.brandColor) still carry each shop's own identity on top of this — Mark, Ranked and Split
+ * all take a colour prop rather than reading these tokens, so a shop's row still stands out.
  */
 @theme {
-  --color-ink: #15171b;
-  --color-ink-2: #5f636b;
-  --color-ink-3: #9a9ea6;
-  --color-ground: #e9e9ec;
+  --color-ink: #1e293b;
+  --color-ink-2: #64748b;
+  --color-ink-3: #94a3b8;
+  --color-ground: #f8fafc;
   --color-surface: #ffffff;
-  --color-rule: #d6d7db;
-  --color-rule-soft: #e6e6ea;
+  --color-rule: #e2e8f0;
+  --color-rule-soft: #f1f5f9;
 
   /* Reserved. --color-signal means "an operator has to look at this"; nothing decorative may
      use it, or it stops working as an alarm. --color-live is its opposite number. */
-  --color-signal: #b23a0e;
-  --color-signal-soft: #fbeee8;
-  --color-live: #186a50;
-  --color-live-soft: #e8f3ee;
+  --color-signal: #ef4444;
+  --color-signal-soft: #fef2f2;
+  --color-live: #22c55e;
+  --color-live-soft: #f0fdf4;
+
+  /* The brand accent — matches salon-owner-dashboard's primary purple exactly. */
+  --color-primary: #635bff;
+  --color-primary-hover: #524be0;
+  --color-primary-soft: #ede9fe;
 
   --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
@@ -76,9 +82,9 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-ink);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: 6px;
 }
 
 @media (prefers-reduced-motion: reduce) {

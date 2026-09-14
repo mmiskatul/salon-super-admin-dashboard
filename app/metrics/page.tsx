@@ -150,7 +150,7 @@ export default function MetricsPage() {
 
             {queried && rows.length > 0 && (
               <>
-                <div className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                   <Stat label="Snapshots" value={count(rows.length)} />
                   <Stat label="Latest" value={latest?.toLocaleString() ?? '—'} />
                   <Stat label="Peak" value={peak?.toLocaleString() ?? '—'} />

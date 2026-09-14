@@ -157,7 +157,7 @@ export default function SystemPage() {
       />
 
       <Canvas>
-        <div className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <Stat
             label="Services answering"
             value={`${answered}/${PROBES.length}`}

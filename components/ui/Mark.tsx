@@ -28,7 +28,7 @@ export default function Mark({
 
   return (
     <span
-      className="inline-flex shrink-0 items-center justify-center overflow-hidden rounded-[3px]"
+      className="inline-flex shrink-0 items-center justify-center overflow-hidden rounded-lg"
       style={{ width: size, height: size, backgroundColor: showLogo ? '#fff' : fill }}
       aria-hidden
     >

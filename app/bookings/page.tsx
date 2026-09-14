@@ -88,7 +88,7 @@ export default function BookingsPage() {
               value={day}
               onChange={(e) => e.target.value && setDay(e.target.value)}
               aria-label="Day"
-              className="tabular rounded-[3px] border border-rule bg-surface px-2.5 py-[6px] text-[12px] focus:border-ink focus:outline-none"
+              className="tabular rounded-lg border border-rule bg-surface px-2.5 py-[6px] text-[12px] focus:border-primary focus:outline-none"
             />
             <Button onClick={() => shiftDay(1)} title="Next day">
               <ChevronRight size={13} />
@@ -108,7 +108,7 @@ export default function BookingsPage() {
 
         {!loading && !error && (
           <>
-            <div className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <Stat
                 label="Bookings"
                 value={count(ordered.length)}
@@ -124,7 +124,7 @@ export default function BookingsPage() {
             </div>
 
             {failedShops > 0 && (
-              <p className="border border-signal/25 bg-signal-soft px-4 py-2.5 text-[12px] text-signal">
+              <p className="rounded-lg border border-signal/25 bg-signal-soft px-4 py-2.5 text-[12px] text-signal">
                 {count(failedShops)} shop{failedShops === 1 ? '' : 's'} did not answer, so this day
                 may be missing bookings.
               </p>
@@ -135,13 +135,13 @@ export default function BookingsPage() {
                 <Split
                   height={10}
                   segments={[
-                    { key: 'completed', label: 'Completed', value: summary.completed, color: '#186a50' },
-                    { key: 'open', label: 'Open', value: summary.open, color: '#15171b' },
+                    { key: 'completed', label: 'Completed', value: summary.completed, color: '#22c55e' },
+                    { key: 'open', label: 'Open', value: summary.open, color: '#1e293b' },
                     {
                       key: 'cancelled',
                       label: 'Cancelled or no-show',
                       value: summary.cancelled,
-                      color: '#b23a0e',
+                      color: '#ef4444',
                     },
                   ]}
                 />

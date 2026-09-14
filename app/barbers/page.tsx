@@ -61,7 +61,7 @@ export default function BarbersPage() {
 
         {rows && !error && (
           <>
-            <div className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <Stat label="Independent barbers" value={count(rows.length)} />
               <Stat
                 label="With a service list"
@@ -93,7 +93,7 @@ export default function BarbersPage() {
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search barbers"
                     aria-label="Search barbers"
-                    className="w-[170px] rounded-[3px] border border-rule bg-surface py-[6px] pr-2.5 pl-7 text-[12px] placeholder:text-ink-3 focus:border-ink focus:outline-none"
+                    className="w-[170px] rounded-lg border border-rule bg-surface py-[6px] pr-2.5 pl-7 text-[12px] placeholder:text-ink-3 focus:border-primary focus:outline-none"
                   />
                 </label>
               }
@@ -134,7 +134,7 @@ export default function BarbersPage() {
                           <Td nowrap={false}>
                             <span className="flex items-center gap-2.5">
                               <span
-                                className="tabular inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] bg-ink text-[9px] font-semibold text-white"
+                                className="tabular inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-ink text-[9px] font-semibold text-white"
                                 aria-hidden
                               >
                                 {row.profile ? initials(row.profile.name) : '··'}

@@ -107,7 +107,7 @@ export default function PaymentsPage() {
 
         {!loading && !error && (
           <>
-            <div className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <Stat
                 label="Settled"
                 value={money(stats.settled)}
@@ -129,7 +129,7 @@ export default function PaymentsPage() {
             </div>
 
             {failedShops > 0 && (
-              <p className="border border-signal/25 bg-signal-soft px-4 py-2.5 text-[12px] text-signal">
+              <p className="rounded-lg border border-signal/25 bg-signal-soft px-4 py-2.5 text-[12px] text-signal">
                 {count(failedShops)} shop{failedShops === 1 ? '' : 's'} did not answer, so these
                 totals are short by whatever those hold.
               </p>
@@ -164,7 +164,7 @@ export default function PaymentsPage() {
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
                     aria-label="Filter by status"
-                    className="rounded-[3px] border border-rule bg-surface px-2 py-[6px] text-[12px] focus:border-ink focus:outline-none"
+                    className="rounded-lg border border-rule bg-surface px-2 py-[6px] text-[12px] focus:border-primary focus:outline-none"
                   >
                     {statuses.map((s) => (
                       <option key={s} value={s}>

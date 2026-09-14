@@ -111,14 +111,14 @@ export default function ShopsPage() {
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search shops"
                     aria-label="Search shops"
-                    className="w-[170px] rounded-[3px] border border-rule bg-surface py-[6px] pr-2.5 pl-7 text-[12px] placeholder:text-ink-3 focus:border-ink focus:outline-none"
+                    className="w-[170px] rounded-lg border border-rule bg-surface py-[6px] pr-2.5 pl-7 text-[12px] placeholder:text-ink-3 focus:border-primary focus:outline-none"
                   />
                 </label>
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SortKey)}
                   aria-label="Sort shops"
-                  className="rounded-[3px] border border-rule bg-surface px-2 py-[6px] text-[12px] focus:border-ink focus:outline-none"
+                  className="rounded-lg border border-rule bg-surface px-2 py-[6px] text-[12px] focus:border-primary focus:outline-none"
                 >
                   <option value="newest">Newest first</option>
                   <option value="name">Name</option>
@@ -135,9 +135,9 @@ export default function ShopsPage() {
                   type="button"
                   onClick={() => setFilter(f.key)}
                   aria-pressed={filter === f.key}
-                  className={`rounded-[2px] px-2 py-1 text-[11px] transition-colors ${
+                  className={`rounded-full px-2 py-1 text-[11px] transition-colors ${
                     filter === f.key
-                      ? 'bg-ink text-white'
+                      ? 'bg-primary text-white'
                       : 'text-ink-2 hover:bg-ground hover:text-ink'
                   }`}
                 >
@@ -280,7 +280,7 @@ function NewShopDialog({
   const [businessType, setBusinessType] = useState('Barbershop');
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
-  const [colour, setColour] = useState('#15171b');
+  const [colour, setColour] = useState('#1e293b');
   const [tagline, setTagline] = useState('');
   const { mutate, pending, error } = useMutation(createTenant);
 
@@ -366,13 +366,13 @@ function NewShopDialog({
                 value={colour}
                 onChange={(e) => setColour(e.target.value)}
                 aria-label="Brand colour"
-                className="h-[34px] w-12 cursor-pointer rounded-[3px] border border-rule bg-surface"
+                className="h-[34px] w-12 cursor-pointer rounded-lg border border-rule bg-surface"
               />
               <input
                 value={colour}
                 onChange={(e) => setColour(e.target.value)}
                 aria-label="Brand colour hex"
-                className="tabular w-full rounded-[3px] border border-rule bg-surface px-2.5 py-2 text-[13px] focus:border-ink focus:outline-none"
+                className="tabular w-full rounded-lg border border-rule bg-surface px-2.5 py-2 text-[13px] focus:border-primary focus:outline-none"
               />
             </span>
           </Field>

@@ -74,7 +74,7 @@ export default function CouponsPage() {
 
         {coupons.data && !coupons.error && (
           <>
-            <div className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <Stat label="Total coupons" value={count(totalCoupons)} pending={coupons.loading} />
               <Stat
                 label="Currently active"
@@ -103,7 +103,7 @@ export default function CouponsPage() {
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search code or shop..."
                     aria-label="Search coupons"
-                    className="w-[180px] rounded-[3px] border border-rule bg-surface py-[5px] pr-2.5 pl-7 text-[12px] placeholder:text-ink-3 focus:border-ink focus:outline-none"
+                    className="w-[180px] rounded-lg border border-rule bg-surface py-[5px] pr-2.5 pl-7 text-[12px] placeholder:text-ink-3 focus:border-primary focus:outline-none"
                   />
                 </label>
               }
@@ -263,7 +263,7 @@ function CreateCouponDialog({
             <select
               value={tenantId}
               onChange={(e) => setTenantId(e.target.value)}
-              className="w-full rounded-[3px] border border-rule bg-surface p-2 text-[13px] focus:border-ink focus:outline-none"
+              className="w-full rounded-lg border border-rule bg-surface p-2 text-[13px] focus:border-primary focus:outline-none"
               required
             >
               {tenants.map((t) => (
@@ -289,9 +289,9 @@ function CreateCouponDialog({
               <button
                 type="button"
                 onClick={() => setDiscountType('percent')}
-                className={`flex-1 rounded-[3px] border py-1.5 text-[12px] font-medium transition-colors ${
+                className={`flex-1 rounded-lg border py-1.5 text-[12px] font-medium transition-colors ${
                   discountType === 'percent'
-                    ? 'border-ink bg-ink text-white'
+                    ? 'border-primary bg-primary text-white'
                     : 'border-rule bg-surface text-ink-2'
                 }`}
               >
@@ -300,9 +300,9 @@ function CreateCouponDialog({
               <button
                 type="button"
                 onClick={() => setDiscountType('amount')}
-                className={`flex-1 rounded-[3px] border py-1.5 text-[12px] font-medium transition-colors ${
+                className={`flex-1 rounded-lg border py-1.5 text-[12px] font-medium transition-colors ${
                   discountType === 'amount'
-                    ? 'border-ink bg-ink text-white'
+                    ? 'border-primary bg-primary text-white'
                     : 'border-rule bg-surface text-ink-2'
                 }`}
               >

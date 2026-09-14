@@ -153,7 +153,7 @@ export default function ShopPage() {
       </header>
 
       <Canvas>
-        <div className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
           <Stat label="Barbers" value={count(staff.data?.length ?? 0)} pending={staff.loading} />
           <Stat
             label="Services"
@@ -191,8 +191,8 @@ export default function ShopPage() {
                 type="button"
                 onClick={() => setTab(name)}
                 aria-pressed={tab === name}
-                className={`rounded-[2px] px-2.5 py-1 text-[12px] transition-colors ${
-                  tab === name ? 'bg-ink text-white' : 'text-ink-2 hover:bg-ground hover:text-ink'
+                className={`rounded-full px-2.5 py-1 text-[12px] transition-colors ${
+                  tab === name ? 'bg-primary text-white' : 'text-ink-2 hover:bg-ground hover:text-ink'
                 }`}
               >
                 {name}
@@ -445,19 +445,19 @@ export default function ShopPage() {
                 {hours.data && (
                   <>
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                      <div className="rounded-[3px] border border-rule bg-ground p-3">
+                      <div className="rounded-lg border border-rule bg-ground p-3">
                         <p className="eyebrow !text-[10px]">Buffer Before</p>
                         <p className="mt-1 font-semibold text-ink">{hours.data.bufferBeforeMin} min</p>
                       </div>
-                      <div className="rounded-[3px] border border-rule bg-ground p-3">
+                      <div className="rounded-lg border border-rule bg-ground p-3">
                         <p className="eyebrow !text-[10px]">Buffer After</p>
                         <p className="mt-1 font-semibold text-ink">{hours.data.bufferAfterMin} min</p>
                       </div>
-                      <div className="rounded-[3px] border border-rule bg-ground p-3">
+                      <div className="rounded-lg border border-rule bg-ground p-3">
                         <p className="eyebrow !text-[10px]">Minimum Notice</p>
                         <p className="mt-1 font-semibold text-ink">{hours.data.minNotice}</p>
                       </div>
-                      <div className="rounded-[3px] border border-rule bg-ground p-3">
+                      <div className="rounded-lg border border-rule bg-ground p-3">
                         <p className="eyebrow !text-[10px]">Booking Window</p>
                         <p className="mt-1 font-semibold text-ink">{hours.data.bookingWindow}</p>
                       </div>
@@ -764,13 +764,13 @@ function EditShopDialog({
                 value={colour}
                 onChange={(e) => setColour(e.target.value)}
                 aria-label="Brand colour"
-                className="h-[34px] w-12 cursor-pointer rounded-[3px] border border-rule bg-surface"
+                className="h-[34px] w-12 cursor-pointer rounded-lg border border-rule bg-surface"
               />
               <input
                 value={colour}
                 onChange={(e) => setColour(e.target.value)}
                 aria-label="Brand colour hex"
-                className="tabular w-full rounded-[3px] border border-rule bg-surface px-2.5 py-2 text-[13px] focus:border-ink focus:outline-none"
+                className="tabular w-full rounded-lg border border-rule bg-surface px-2.5 py-2 text-[13px] focus:border-primary focus:outline-none"
               />
             </span>
           </Field>

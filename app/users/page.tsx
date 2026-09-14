@@ -92,7 +92,7 @@ export default function UsersPage() {
 
         {users.data && !users.error && (
           <>
-            <div className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-5">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
               <Stat label="Total accounts" value={count(total)} pending={users.loading} />
               <Stat label="Customers" value={count(customers)} tone="plain" sub="This page" />
               <Stat label="Barbers & Staff" value={count(barbers)} sub="This page" />
@@ -117,9 +117,9 @@ export default function UsersPage() {
                         key={r}
                         type="button"
                         onClick={() => selectRole(r)}
-                        className={`rounded-[2px] px-2 py-1 text-[11px] font-medium transition-colors ${
+                        className={`rounded-full px-2 py-1 text-[11px] font-medium transition-colors ${
                           roleFilter === r
-                            ? 'bg-ink text-white'
+                            ? 'bg-primary text-white'
                             : 'text-ink-2 hover:bg-ground hover:text-ink'
                         }`}
                       >
@@ -138,7 +138,7 @@ export default function UsersPage() {
                       onChange={(e) => setQuery(e.target.value)}
                       placeholder="Search email or ID"
                       aria-label="Search users"
-                      className="w-[180px] rounded-[3px] border border-rule bg-surface py-[5px] pr-2.5 pl-7 text-[12px] placeholder:text-ink-3 focus:border-ink focus:outline-none"
+                      className="w-[180px] rounded-lg border border-rule bg-surface py-[5px] pr-2.5 pl-7 text-[12px] placeholder:text-ink-3 focus:border-primary focus:outline-none"
                     />
                   </label>
                 </div>
@@ -171,7 +171,7 @@ export default function UsersPage() {
                             <div className="flex items-center gap-2.5">
                               <span
                                 aria-hidden
-                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[3px] bg-ground text-[11px] font-semibold text-ink"
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-ground text-[11px] font-semibold text-ink"
                               >
                                 {initials(u.email)}
                               </span>
@@ -256,7 +256,7 @@ export default function UsersPage() {
         <Modal title="User Account Details" onClose={() => setSelectedUser(null)}>
           <div className="space-y-4 text-[13px]">
             <div className="flex items-center gap-3 border-b border-rule-soft pb-4">
-              <span className="flex h-10 w-10 items-center justify-center rounded-[3px] bg-ground font-bold text-ink">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-ground font-bold text-ink">
                 {initials(selectedUser.email)}
               </span>
               <div>

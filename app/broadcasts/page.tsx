@@ -82,7 +82,7 @@ export default function BroadcastsPage() {
 
         {broadcastsApi.data && !broadcastsApi.error && (
           <>
-            <div className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <Stat
                 label="Recent broadcasts"
                 value={count(totalBroadcasts)}
@@ -115,7 +115,7 @@ export default function BroadcastsPage() {
                     placeholder="Search broadcasts…"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    className="h-7 w-56 rounded border border-rule bg-canvas pl-8 pr-2 text-xs text-ink placeholder:text-ink-3 focus:border-ink-2 focus:outline-none"
+                    className="h-7 w-56 rounded border border-rule bg-canvas pl-8 pr-2 text-xs text-ink placeholder:text-ink-3 focus:border-primary-2 focus:outline-none"
                   />
                 </label>
               }

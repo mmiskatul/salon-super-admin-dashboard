@@ -77,7 +77,7 @@ export default function SalunLogo({
           className={`font-display ${textSize} leading-none font-extrabold tracking-[-0.02em] select-none`}
         >
           <span className={isDark ? 'text-white' : 'text-ink'}>Salun</span>
-          <span className="text-[#635BFF]">BD</span>
+          <span className="text-primary">BD</span>
         </span>
       )}
     </div>

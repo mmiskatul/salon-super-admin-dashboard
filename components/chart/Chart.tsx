@@ -22,7 +22,7 @@ export function Split({
   }
   return (
     <>
-      <div className="flex w-full overflow-hidden" style={{ height }} role="img"
+      <div className="flex w-full overflow-hidden rounded-full" style={{ height }} role="img"
         aria-label={segments.map((s) => `${s.label} ${s.value}`).join(', ')}>
         {segments.map((s) => (
           <div
@@ -54,7 +54,7 @@ export function Split({
  */
 export function Line({
   points,
-  color = '#15171b',
+  color = '#1e293b',
   height = 96,
 }: {
   points: { value: number; label: string }[];
@@ -116,9 +116,9 @@ export function Ranked({
             <span className="truncate text-[12px]">{row.label}</span>
             <span className="tabular shrink-0 text-[12px]">{format(row.value)}</span>
           </div>
-          <div className="mt-1 h-[5px] w-full bg-rule-soft">
+          <div className="mt-1 h-[5px] w-full overflow-hidden rounded-full bg-rule-soft">
             <div
-              className="h-full"
+              className="h-full rounded-full"
               style={{
                 width: max > 0 ? `${Math.max(2, (row.value / max) * 100)}%` : '2px',
                 backgroundColor: row.color,

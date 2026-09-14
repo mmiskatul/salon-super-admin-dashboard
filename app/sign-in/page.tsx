@@ -37,7 +37,7 @@ export default function SignInPage() {
           <div className="flex items-center gap-2.5">
             <SalunIcon size={30} />
             <p className="font-display text-[20px] leading-none font-extrabold tracking-[-0.02em] text-white">
-              Salun<span className="text-[#635BFF]">BD</span>
+              Salun<span className="text-primary">BD</span>
             </p>
           </div>
           <p className="eyebrow mt-2 !text-white/40">Platform console</p>
@@ -92,7 +92,7 @@ export default function SignInPage() {
           <button
             type="submit"
             disabled={pending}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-[3px] bg-ink px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-ink/85 disabled:cursor-not-allowed disabled:bg-ink-3"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-ink-3"
           >
             {pending ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
             {pending ? 'Signing in' : 'Sign in'}

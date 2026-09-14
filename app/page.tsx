@@ -50,7 +50,7 @@ export default function OverviewPage() {
 
         {tenants && totals && !error && (
           <>
-            <div className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-3 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
               <Stat
                 label="Shops"
                 value={count(totals.tenants)}
@@ -84,7 +84,7 @@ export default function OverviewPage() {
             </div>
 
             {totals.incomplete > 0 && (
-              <p className="border border-signal/25 bg-signal-soft px-4 py-2.5 text-[12px] text-signal">
+              <p className="rounded-lg border border-signal/25 bg-signal-soft px-4 py-2.5 text-[12px] text-signal">
                 {count(totals.incomplete)} shop{totals.incomplete === 1 ? '' : 's'} did not answer
                 every request, so the totals above are short by whatever those hold. Open the shop
                 to see which service is not responding.
@@ -99,9 +99,9 @@ export default function OverviewPage() {
                 <Split
                   height={10}
                   segments={[
-                    { key: 'live', label: 'Taking bookings', value: totals.live, color: '#186a50' },
-                    { key: 'idle', label: 'Set up, no bookings', value: totals.idle, color: '#9a9ea6' },
-                    { key: 'dormant', label: 'Never set up', value: totals.dormant, color: '#b23a0e' },
+                    { key: 'live', label: 'Taking bookings', value: totals.live, color: '#22c55e' },
+                    { key: 'idle', label: 'Set up, no bookings', value: totals.idle, color: '#94a3b8' },
+                    { key: 'dormant', label: 'Never set up', value: totals.dormant, color: '#ef4444' },
                   ]}
                 />
                 <p className="mt-4 max-w-[56ch] border-t border-rule-soft pt-3 text-[12px] leading-relaxed text-ink-2">
@@ -114,7 +114,7 @@ export default function OverviewPage() {
                 <Split
                   height={10}
                   segments={[
-                    { key: 'completed', label: 'Completed', value: totals.completed, color: '#186a50' },
+                    { key: 'completed', label: 'Completed', value: totals.completed, color: '#22c55e' },
                     {
                       key: 'open',
                       label: 'Open',
@@ -122,13 +122,13 @@ export default function OverviewPage() {
                         0,
                         totals.appointments - totals.completed - totals.cancelled,
                       ),
-                      color: '#15171b',
+                      color: '#1e293b',
                     },
                     {
                       key: 'cancelled',
                       label: 'Cancelled or no-show',
                       value: totals.cancelled,
-                      color: '#b23a0e',
+                      color: '#ef4444',
                     },
                   ]}
                 />

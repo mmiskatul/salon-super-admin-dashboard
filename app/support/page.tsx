@@ -99,7 +99,7 @@ export default function SupportPage() {
       />
 
       <Canvas>
-        <div className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Stat label="Total in view" value={count(allTickets.length)} pending={tickets.loading} />
           <Stat label="Open tickets" value={count(openCount)} tone={openCount > 0 ? 'signal' : 'live'} />
           <Stat label="Pending responses" value={count(pendingCount)} />
@@ -141,8 +141,8 @@ export default function SupportPage() {
                       key={s}
                       type="button"
                       onClick={() => setStatusFilter(s)}
-                      className={`rounded-[2px] px-2 py-0.5 text-[11px] font-medium transition-colors ${
-                        statusFilter === s ? 'bg-ink text-white' : 'text-ink-2 hover:bg-ground hover:text-ink'
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                        statusFilter === s ? 'bg-primary text-white' : 'text-ink-2 hover:bg-ground hover:text-ink'
                       }`}
                     >
                       {s === 'ALL' ? 'All' : s === 'IN_PROGRESS' ? 'In progress' : s.toLowerCase()}
@@ -157,7 +157,7 @@ export default function SupportPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Filter queue by subject, user, shop..."
                   aria-label="Filter queue"
-                  className="w-full rounded-[3px] border border-rule bg-ground px-2.5 py-1.5 text-[12px] placeholder:text-ink-3 focus:border-ink focus:outline-none"
+                  className="w-full rounded-lg border border-rule bg-ground px-2.5 py-1.5 text-[12px] placeholder:text-ink-3 focus:border-primary focus:outline-none"
                 />
               </div>
 
@@ -256,7 +256,7 @@ export default function SupportPage() {
                         onChange={(e) => moveStatus(e.target.value)}
                         disabled={changeStatus.pending}
                         aria-label="Update ticket status"
-                        className="rounded-[3px] border border-rule bg-surface px-2 py-1 text-[12px] font-medium focus:border-ink focus:outline-none"
+                        className="rounded-lg border border-rule bg-surface px-2 py-1 text-[12px] font-medium focus:border-primary focus:outline-none"
                       >
                         {TICKET_STATUSES.map((s) => (
                           <option key={s} value={s}>
@@ -302,7 +302,7 @@ export default function SupportPage() {
                         return (
                           <div
                             key={m.id}
-                            className={`rounded-[4px] border p-3.5 text-[13px] leading-relaxed ${
+                            className={`rounded-lg border p-3.5 text-[13px] leading-relaxed ${
                               isOperator
                                 ? 'border-rule bg-ground/80'
                                 : 'border-rule-soft bg-surface'
@@ -334,7 +334,7 @@ export default function SupportPage() {
                       rows={3}
                       placeholder="Type your official operator response..."
                       aria-label="Ticket reply"
-                      className="w-full rounded-[3px] border border-rule bg-surface p-2.5 text-[13px] placeholder:text-ink-3 focus:border-ink focus:outline-none"
+                      className="w-full rounded-lg border border-rule bg-surface p-2.5 text-[13px] placeholder:text-ink-3 focus:border-primary focus:outline-none"
                     />
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-ink-3">

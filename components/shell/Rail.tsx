@@ -86,18 +86,18 @@ export default function Rail({ session }: { session: Session }) {
         <Link href="/" className="block group" onClick={() => setOpen(false)}>
           <div className="flex items-center gap-2.5">
             <SalunIcon size={28} className="transition-transform duration-200 group-hover:scale-105" />
-            <span className="font-display text-[19px] leading-none font-extrabold tracking-[-0.02em] text-white">
-              Salun<span className="text-[#635BFF]">BD</span>
+            <span className="font-display text-[19px] leading-none font-extrabold tracking-[-0.02em] text-ink">
+              Salun<span className="text-primary">BD</span>
             </span>
           </div>
-          <span className="eyebrow mt-2 block !text-white/40">Platform console</span>
+          <span className="eyebrow mt-2 block !text-ink-3">Platform console</span>
         </Link>
       </div>
 
       <div className="flex-1 space-y-7 overflow-y-auto px-3">
         {GROUPS.map((group) => (
           <div key={group.heading}>
-            <p className="eyebrow px-2 pb-2 !text-white/30">{group.heading}</p>
+            <p className="eyebrow px-2 pb-2 !text-ink-3">{group.heading}</p>
             <ul className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon;
@@ -108,19 +108,12 @@ export default function Rail({ session }: { session: Session }) {
                       href={item.href}
                       onClick={() => setOpen(false)}
                       aria-current={active ? 'page' : undefined}
-                      className={`flex items-center gap-2.5 rounded-[3px] px-2 py-[7px] text-[13px] transition-colors ${
+                      className={`flex items-center gap-2.5 rounded-lg px-3 py-[9px] text-[13px] transition-colors ${
                         active
-                          ? 'bg-white/[0.11] font-semibold text-white'
-                          : 'font-normal text-white/55 hover:bg-white/[0.05] hover:text-white/90'
+                          ? 'bg-primary font-semibold text-white shadow-sm shadow-primary/20'
+                          : 'font-normal text-ink-2 hover:bg-ground hover:text-ink'
                       }`}
                     >
-                      {/* The active marker is a rule, not a pill: it lines up with the hairlines
-                          that separate every panel in the canvas, so the rail reads as part of
-                          the same grid rather than as a floating widget. */}
-                      <span
-                        aria-hidden
-                        className={`h-3.5 w-px ${active ? 'bg-white' : 'bg-transparent'}`}
-                      />
                       <Icon size={14} strokeWidth={active ? 2.2 : 1.7} />
                       <span className="truncate">{item.label}</span>
                     </Link>
@@ -132,15 +125,15 @@ export default function Rail({ session }: { session: Session }) {
         ))}
       </div>
 
-      <div className="mt-6 border-t border-white/10 px-5 py-4">
-        <p className="tabular truncate text-[11px] text-white/45" title={session.user.email}>
+      <div className="mt-6 border-t border-rule px-5 py-4">
+        <p className="tabular truncate text-[11px] text-ink-2" title={session.user.email}>
           {session.user.email}
         </p>
-        <p className="eyebrow mt-1 !text-white/30">Super admin</p>
+        <p className="eyebrow mt-1 !text-ink-3">Super admin</p>
         <button
           type="button"
           onClick={signOut}
-          className="mt-3 flex items-center gap-1.5 text-[12px] text-white/55 transition-colors hover:text-white"
+          className="mt-3 flex items-center gap-1.5 text-[12px] text-ink-2 transition-colors hover:text-ink"
         >
           <LogOut size={12} strokeWidth={1.8} />
           Sign out
@@ -175,12 +168,12 @@ export default function Rail({ session }: { session: Session }) {
             onClick={() => setOpen(false)}
             className="absolute inset-0 bg-ink/50"
           />
-          <div className="absolute inset-y-0 left-0 w-[248px] bg-ink">
+          <div className="absolute inset-y-0 left-0 w-[248px] border-r border-rule bg-surface">
             <button
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Close navigation"
-              className="absolute top-5 right-4 text-white/50 hover:text-white"
+              className="absolute top-5 right-4 text-ink-3 hover:text-ink"
             >
               <X size={16} />
             </button>
@@ -189,7 +182,9 @@ export default function Rail({ session }: { session: Session }) {
         </div>
       )}
 
-      <aside className="sticky top-0 hidden h-screen w-[224px] shrink-0 bg-ink lg:block">{nav}</aside>
+      <aside className="sticky top-0 hidden h-screen w-[224px] shrink-0 border-r border-rule bg-surface lg:block">
+        {nav}
+      </aside>
     </>
   );
 }
