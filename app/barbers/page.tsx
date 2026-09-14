@@ -16,6 +16,7 @@ import {
   Stat,
 } from '@/components/ui/primitives';
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
+import BarberDetailModal from '@/components/ui/BarberDetailModal';
 
 /**
  * Barbers working without a shop.
@@ -29,6 +30,7 @@ import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 export default function BarbersPage() {
   const { rows, loading, enriching, error, reload } = useSoloBarbers();
   const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState<{ userId: string; name: string } | null>(null);
 
   const needle = query.trim().toLowerCase();
   const visible = (rows ?? []).filter((row) => {
@@ -130,7 +132,12 @@ export default function BarbersPage() {
                     </thead>
                     <tbody>
                       {visible.map((row) => (
-                        <Tr key={row.id}>
+                        <Tr
+                          key={row.id}
+                          onClick={() =>
+                            setSelected({ userId: row.id, name: row.profile?.name ?? shortId(row.id) })
+                          }
+                        >
                           <Td nowrap={false}>
                             <span className="flex items-center gap-2.5">
                               <span
@@ -202,6 +209,14 @@ export default function BarbersPage() {
           </>
         )}
       </Canvas>
+
+      {selected && (
+        <BarberDetailModal
+          userId={selected.userId}
+          name={selected.name}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </>
   );
 }

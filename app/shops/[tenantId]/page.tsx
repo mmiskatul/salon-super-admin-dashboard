@@ -34,6 +34,7 @@ import {
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Field, FormError, Modal, TextInput } from '@/components/ui/Form';
 import Mark from '@/components/ui/Mark';
+import BarberDetailModal from '@/components/ui/BarberDetailModal';
 
 const TABS = [
   'Barbers',
@@ -56,6 +57,7 @@ export default function ShopPage() {
   const [tab, setTab] = useState<Tab>('Barbers');
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [selectedBarber, setSelectedBarber] = useState<{ userId: string; name: string } | null>(null);
 
   const shop = useApi(() => getTenant(tenantId), [tenantId]);
   const staff = useApi(() => listStaff(tenantId), [tenantId]);
@@ -219,7 +221,7 @@ export default function ShopPage() {
                       </thead>
                       <tbody>
                         {rows.map((s) => (
-                          <Tr key={s.id}>
+                          <Tr key={s.id} onClick={() => setSelectedBarber({ userId: s.userId, name: s.name })}>
                             <Td>{s.name}</Td>
                             <Td muted>{s.title ?? '—'}</Td>
                             <Td muted nowrap={false}>
@@ -666,6 +668,14 @@ export default function ShopPage() {
           tenant={tenant}
           onClose={() => setConfirmingDelete(false)}
           onDeleted={() => router.push('/shops')}
+        />
+      )}
+
+      {selectedBarber && (
+        <BarberDetailModal
+          userId={selectedBarber.userId}
+          name={selectedBarber.name}
+          onClose={() => setSelectedBarber(null)}
         />
       )}
     </>

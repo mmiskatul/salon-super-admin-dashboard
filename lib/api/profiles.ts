@@ -53,3 +53,17 @@ export function servicesByOwner(ownerUserId: string) {
     `/catalog/services?ownerUserId=${encodeURIComponent(ownerUserId)}`,
   );
 }
+
+/** Mirrors `model GalleryPhoto` — a barber's portfolio. GET /profile/gallery/:userId is public (no
+ *  auth guard at all, by design — a portfolio is meant to be shown to prospective customers), so
+ *  this works for any barber's id with no special permission. */
+export interface GalleryPhoto {
+  id: string;
+  userId: string;
+  imageUrl: string;
+  createdAt: string;
+}
+
+export function listGallery(userId: string): Promise<GalleryPhoto[]> {
+  return apiFetch<GalleryPhoto[]>(`/profile/gallery/${encodeURIComponent(userId)}`);
+}

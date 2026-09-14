@@ -4,13 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { RotateCw, Search, ExternalLink } from 'lucide-react';
 import { useApi } from '@/lib/useApi';
-import {
-  getUserWallet,
-  getUserWalletEntries,
-  listUsers,
-  type PlatformUser,
-} from '@/lib/api/users';
-import { count, date, initials, money, shortId, since } from '@/lib/format';
+import { listUsers, type PlatformUser } from '@/lib/api/users';
+import { count, date, initials, shortId, since } from '@/lib/format';
 import {
   Badge,
   Button,
@@ -24,6 +19,7 @@ import {
 } from '@/components/ui/primitives';
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Modal } from '@/components/ui/Form';
+import WalletPanel from '@/components/ui/WalletPanel';
 
 const ROLES = ['ALL', 'CUSTOMER', 'BARBER', 'STAFF', 'OWNER', 'SUPER_ADMIN'] as const;
 type RoleFilter = (typeof ROLES)[number];
@@ -299,7 +295,7 @@ export default function UsersPage() {
               </div>
             </div>
 
-            <UserWalletSection userId={selectedUser.id} />
+            <WalletPanel userId={selectedUser.id} />
 
             <div className="flex justify-end border-t border-rule-soft pt-4">
               <Button onClick={() => setSelectedUser(null)}>Close</Button>
@@ -308,85 +304,6 @@ export default function UsersPage() {
         </Modal>
       )}
     </>
-  );
-}
-
-function UserWalletSection({ userId }: { userId: string }) {
-  const walletApi = useApi(() => getUserWallet(userId), [userId]);
-  const entriesApi = useApi(() => getUserWalletEntries(userId), [userId]);
-
-  if (walletApi.loading) {
-    return (
-      <div className="rounded border border-rule bg-surface p-3 text-xs text-ink-3">
-        Loading wallet information…
-      </div>
-    );
-  }
-
-  if (walletApi.error) {
-    return (
-      <div className="rounded border border-rule bg-ground p-3 text-xs text-ink-3">
-        No active wallet registered for this user account.
-      </div>
-    );
-  }
-
-  const wallet = walletApi.data;
-  const entries = entriesApi.data ?? [];
-
-  return (
-    <div className="space-y-3 rounded border border-rule bg-surface p-3">
-      <div className="flex items-center justify-between border-b border-rule-soft pb-2">
-        <div>
-          <span className="eyebrow !text-[10px]">Digital Wallet</span>
-          <div className="font-mono text-base font-bold text-ink">
-            {money(wallet?.balance ?? 0)}{' '}
-            <span className="text-xs font-normal text-ink-3">{wallet?.currency ?? 'BDT'}</span>
-          </div>
-        </div>
-        <Badge tone="live">Active</Badge>
-      </div>
-
-      <div>
-        <span className="eyebrow !text-[10px] mb-1.5 block">
-          Recent Transactions ({entries.length})
-        </span>
-        {entries.length === 0 ? (
-          <p className="text-xs text-ink-3">No ledger entries recorded yet.</p>
-        ) : (
-          <div className="max-h-40 space-y-1 overflow-y-auto pr-1">
-            {entries.slice(0, 10).map((entry) => (
-              <div
-                key={entry.id}
-                className="flex items-center justify-between border-b border-rule-soft py-1.5 text-xs last:border-0"
-              >
-                <div>
-                  <span className="font-medium text-ink">{entry.label || entry.type}</span>
-                  <span className="block font-mono text-[10px] text-ink-3">
-                    {date(entry.createdAt)}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <span
-                    className={`font-mono font-medium ${
-                      entry.type === 'CREDIT' || entry.type === 'REFUND' || entry.type === 'TOP_UP'
-                        ? 'text-signal'
-                        : 'text-ink'
-                    }`}
-                  >
-                    {entry.type === 'DEBIT' ? '-' : '+'}
-                    {money(entry.amount)}
-                  </span>
-                  <span className="block font-mono text-[10px] text-ink-3">
-                    bal: {money(entry.balanceAfter)}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
   );
 }
 
