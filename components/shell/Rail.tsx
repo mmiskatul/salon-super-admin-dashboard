@@ -44,7 +44,7 @@ const GROUPS: { heading: string; items: NavItem[] }[] = [
       { href: '/', label: 'Overview', icon: Gauge },
       { href: '/owners', label: 'Owner Dashboards', icon: Briefcase },
       { href: '/shops', label: 'Shops', icon: Store },
-      { href: '/barbers', label: 'Independent barbers', icon: Scissors },
+      { href: '/barbers', label: 'Barbers & Stylists', icon: Scissors },
       { href: '/users', label: 'Users & accounts', icon: Users },
     ],
   },

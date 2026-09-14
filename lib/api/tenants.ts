@@ -156,14 +156,29 @@ export interface Client {
   name: string;
   email: string | null;
   phone: string | null;
+  avatarUrl?: string | null;
+  dateOfBirth?: string | null;
   notes: string | null;
   gender: string | null;
   allergies?: ClientAllergy[];
   createdAt: string;
+  updatedAt?: string;
 }
 
-export function listClients(tenantId: string): Promise<Client[]> {
-  return apiFetch<Client[]>(`/clients?tenantId=${encodeURIComponent(tenantId)}`);
+interface ClientPage {
+  items: Client[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+/** GET /clients now answers with a paginated { items, total, ... } envelope rather than a bare
+ *  array — unwrapped here so every existing caller (the shop detail Clients tab) keeps working
+ *  against a plain Client[] without having to know about pagination it doesn't use. */
+export async function listClients(tenantId: string): Promise<Client[]> {
+  const page = await apiFetch<ClientPage>(`/clients?tenantId=${encodeURIComponent(tenantId)}&pageSize=100`);
+  return page.items;
 }
 
 export interface StoredFile {
