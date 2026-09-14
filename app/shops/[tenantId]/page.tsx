@@ -22,6 +22,8 @@ import { listStaff } from '@/lib/api/people';
 import { listServices } from '@/lib/api/catalog';
 import { listAppointments, listReviews, removeReview } from '@/lib/api/bookings';
 import { listTransactions } from '@/lib/api/finance';
+import { listMembershipPlans } from '@/lib/api/memberships';
+import { listGiftCards } from '@/lib/api/giftCards';
 import { brandColor, count, date, dateTime, money, rating, since, shortId } from '@/lib/format';
 import {
   Badge,
@@ -44,6 +46,8 @@ const TABS = [
   'Bookings',
   'Reviews',
   'Payments',
+  'Memberships',
+  'Gift Cards',
   'Locations',
   'Hours',
   'Inventory',
@@ -71,6 +75,8 @@ export default function ShopPage() {
   const bookings = useApi(() => listAppointments(tenantId), [tenantId]);
   const reviews = useApi(() => listReviews(tenantId), [tenantId]);
   const payments = useApi(() => listTransactions(tenantId), [tenantId]);
+  const membershipPlans = useApi(() => listMembershipPlans(tenantId), [tenantId]);
+  const giftCards = useApi(() => listGiftCards(tenantId), [tenantId]);
   const locations = useApi(() => listLocations(tenantId), [tenantId]);
   const hours = useApi(() => getShopHours(tenantId), [tenantId]);
   const inventory = useApi(() => listProducts(tenantId), [tenantId]);
@@ -471,6 +477,80 @@ export default function ShopPage() {
                               <Td align="right" mono>{money(t.amount)}</Td>
                             </Tr>
                           ))}
+                      </tbody>
+                    </Table>
+                  </Scroll>
+                )}
+              </Section>
+            )}
+
+            {tab === 'Memberships' && (
+              <Section
+                state={membershipPlans}
+                empty="This shop has no membership plans."
+                emptyHint="Membership tiers a customer can subscribe to for recurring benefits — none set up yet."
+              >
+                {(rows) => (
+                  <Scroll>
+                    <Table>
+                      <thead>
+                        <tr>
+                          <Th>Plan</Th>
+                          <Th align="right">Price</Th>
+                          <Th align="right">Billing</Th>
+                          <Th align="right">Included bookings</Th>
+                          <Th align="right">Discount</Th>
+                          <Th align="right">Active</Th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((p) => (
+                          <Tr key={p.id}>
+                            <Td nowrap={false}>{p.name}</Td>
+                            <Td align="right" mono>{money(p.price)}</Td>
+                            <Td align="right" mono muted>
+                              every {p.billingPeriodMonths} mo
+                            </Td>
+                            <Td align="right" mono muted>{p.includedBookings ?? '—'}</Td>
+                            <Td align="right" mono muted>
+                              {p.discountPercent ? `${p.discountPercent}%` : '—'}
+                            </Td>
+                            <Td align="right">
+                              {p.active ? <Badge tone="live">Yes</Badge> : <Badge tone="signal">No</Badge>}
+                            </Td>
+                          </Tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </Scroll>
+                )}
+              </Section>
+            )}
+
+            {tab === 'Gift Cards' && (
+              <Section
+                state={giftCards}
+                empty="No gift cards issued by this shop."
+                emptyHint="Created when the owner sells one — none have been issued yet."
+              >
+                {(rows) => (
+                  <Scroll>
+                    <Table>
+                      <thead>
+                        <tr>
+                          <Th>Code</Th>
+                          <Th align="right">Balance remaining</Th>
+                          <Th align="right">Expires</Th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((g) => (
+                          <Tr key={g.id}>
+                            <Td mono>{g.code}</Td>
+                            <Td align="right" mono>{money(g.balance)}</Td>
+                            <Td align="right" mono muted>{g.expiresAt ? date(g.expiresAt) : 'Never'}</Td>
+                          </Tr>
+                        ))}
                       </tbody>
                     </Table>
                   </Scroll>

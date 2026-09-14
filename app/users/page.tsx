@@ -20,6 +20,7 @@ import {
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Field, FormError, Modal, TextInput } from '@/components/ui/Form';
 import WalletPanel from '@/components/ui/WalletPanel';
+import LoyaltyPanel from '@/components/ui/LoyaltyPanel';
 
 const ROLES = ['ALL', 'CUSTOMER', 'BARBER', 'STAFF', 'OWNER', 'SUPER_ADMIN'] as const;
 type RoleFilter = (typeof ROLES)[number];
@@ -317,6 +318,7 @@ export default function UsersPage() {
             </div>
 
             <WalletPanel userId={selectedUser.id} />
+            <LoyaltyPanel userId={selectedUser.id} />
 
             {selectedUser.role !== 'SUPER_ADMIN' && (
               <div className="border-t border-rule-soft pt-4">
