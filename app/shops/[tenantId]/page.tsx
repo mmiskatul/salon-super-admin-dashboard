@@ -949,7 +949,10 @@ function EditShopDialog({
           </Field>
         </div>
 
-        <label className="flex items-start gap-2.5 border border-rule bg-ground px-3 py-2.5">
+        <label
+          aria-label="Visible to customers"
+          className="flex items-start gap-2.5 border border-rule bg-ground px-3 py-2.5"
+        >
           <input
             type="checkbox"
             checked={isListed}

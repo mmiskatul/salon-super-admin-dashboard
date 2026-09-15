@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      # Advisory, not a gate — currently 0 errors / ~48 warnings, but kept non-blocking for
+      # consistency with the other three apps' CI (see salon-owner-dashboard's workflow for why).
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
+
+      # api-client.ts falls back to the production API URL when NEXT_PUBLIC_API_URL is unset, so
+      # this succeeds with no repo secrets configured — it's here to catch real build breaks
+      # (bad imports, invalid JSX, etc.), not to validate against a live backend.
+      - name: Build
+        run: npm run build

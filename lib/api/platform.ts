@@ -1,3 +1,4 @@
+import { apiFetch } from '../api-client';
 import { toNumber } from '../format';
 import { listAppointments, listReviews, type Appointment } from './bookings';
 import { listServices } from './catalog';
@@ -88,6 +89,17 @@ function summariseAppointments(rows: Appointment[]) {
   }
 
   return { total: rows.length, upcoming, completed, cancelled, lastBookingAt };
+}
+
+/**
+ * The real fix for the N-tenant sweep below: one backend call that computes every tenant's vitals
+ * in a fixed number of grouped queries (`GET /dashboard/platform-vitals`, SUPER_ADMIN-only), rather
+ * than 5 requests x N tenants fanned out from the browser. Same `TenantVitals` shape, so callers
+ * don't need to change — see `usePlatform`, which tries this first and only falls back to
+ * `probeAll` if it fails (e.g. talking to a backend deployment that predates this endpoint).
+ */
+export function fetchPlatformVitals(): Promise<TenantVitals[]> {
+  return apiFetch<TenantVitals[]>('/dashboard/platform-vitals');
 }
 
 /** Runs one tenant's five probes concurrently, recording failures instead of throwing. */

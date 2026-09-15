@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { listTenants, type Tenant } from './api/tenants';
-import { probeAll, totalsOf, type PlatformTotals, type TenantVitals } from './api/platform';
+import {
+  fetchPlatformVitals,
+  probeAll,
+  totalsOf,
+  type PlatformTotals,
+  type TenantVitals,
+} from './api/platform';
 
 export interface PlatformState {
   tenants: Tenant[] | null;
@@ -75,6 +81,18 @@ export function usePlatform(): PlatformState {
       setTenants(roster);
       setLoading(false);
       setSweeping(roster.length > 0);
+
+      // The real aggregate endpoint answers in one call; only fall back to the old per-tenant
+      // sweep if it's unavailable (e.g. a backend deployment that predates it).
+      try {
+        const rows = await fetchPlatformVitals();
+        if (!live()) return;
+        setVitals(Object.fromEntries(rows.map((v) => [v.tenantId, v])));
+        setSweeping(false);
+        return;
+      } catch {
+        // fall through to the client-side sweep below
+      }
 
       await probeAll(
         roster.map((t) => t.id),
