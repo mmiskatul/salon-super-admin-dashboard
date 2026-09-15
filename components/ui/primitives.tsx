@@ -1,8 +1,9 @@
 'use client';
 
-import { AlertTriangle, Loader2, RotateCw } from 'lucide-react';
+import React from 'react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 
-/** The page banner every screen opens with. */
+/** The page banner every screen opens with, styled like owner dashboard page titles. */
 export function PageHead({
   eyebrow,
   title,
@@ -15,16 +16,16 @@ export function PageHead({
   actions?: React.ReactNode;
 }) {
   return (
-    <header className="border-b border-rule bg-surface px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+    <header className="border-b border-[#E2E8F0] bg-white px-5 py-6 sm:px-8 font-manrope">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="eyebrow">{eyebrow}</p>
-          <h1 className="font-display mt-2 text-[26px] leading-[1.05] font-extrabold tracking-[-0.03em] sm:text-[32px]">
+          <p className="text-xs font-bold text-[#635BFF] uppercase tracking-wider font-manrope">{eyebrow}</p>
+          <h1 className="mt-1 text-2xl md:text-[28px] font-extrabold text-[#1E293B] tracking-tight font-manrope">
             {title}
           </h1>
-          {lede && <p className="mt-2 max-w-[60ch] text-[13px] leading-relaxed text-ink-2">{lede}</p>}
+          {lede && <p className="mt-1 max-w-[70ch] text-[13px] text-[#64748B] font-medium leading-relaxed">{lede}</p>}
         </div>
-        {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+        {actions && <div className="flex shrink-0 flex-wrap items-center gap-2.5">{actions}</div>}
       </div>
     </header>
   );
@@ -36,6 +37,7 @@ export function Panel({
   actions,
   children,
   flush,
+  className = '',
 }: {
   title?: string;
   note?: string;
@@ -43,29 +45,26 @@ export function Panel({
   children: React.ReactNode;
   /** Drops the body padding, for panels whose child is a full-bleed table. */
   flush?: boolean;
+  className?: string;
 }) {
   return (
-    <section className="overflow-hidden rounded-lg border border-rule bg-surface shadow-sm">
+    <section className={`overflow-hidden rounded-lg border border-[#E2E8F0] bg-white shadow-sm font-manrope ${className}`}>
       {(title || actions) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule-soft px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] px-5 py-4 bg-white">
           <div className="min-w-0">
-            {title && <h2 className="text-[13px] font-semibold tracking-[-0.01em]">{title}</h2>}
-            {note && <p className="mt-0.5 text-[12px] text-ink-2">{note}</p>}
+            {title && <h2 className="text-[15px] font-bold text-[#1E293B] font-manrope">{title}</h2>}
+            {note && <p className="mt-0.5 text-[12px] font-medium text-[#94A3B8]">{note}</p>}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
       )}
-      <div className={flush ? '' : 'p-4'}>{children}</div>
+      <div className={flush ? '' : 'p-5'}>{children}</div>
     </section>
   );
 }
 
 /**
- * A headline figure.
- *
- * `pending` is a first-class state rather than a zero. These numbers are summed from a fan-out
- * across every shop on the platform, so during the sweep a real total genuinely is not known yet,
- * and showing 0 would read as an answer instead of as a work-in-progress.
+ * A headline figure matching owner dashboard's stat cards.
  */
 export function Stat({
   label,
@@ -81,18 +80,19 @@ export function Stat({
   tone?: 'plain' | 'signal' | 'live';
 }) {
   const toneClass =
-    tone === 'signal' ? 'text-signal' : tone === 'live' ? 'text-live' : 'text-ink';
+    tone === 'signal' ? 'text-[#EF4444]' : tone === 'live' ? 'text-[#10B981]' : 'text-[#1E293B]';
+
   return (
-    <div className="rounded-lg border border-rule bg-surface px-4 py-4 shadow-sm">
-      <p className="eyebrow">{label}</p>
+    <div className="rounded-lg border border-[#E2E8F0] bg-white p-5 shadow-sm relative overflow-hidden flex flex-col justify-between transition-all hover:shadow-md hover:border-[#CBD5E1] font-manrope">
+      <p className="text-xs font-bold text-[#64748B] uppercase tracking-wider font-manrope">{label}</p>
       <p
-        className={`font-display mt-2.5 text-[27px] leading-none font-extrabold tracking-[-0.035em] tabular-nums ${
-          pending ? 'text-ink-3' : toneClass
+        className={`mt-2 text-[26px] md:text-[28px] font-extrabold font-manrope tracking-tight tabular-nums ${
+          pending ? 'text-[#94A3B8]' : toneClass
         }`}
       >
         {pending ? '·····' : value}
       </p>
-      {sub && <p className="mt-2 text-[12px] leading-snug text-ink-2">{sub}</p>}
+      {sub && <p className="mt-1 text-[12px] font-semibold text-[#94A3B8]">{sub}</p>}
     </div>
   );
 }
@@ -102,17 +102,20 @@ export function Badge({
   tone = 'plain',
 }: {
   children: React.ReactNode;
-  tone?: 'plain' | 'signal' | 'live' | 'quiet';
+  tone?: 'plain' | 'signal' | 'live' | 'quiet' | 'primary' | 'warning';
 }) {
   const tones = {
-    plain: 'border-rule bg-ground text-ink-2',
-    quiet: 'border-transparent bg-transparent text-ink-3',
-    signal: 'border-signal/25 bg-signal-soft text-signal',
-    live: 'border-live/25 bg-live-soft text-live',
+    plain: 'border-[#E2E8F0] bg-[#F1F5F9] text-[#475569]',
+    quiet: 'border-transparent bg-transparent text-[#94A3B8]',
+    signal: 'border-[#FECDD3] bg-[#FFE4E6] text-[#E11D48]',
+    live: 'border-[#BBF7D0] bg-[#DCFCE7] text-[#16A34A]',
+    primary: 'border-[#E0E7FF] bg-[#EEF2FF] text-[#635BFF]',
+    warning: 'border-[#FEF08A] bg-[#FEF9C3] text-[#B45309]',
   } as const;
+
   return (
     <span
-      className={`tabular inline-flex items-center rounded-full border px-2 py-[3px] text-[10px] font-medium tracking-[0.06em] uppercase ${tones[tone]}`}
+      className={`tabular inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold font-manrope whitespace-nowrap tracking-normal ${tones[tone] || tones.plain}`}
     >
       {children}
     </span>
@@ -126,58 +129,58 @@ export function Button({
   variant = 'secondary',
   disabled,
   title,
+  className = '',
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   type?: 'button' | 'submit';
-  variant?: 'primary' | 'secondary' | 'danger';
+  variant?: 'primary' | 'secondary' | 'danger' | 'outline';
   disabled?: boolean;
   title?: string;
+  className?: string;
 }) {
   const variants = {
-    primary: 'bg-primary text-white hover:bg-primary-hover disabled:bg-ink-3',
-    secondary: 'border border-rule bg-surface text-ink hover:bg-ground disabled:text-ink-3',
-    danger: 'border border-signal/40 bg-surface text-signal hover:bg-signal-soft disabled:opacity-50',
+    primary:
+      'bg-[#635BFF] hover:bg-[#524be0] text-white shadow-sm shadow-[#635BFF]/20 disabled:bg-[#CBD5E1]',
+    secondary:
+      'bg-[#EEF2FF] hover:bg-[#E0E7FF] text-[#635BFF] disabled:text-[#94A3B8] disabled:bg-[#F1F5F9]',
+    danger:
+      'border border-[#FECACA] bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#EF4444] disabled:opacity-50',
+    outline:
+      'border border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#1E293B] disabled:text-[#94A3B8]',
   } as const;
+
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-[7px] text-[12px] font-medium transition-colors disabled:cursor-not-allowed ${variants[variant]}`}
+      className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-bold font-manrope transition-all cursor-pointer disabled:cursor-not-allowed ${variants[variant]} ${className}`}
     >
       {children}
     </button>
   );
 }
 
-export function Loading({ label = 'Loading' }: { label?: string }) {
+export function Loading({ label = 'Loading...' }: { label?: string }) {
   return (
-    <div className="flex items-center gap-2 px-1 py-10 text-[13px] text-ink-2">
-      <Loader2 size={14} className="animate-spin" />
+    <div className="flex items-center justify-center gap-2.5 p-12 text-[13px] font-semibold text-[#64748B] font-manrope">
+      <Loader2 size={16} className="animate-spin text-[#635BFF]" />
       {label}
     </div>
   );
 }
 
-/**
- * A failed panel.
- *
- * States what did not load and offers the retry, in that order. Nothing here apologises: the
- * operator needs to know which call broke so they can tell whether it is one service or the whole
- * gateway, and a "sorry" costs a line that could have carried the endpoint name.
- */
 export function Failed({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="flex flex-col items-start gap-3 px-1 py-8">
-      <div className="flex items-start gap-2 text-[13px] text-signal">
-        <AlertTriangle size={15} className="mt-px shrink-0" strokeWidth={1.9} />
-        <p className="max-w-[64ch] leading-relaxed">{message}</p>
+    <div className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-6 space-y-3 font-manrope">
+      <div className="flex items-start gap-2.5 text-[13px] font-medium text-[#EF4444]">
+        <AlertTriangle size={18} className="mt-0.5 shrink-0" strokeWidth={2} />
+        <p className="max-w-[64ch] leading-relaxed font-semibold">{message}</p>
       </div>
       {onRetry && (
-        <Button onClick={onRetry}>
-          <RotateCw size={12} />
+        <Button variant="danger" onClick={onRetry}>
           Try again
         </Button>
       )}
@@ -185,18 +188,19 @@ export function Failed({ message, onRetry }: { message: string; onRetry?: () => 
   );
 }
 
-/** An empty screen is an invitation to act, so this takes the next step as a prop. */
+/** An empty state matching the owner dashboard clean style. */
 export function Empty({ title, hint, action }: { title: string; hint?: string; action?: React.ReactNode }) {
   return (
-    <div className="px-1 py-10">
-      <p className="text-[13px] font-semibold">{title}</p>
-      {hint && <p className="mt-1.5 max-w-[60ch] text-[12px] leading-relaxed text-ink-2">{hint}</p>}
-      {action && <div className="mt-4">{action}</div>}
+    <div className="p-12 text-center space-y-2 font-manrope">
+      <p className="text-[15px] font-bold text-[#1E293B]">{title}</p>
+      {hint && <p className="text-[13px] text-[#94A3B8] max-w-[50ch] mx-auto">{hint}</p>}
+      {action && <div className="pt-2 flex justify-center">{action}</div>}
     </div>
   );
 }
 
 /** The canvas gutter every page body sits in. */
 export function Canvas({ children }: { children: React.ReactNode }) {
-  return <div className="space-y-4 px-5 py-6 sm:px-8 lg:px-10">{children}</div>;
+  return <div className="space-y-5 p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto w-full font-manrope">{children}</div>;
 }
+

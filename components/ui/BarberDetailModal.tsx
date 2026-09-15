@@ -71,17 +71,17 @@ export default function BarberDetailModal({
         <section>
           <p className="eyebrow mb-2">Next 7 days</p>
           {schedule.loading && <Loading label="Loading schedule" />}
-          {schedule.error && <p className="text-[12px] text-ink-3">Could not load this barber's schedule.</p>}
+          {schedule.error && <p className="text-[12px] text-[#94A3B8]">Could not load this barber&apos;s schedule.</p>}
           {schedule.data && (
             <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
               {schedule.data.map((day: ScheduleDay) => (
                 <div
                   key={day.date}
-                  className="flex items-center justify-between rounded-lg border border-rule-soft bg-ground px-3 py-2"
+                  className="flex items-center justify-between rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3.5 py-2"
                 >
-                  <span className="text-[12px] font-medium text-ink">{formatDate(day.date)}</span>
+                  <span className="text-[12px] font-semibold text-[#1E293B]">{formatDate(day.date)}</span>
                   {day.slots.length === 0 ? (
-                    <span className="text-[11px] text-ink-3">No slots</span>
+                    <span className="text-[11px] text-[#94A3B8]">No slots</span>
                   ) : (
                     <div className="flex items-center gap-1.5">
                       {day.slots.some((s) => s.appointmentId) && (
@@ -111,10 +111,10 @@ export default function BarberDetailModal({
           <p className="eyebrow mb-2">Weekly working hours</p>
           {workingHours.loading && <Loading label="Loading working hours" />}
           {workingHours.error && (
-            <p className="text-[12px] text-ink-3">Could not load this barber's working hours.</p>
+            <p className="text-[12px] text-[#94A3B8]">Could not load this barber&apos;s working hours.</p>
           )}
           {workingHours.data && (
-            <div className="space-y-1 rounded-lg border border-rule-soft bg-ground px-3 py-2">
+            <div className="space-y-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3.5 py-2">
               {workingHours.data.schedule.map((day) => (
                 <div key={day.day} className="flex items-center justify-between text-[12px]">
                   <span className={day.isOpen ? 'text-ink' : 'text-ink-3'}>{day.day}</span>
