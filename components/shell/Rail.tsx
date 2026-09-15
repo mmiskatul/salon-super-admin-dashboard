@@ -85,24 +85,30 @@ export default function Rail({ session }: { session: Session }) {
   }
 
   const nav = (
-    <nav className="flex h-full flex-col">
-      <div className="px-5 pt-6 pb-7">
-        <Link href="/" className="block group" onClick={() => setOpen(false)}>
-          <div className="flex items-center gap-2.5">
-            <SalunIcon size={28} className="transition-transform duration-200 group-hover:scale-105" />
-            <span className="font-display text-[19px] leading-none font-extrabold tracking-[-0.02em] text-ink">
-              Salun<span className="text-primary">BD</span>
+    <nav className="flex h-full flex-col font-manrope bg-white">
+      <div className="p-5 sticky top-0 bg-white z-10 flex justify-between items-center border-b border-[#E2E8F0]">
+        <Link href="/" className="flex items-center gap-2.5 group" onClick={() => setOpen(false)}>
+          <div className="w-8 h-8 shrink-0 group-hover:scale-105 transition-transform duration-200">
+            <SalunIcon size={32} />
+          </div>
+          <div>
+            <span className="font-extrabold text-xl tracking-tight font-manrope text-[#1E293B]">
+              Salun<span className="text-[#635BFF]">BD</span>
+            </span>
+            <span className="block text-[10px] font-bold tracking-wider uppercase text-[#635BFF] -mt-0.5">
+              Super Admin
             </span>
           </div>
-          <span className="eyebrow mt-2 block !text-ink-3">Platform console</span>
         </Link>
       </div>
 
-      <div className="flex-1 space-y-7 overflow-y-auto px-3">
+      <div className="flex-1 space-y-6 overflow-y-auto px-4 py-5 custom-scrollbar">
         {GROUPS.map((group) => (
           <div key={group.heading}>
-            <p className="eyebrow px-2 pb-2 !text-ink-3">{group.heading}</p>
-            <ul className="space-y-0.5">
+            <p className="px-3 text-xs font-bold text-[#94A3B8] mb-2 uppercase tracking-wider font-manrope">
+              {group.heading}
+            </p>
+            <ul className="space-y-1">
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(pathname, item.href);
@@ -112,13 +118,13 @@ export default function Rail({ session }: { session: Session }) {
                       href={item.href}
                       onClick={() => setOpen(false)}
                       aria-current={active ? 'page' : undefined}
-                      className={`flex items-center gap-2.5 rounded-lg px-3 py-[9px] text-[13px] transition-colors ${
+                      className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13px] font-medium transition-all ${
                         active
-                          ? 'bg-primary font-semibold text-white shadow-sm shadow-primary/20'
-                          : 'font-normal text-ink-2 hover:bg-ground hover:text-ink'
+                          ? 'bg-[#635BFF] text-white shadow-md shadow-[#635BFF]/20 font-bold'
+                          : 'text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#1E293B]'
                       }`}
                     >
-                      <Icon size={14} strokeWidth={active ? 2.2 : 1.7} />
+                      <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-[#94A3B8]'}`} />
                       <span className="truncate">{item.label}</span>
                     </Link>
                   </li>
@@ -129,17 +135,26 @@ export default function Rail({ session }: { session: Session }) {
         ))}
       </div>
 
-      <div className="mt-6 border-t border-rule px-5 py-4">
-        <p className="tabular truncate text-[11px] text-ink-2" title={session.user.email}>
-          {session.user.email}
-        </p>
-        <p className="eyebrow mt-1 !text-ink-3">Super admin</p>
+      <div className="p-4 border-t border-[#E2E8F0] bg-[#F8FAFC]">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-[#EEF2FF] text-[#635BFF] flex items-center justify-center font-bold text-sm border border-[#CBD5E1] shrink-0">
+            {session.user.name ? session.user.name.charAt(0).toUpperCase() : 'S'}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-bold text-[#1E293B] truncate" title={session.user.name || 'Super Admin'}>
+              {session.user.name || 'Super Admin'}
+            </p>
+            <p className="text-[11px] text-[#64748B] truncate" title={session.user.email}>
+              {session.user.email}
+            </p>
+          </div>
+        </div>
         <button
           type="button"
           onClick={signOut}
-          className="mt-3 flex items-center gap-1.5 text-[12px] text-ink-2 transition-colors hover:text-ink"
+          className="mt-3 w-full flex items-center justify-center gap-2 py-2 text-[12px] font-bold text-[#EF4444] bg-white border border-[#FECACA] hover:bg-[#FEF2F2] rounded-lg transition-colors cursor-pointer"
         >
-          <LogOut size={12} strokeWidth={1.8} />
+          <LogOut className="w-3.5 h-3.5" />
           Sign out
         </button>
       </div>
@@ -149,17 +164,20 @@ export default function Rail({ session }: { session: Session }) {
   return (
     <>
       {/* Mobile bar */}
-      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-rule bg-surface px-4 py-3 lg:hidden">
-        <Link href="/" className="font-display text-[16px] font-extrabold tracking-[-0.02em]">
-          SalunBD
+      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-[#E2E8F0] bg-white px-4 py-3 lg:hidden">
+        <Link href="/" className="flex items-center gap-2">
+          <SalunIcon size={26} />
+          <span className="font-extrabold text-[17px] tracking-tight font-manrope text-[#1E293B]">
+            Salun<span className="text-[#635BFF]">BD</span>
+          </span>
         </Link>
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex items-center gap-1.5 text-[12px] text-ink-2"
+          className="flex items-center gap-1.5 text-[13px] font-medium text-[#64748B] px-3 py-1.5 rounded-lg border border-[#E2E8F0] hover:bg-[#F8FAFC]"
           aria-label="Open navigation"
         >
-          <Menu size={16} strokeWidth={1.8} />
+          <Menu size={16} />
           Menu
         </button>
       </div>
@@ -170,23 +188,23 @@ export default function Rail({ session }: { session: Session }) {
             type="button"
             aria-label="Close navigation"
             onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-ink/50"
+            className="absolute inset-0 bg-[#1E293B]/50 backdrop-blur-xs"
           />
-          <div className="absolute inset-y-0 left-0 w-[248px] border-r border-rule bg-surface">
+          <div className="absolute inset-y-0 left-0 w-[260px] border-r border-[#E2E8F0] bg-white shadow-2xl">
             <button
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Close navigation"
-              className="absolute top-5 right-4 text-ink-3 hover:text-ink"
+              className="absolute top-5 right-4 text-[#94A3B8] hover:text-[#1E293B]"
             >
-              <X size={16} />
+              <X size={18} />
             </button>
             {nav}
           </div>
         </div>
       )}
 
-      <aside className="sticky top-0 hidden h-screen w-[224px] shrink-0 border-r border-rule bg-surface lg:block">
+      <aside className="sticky top-0 hidden h-screen w-[260px] shrink-0 border-r border-[#E2E8F0] bg-white lg:block">
         {nav}
       </aside>
     </>

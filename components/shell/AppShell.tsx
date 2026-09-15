@@ -3,23 +3,9 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { clearSession, getSession, type Session } from '@/lib/api-client';
+import Header from './Header';
 import Rail from './Rail';
 
-/**
- * The console frame, and the gate in front of it.
- *
- * The session check lives here rather than in each page so there is exactly one place that can
- * decide whether a screen renders. Two states are deliberately distinct: `checking` renders
- * nothing at all (a flash of the roster before a redirect is worse than a blank moment), while a
- * confirmed missing session redirects rather than showing an error, because there is nothing the
- * operator could do with an error at that point except go and sign in.
- *
- * A session whose role isn't SUPER_ADMIN is treated the same as no session at all: `login()`
- * refuses to mint one in the first place, but this is the backstop for a session left over from
- * before a role change, or for anyone poking a session object into storage by hand. Real
- * enforcement is server-side on every endpoint this app calls — this is defense-in-depth, not the
- * only barrier.
- */
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -30,9 +16,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isSignIn) {
-      // The session lives in localStorage, which cannot be read during render without a
-      // hydration mismatch, so reading it in an effect and recording the result is the only
-      // correct order here.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setChecked(true);
       return;
@@ -53,11 +36,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (!checked || !session) return null;
 
   return (
-    <div className="min-h-screen lg:flex">
+    <div className="flex h-[100dvh] bg-[#F3F4F7] font-manrope overflow-hidden">
       <Rail session={session} />
-      <main id="console" className="min-w-0 flex-1 pb-16">
-        {children}
-      </main>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <Header session={session} />
+        <main id="console" className="flex-1 overflow-y-auto custom-scrollbar">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
