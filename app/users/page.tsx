@@ -111,35 +111,35 @@ export default function UsersPage() {
               title={`${count(visible.length)} account${visible.length === 1 ? '' : 's'}`}
               note={roleFilter !== 'ALL' ? `Filtered by ${roleFilter.toLowerCase()}` : undefined}
               actions={
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-1 border-r border-rule-soft pr-2">
+                <div className="flex flex-wrap items-center gap-2.5 font-manrope">
+                  <div className="flex flex-wrap items-center gap-1.5 border-r border-[#E2E8F0] pr-3">
                     {ROLES.map((r) => (
                       <button
                         key={r}
                         type="button"
                         onClick={() => selectRole(r)}
-                        className={`rounded-full px-2 py-1 text-[11px] font-medium transition-colors ${
+                        className={`rounded-full px-3 py-1 text-[12px] font-manrope transition-all cursor-pointer ${
                           roleFilter === r
-                            ? 'bg-primary text-white'
-                            : 'text-ink-2 hover:bg-ground hover:text-ink'
+                            ? 'bg-[#635BFF] text-white shadow-sm shadow-[#635BFF]/20 font-bold'
+                            : 'bg-white border border-[#E2E8F0] text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#1E293B] font-semibold'
                         }`}
                       >
-                        {r === 'ALL' ? 'All' : r.toLowerCase()}
+                        {r === 'ALL' ? 'All Roles' : r.toLowerCase()}
                       </button>
                     ))}
                   </div>
 
                   <label className="relative">
                     <Search
-                      size={13}
-                      className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-ink-3"
+                      size={14}
+                      className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#94A3B8]"
                     />
                     <input
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search email or ID"
+                      placeholder="Search email or ID..."
                       aria-label="Search users"
-                      className="w-[180px] rounded-lg border border-rule bg-surface py-[5px] pr-2.5 pl-7 text-[12px] placeholder:text-ink-3 focus:border-primary focus:outline-none"
+                      className="w-[200px] rounded-lg border border-[#E2E8F0] bg-white py-1.5 pr-3 pl-8 text-[13px] text-[#1E293B] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent font-manrope transition-all"
                     />
                   </label>
                 </div>

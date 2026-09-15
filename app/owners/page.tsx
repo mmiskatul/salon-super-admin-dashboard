@@ -179,29 +179,29 @@ export default function OwnerDashboardsPage() {
 
             {/* Filter and Control Bar */}
             <Panel flush>
-              <div className="flex flex-col gap-3 border-b border-rule-soft p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-1 items-center gap-3">
-                  <div className="relative flex-1 max-w-md">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
+              <div className="flex flex-col gap-3 border-b border-[#E2E8F0] p-4 sm:flex-row sm:items-center sm:justify-between bg-[#F8FAFC]/50 font-manrope">
+                <div className="flex flex-1 flex-wrap items-center gap-3">
+                  <div className="relative flex-1 min-w-[240px] max-w-md">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
                     <input
                       type="text"
                       placeholder="Search by owner, salon name, subdomain, join code..."
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      className="w-full rounded-lg border border-rule bg-ground pl-9 pr-3 py-1.5 text-[13px] text-ink placeholder:text-ink-3 focus:border-primary focus:outline-none"
+                      className="w-full rounded-lg border border-[#E2E8F0] bg-white pl-9 pr-3 py-2 text-[13px] text-[#1E293B] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent font-manrope transition-all"
                     />
                   </div>
 
                   {/* Status Filter buttons */}
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     {(['ALL', 'ACTIVE', 'SUSPENDED', 'BANNED'] as StatusFilter[]).map((st) => (
                       <button
                         key={st}
                         onClick={() => setStatusFilter(st)}
-                        className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                        className={`rounded-full px-3 py-1 text-[12px] font-manrope transition-all cursor-pointer ${
                           statusFilter === st
-                            ? 'bg-ink text-surface font-semibold'
-                            : 'text-ink-2 hover:bg-ground hover:text-ink'
+                            ? 'bg-[#635BFF] text-white shadow-sm shadow-[#635BFF]/20 font-bold'
+                            : 'bg-white border border-[#E2E8F0] text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#1E293B] font-semibold'
                         }`}
                       >
                         {st}
@@ -211,12 +211,12 @@ export default function OwnerDashboardsPage() {
                 </div>
 
                 {/* Sort selector */}
-                <div className="flex items-center gap-2 text-[12px] text-ink-2">
+                <div className="flex items-center gap-2 text-[12px] text-[#64748B] font-semibold font-manrope">
                   <span>Sort by:</span>
                   <select
                     value={sortKey}
                     onChange={(e) => setSortKey(e.target.value as SortKey)}
-                    className="rounded-lg border border-rule bg-ground px-2.5 py-1 text-[12px] text-ink focus:outline-none"
+                    className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-[12px] text-[#1E293B] font-manrope focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent transition-all"
                   >
                     <option value="revenue">Highest Revenue</option>
                     <option value="barbers">Most Barbers</option>

@@ -159,18 +159,18 @@ export default function BarbersDirectoryPage() {
 
             {/* Filter & Search Panel */}
             <Panel flush>
-              <div className="flex flex-col gap-3 border-b border-rule-soft p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 border-b border-[#E2E8F0] p-4 sm:flex-row sm:items-center sm:justify-between bg-[#F8FAFC]/50 font-manrope">
                 {/* Segment Filter Tabs */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="eyebrow mr-1 text-[11px]">Type:</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider mr-1">Type:</span>
                   {(['ALL', 'SHOP_STAFF', 'SOLO'] as const).map((t) => (
                     <button
                       key={t}
                       onClick={() => setTypeFilter(t)}
-                      className={`rounded-lg px-2.5 py-1 text-[12px] font-medium transition-colors ${
+                      className={`rounded-full px-3 py-1 text-[12px] font-manrope transition-all cursor-pointer ${
                         typeFilter === t
-                          ? 'bg-ink text-white'
-                          : 'bg-ground text-ink-2 hover:bg-ground-soft hover:text-ink'
+                          ? 'bg-[#635BFF] text-white shadow-sm shadow-[#635BFF]/20 font-bold'
+                          : 'bg-white border border-[#E2E8F0] text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#1E293B] font-semibold'
                       }`}
                     >
                       {t === 'ALL' && 'All Barbers'}
@@ -179,17 +179,17 @@ export default function BarbersDirectoryPage() {
                     </button>
                   ))}
 
-                  <div className="mx-2 hidden h-4 w-px bg-rule sm:block" />
+                  <div className="mx-2 hidden h-4 w-px bg-[#E2E8F0] sm:block" />
 
-                  <span className="eyebrow mr-1 text-[11px]">Status:</span>
+                  <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider mr-1">Status:</span>
                   {(['ALL', 'ACTIVE', 'BANNED'] as const).map((s) => (
                     <button
                       key={s}
                       onClick={() => setStatusFilter(s)}
-                      className={`rounded-lg px-2.5 py-1 text-[12px] font-medium transition-colors ${
+                      className={`rounded-full px-3 py-1 text-[12px] font-manrope transition-all cursor-pointer ${
                         statusFilter === s
-                          ? 'bg-ink text-white'
-                          : 'bg-ground text-ink-2 hover:bg-ground-soft hover:text-ink'
+                          ? 'bg-[#635BFF] text-white shadow-sm shadow-[#635BFF]/20 font-bold'
+                          : 'bg-white border border-[#E2E8F0] text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#1E293B] font-semibold'
                       }`}
                     >
                       {s === 'ALL' && 'All Statuses'}
@@ -200,17 +200,17 @@ export default function BarbersDirectoryPage() {
                 </div>
 
                 {/* Search Box */}
-                <label className="relative min-w-[220px]">
+                <label className="relative min-w-[240px]">
                   <Search
-                    size={13}
-                    className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-ink-3"
+                    size={14}
+                    className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#94A3B8]"
                   />
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search name, shop, email, id..."
                     aria-label="Search barbers"
-                    className="w-full rounded-lg border border-rule bg-surface py-[6px] pr-2.5 pl-7 text-[12px] placeholder:text-ink-3 focus:border-primary focus:outline-none"
+                    className="w-full rounded-lg border border-[#E2E8F0] bg-white py-2 pr-3 pl-8 text-[13px] text-[#1E293B] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent font-manrope transition-all"
                   />
                 </label>
               </div>
