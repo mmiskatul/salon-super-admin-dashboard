@@ -107,9 +107,9 @@ export default function SupportPage() {
         </div>
 
         {/* Quick ID lookup bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border border-rule bg-surface p-3">
-          <div className="flex items-center gap-2 text-[12px] text-ink-2">
-            <Search size={14} className="text-ink-3" />
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#E2E8F0] bg-white p-3.5 shadow-sm font-manrope">
+          <div className="flex items-center gap-2 text-[12px] font-semibold text-[#64748B]">
+            <Search size={14} className="text-[#94A3B8]" />
             <span>Direct ticket lookup:</span>
           </div>
           <form onSubmit={handleDirectSearch} className="flex min-w-[280px] flex-1 items-center gap-2 sm:max-w-md">

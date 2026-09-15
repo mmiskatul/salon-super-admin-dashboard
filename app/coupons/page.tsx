@@ -103,7 +103,7 @@ export default function CouponsPage() {
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search code or shop..."
                     aria-label="Search coupons"
-                    className="w-[180px] rounded-lg border border-rule bg-surface py-[5px] pr-2.5 pl-7 text-[12px] placeholder:text-ink-3 focus:border-primary focus:outline-none"
+                    className="w-[200px] rounded-lg border border-[#E2E8F0] bg-white py-1.5 pr-3 pl-8 text-[13px] text-[#1E293B] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent font-manrope transition-all shadow-xs"
                   />
                 </label>
               }
