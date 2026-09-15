@@ -164,7 +164,7 @@ export default function PaymentsPage() {
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
                     aria-label="Filter by status"
-                    className="rounded-lg border border-rule bg-surface px-2 py-[6px] text-[12px] focus:border-primary focus:outline-none"
+                    className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-[12px] font-manrope text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent transition-all shadow-xs"
                   >
                     {statuses.map((s) => (
                       <option key={s} value={s}>
@@ -198,6 +198,7 @@ export default function PaymentsPage() {
                         <Th>Type</Th>
                         <Th>Status</Th>
                         <Th>Booking</Th>
+                        <Th>Customer</Th>
                         <Th align="right">Amount</Th>
                         <Th align="right">Actions</Th>
                       </tr>
@@ -231,7 +232,11 @@ export default function PaymentsPage() {
                                 <Badge>{status.toLowerCase()}</Badge>
                               )}
                             </Td>
-                            <Td mono muted>{shortId(row.appointmentId)}</Td>
+                            <Td nowrap={false} muted>
+                              {row.serviceName ?? (row.appointmentId ? shortId(row.appointmentId) : '—')}
+                              {row.staffName && <span className="block text-[11px] text-ink-3">with {row.staffName}</span>}
+                            </Td>
+                            <Td muted nowrap={false}>{row.customerName ?? '—'}</Td>
                             <Td align="right" mono>{money(row.amount)}</Td>
                             <Td align="right">
                               {canRefund && (
@@ -306,8 +311,19 @@ function RefundDialog({
       <div className="space-y-4">
         <p className="max-w-[56ch] text-[13px] leading-relaxed">
           Refund <strong>{money(row.amount)}</strong> from <strong>{tenant.name}</strong>&apos;s
-          books, recorded {dateTime(row.createdAt)}? If this payment was funded from a customer
-          wallet, the balance is credited back. This cannot be undone.
+          books, recorded {dateTime(row.createdAt)}
+          {row.serviceName && (
+            <>
+              {' '}for <strong>{row.serviceName}</strong>
+            </>
+          )}
+          {row.customerName && (
+            <>
+              {' '}booked by <strong>{row.customerName}</strong>
+            </>
+          )}
+          ? If this payment was funded from a customer wallet, the balance is credited back. This
+          cannot be undone.
         </p>
 
         <FormError message={error} />

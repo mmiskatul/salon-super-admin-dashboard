@@ -21,6 +21,8 @@ import {
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Split } from '@/components/chart/Chart';
 import Mark from '@/components/ui/Mark';
+import { Modal } from '@/components/ui/Form';
+import { dateTime } from '@/lib/format';
 
 /**
  * One day's bookings across the whole platform.
@@ -31,6 +33,7 @@ import Mark from '@/components/ui/Mark';
  */
 export default function BookingsPage() {
   const [day, setDay] = useState(() => isoDay());
+  const [selected, setSelected] = useState<{ row: Appointment; tenant: Tenant } | null>(null);
 
   const fetcher = useCallback(
     (tenant: Tenant) => listAppointments(tenant.id, day),
@@ -88,7 +91,7 @@ export default function BookingsPage() {
               value={day}
               onChange={(e) => e.target.value && setDay(e.target.value)}
               aria-label="Day"
-              className="tabular rounded-lg border border-rule bg-surface px-2.5 py-[6px] text-[12px] focus:border-primary focus:outline-none"
+              className="tabular rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-[13px] text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent font-manrope transition-all shadow-xs"
             />
             <Button onClick={() => shiftDay(1)} title="Next day">
               <ChevronRight size={13} />
@@ -164,6 +167,7 @@ export default function BookingsPage() {
                         <Th width={110}>Time</Th>
                         <Th>Shop</Th>
                         <Th>Service</Th>
+                        <Th>Barber</Th>
                         <Th>Customer</Th>
                         <Th>Status</Th>
                         <Th align="right">Price</Th>
@@ -171,7 +175,12 @@ export default function BookingsPage() {
                     </thead>
                     <tbody>
                       {ordered.map(({ row, tenant }) => (
-                        <Tr key={row.id} accent={brandColor(tenant.brandColor)}>
+                        <Tr
+                          key={row.id}
+                          accent={brandColor(tenant.brandColor)}
+                          onClick={() => setSelected({ row, tenant })}
+                          className="cursor-pointer"
+                        >
                           <Td mono>
                             {time(row.startAt)}
                             <span className="text-ink-3">–{time(row.endAt)}</span>
@@ -179,6 +188,7 @@ export default function BookingsPage() {
                           <Td nowrap={false}>
                             <Link
                               href={`/shops/${tenant.id}`}
+                              onClick={(e) => e.stopPropagation()}
                               className="flex items-center gap-2 hover:opacity-70"
                             >
                               <Mark
@@ -191,9 +201,15 @@ export default function BookingsPage() {
                             </Link>
                           </Td>
                           <Td muted>{row.serviceName ?? '—'}</Td>
-                          <Td muted>
-                            {row.guestName ?? (row.customerId ? 'Registered customer' : '—')}
-                            {row.isWalkIn && <span className="text-ink-3"> · walk-in</span>}
+                          <Td muted>{row.staffName ?? '—'}</Td>
+                          <Td nowrap={false}>
+                            <span className="block truncate">
+                              {row.customerName ?? row.guestName ?? (row.customerId ? 'Registered customer' : '—')}
+                            </span>
+                            <span className="tabular block text-[11px] text-ink-3">
+                              {row.customerPhone ?? '—'}
+                              {row.isWalkIn && ' · walk-in'}
+                            </span>
                           </Td>
                           <Td>
                             <BookingStatus status={row.status} />
@@ -209,7 +225,67 @@ export default function BookingsPage() {
           </>
         )}
       </Canvas>
+
+      {selected && (
+        <BookingDetailModal
+          row={selected.row}
+          tenant={selected.tenant}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-rule-soft py-2 last:border-b-0">
+      <span className="text-[12px] text-ink-2">{label}</span>
+      <span className="text-[13px] font-medium text-ink text-right">{value}</span>
+    </div>
+  );
+}
+
+function BookingDetailModal({
+  row,
+  tenant,
+  onClose,
+}: {
+  row: Appointment;
+  tenant: Tenant;
+  onClose: () => void;
+}) {
+  const customerName = row.customerName ?? row.guestName ?? (row.customerId ? 'Registered customer' : '—');
+  return (
+    <Modal title="Booking detail" onClose={onClose}>
+      <div className="space-y-0.5">
+        <DetailRow
+          label="Shop"
+          value={
+            <Link href={`/shops/${tenant.id}`} className="text-primary hover:underline">
+              {tenant.name}
+            </Link>
+          }
+        />
+        <DetailRow label="Service" value={row.serviceName ?? '—'} />
+        <DetailRow label="Barber" value={row.staffName ?? '—'} />
+        <DetailRow label="Customer" value={customerName} />
+        <DetailRow label="Phone" value={row.customerPhone ?? '—'} />
+        <DetailRow label="Booked via" value={row.isWalkIn ? 'Walk-in (desk)' : 'Self-booked'} />
+        <DetailRow label="Starts" value={dateTime(row.startAt)} />
+        <DetailRow label="Ends" value={dateTime(row.endAt)} />
+        {row.durationMinutes != null && <DetailRow label="Duration" value={`${row.durationMinutes} min`} />}
+        <DetailRow label="Status" value={<BookingStatus status={row.status} />} />
+        <DetailRow label="Price" value={money(row.price)} />
+        {row.couponCode && <DetailRow label="Coupon" value={row.couponCode} />}
+        {row.discountAmount != null && Number(row.discountAmount) > 0 && (
+          <DetailRow label="Discount" value={money(row.discountAmount)} />
+        )}
+        {row.cancellationReason && <DetailRow label="Cancellation reason" value={row.cancellationReason} />}
+        {row.cancelledBy && <DetailRow label="Cancelled by" value={row.cancelledBy} />}
+        <DetailRow label="Recorded" value={dateTime(row.createdAt)} />
+      </div>
+    </Modal>
   );
 }
 

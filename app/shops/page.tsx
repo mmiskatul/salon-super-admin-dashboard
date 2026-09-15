@@ -100,25 +100,25 @@ export default function ShopsPage() {
                 : 'Counts cover the shop’s whole history.'
             }
             actions={
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <label className="relative">
                   <Search
-                    size={13}
-                    className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-ink-3"
+                    size={14}
+                    className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#94A3B8]"
                   />
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search shops"
+                    placeholder="Search shops..."
                     aria-label="Search shops"
-                    className="w-[170px] rounded-lg border border-rule bg-surface py-[6px] pr-2.5 pl-7 text-[12px] placeholder:text-ink-3 focus:border-primary focus:outline-none"
+                    className="w-[200px] rounded-lg border border-[#E2E8F0] bg-white py-2 pr-3 pl-8 text-[13px] text-[#1E293B] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent font-manrope transition-all"
                   />
                 </label>
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SortKey)}
                   aria-label="Sort shops"
-                  className="rounded-lg border border-rule bg-surface px-2 py-[6px] text-[12px] focus:border-primary focus:outline-none"
+                  className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-[13px] text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent font-manrope transition-all"
                 >
                   <option value="newest">Newest first</option>
                   <option value="name">Name</option>
@@ -128,17 +128,17 @@ export default function ShopsPage() {
               </div>
             }
           >
-            <div className="flex flex-wrap gap-1 border-b border-rule-soft px-4 py-2.5">
+            <div className="flex flex-wrap gap-2 border-b border-[#E2E8F0] px-5 py-3 bg-[#F8FAFC]/50">
               {FILTERS.map((f) => (
                 <button
                   key={f.key}
                   type="button"
                   onClick={() => setFilter(f.key)}
                   aria-pressed={filter === f.key}
-                  className={`rounded-full px-2 py-1 text-[11px] transition-colors ${
+                  className={`rounded-full px-3 py-1 text-[12px] font-manrope transition-all cursor-pointer ${
                     filter === f.key
-                      ? 'bg-primary text-white'
-                      : 'text-ink-2 hover:bg-ground hover:text-ink'
+                      ? 'bg-[#635BFF] text-white shadow-sm shadow-[#635BFF]/20 font-bold'
+                      : 'bg-white border border-[#E2E8F0] text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#1E293B] font-semibold'
                   }`}
                 >
                   {f.label}
