@@ -11,78 +11,101 @@
  * all take a colour prop rather than reading these tokens, so a shop's row still stands out.
  */
 @theme {
+  --font-manrope: "Manrope", sans-serif;
+  --font-display: var(--font-manrope), sans-serif;
+  --font-body: var(--font-manrope), sans-serif;
+  --font-data: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
+
   --color-ink: #1e293b;
   --color-ink-2: #64748b;
   --color-ink-3: #94a3b8;
-  --color-ground: #f8fafc;
+  --color-ground: #f3f4f7;
   --color-surface: #ffffff;
   --color-rule: #e2e8f0;
   --color-rule-soft: #f1f5f9;
 
-  /* Reserved. --color-signal means "an operator has to look at this"; nothing decorative may
-     use it, or it stops working as an alarm. --color-live is its opposite number. */
   --color-signal: #ef4444;
   --color-signal-soft: #fef2f2;
-  --color-live: #22c55e;
-  --color-live-soft: #f0fdf4;
+  --color-live: #10b981;
+  --color-live-soft: #ecfdf5;
 
-  /* The brand accent — matches salon-owner-dashboard's primary purple exactly. */
   --color-primary: #635bff;
   --color-primary-hover: #524be0;
-  --color-primary-soft: #ede9fe;
-
-  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
-  --font-body: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
-  --font-data: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
+  --color-primary-soft: #eef2ff;
 }
 
 html {
-  background: var(--color-ground);
+  background: #f3f4f7;
 }
 
 body {
-  background: var(--color-ground);
-  color: var(--color-ink);
-  font-family: var(--font-body);
+  background: #f3f4f7;
+  color: #1e293b;
+  font-family: var(--font-manrope), sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Every identifier, count, timestamp and money figure is set in the data face so columns align
-   and a uuid can be scanned character by character. */
+/* Tabular figures for numbers, currency, timestamps */
 .tabular {
-  font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
 }
 
-/* Section eyebrows. Caps + wide tracking is doing structural work here: it marks the boundary
-   between panels in a layout that has almost no other dividers. */
+/* Eyebrows matching owner dashboard section tags */
 .eyebrow {
-  font-family: var(--font-data);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-ink-3);
+  color: #635bff;
+  font-family: var(--font-manrope), sans-serif;
+}
+
+/* Scrollbars identical to owner dashboard */
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #cbd5e1;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #e2e8f0 transparent;
+  }
 }
 
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-rule);
-  border: 3px solid var(--color-ground);
-  border-radius: 999px;
+  background: #e2e8f0;
+  border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-ink-3);
+  background: #cbd5e1;
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid #635bff;
   outline-offset: 2px;
   border-radius: 6px;
 }
