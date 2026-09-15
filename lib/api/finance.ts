@@ -9,6 +9,10 @@ export interface Transaction {
   amount: string | number;
   status: string;
   createdAt: string;
+  // Resolved server-side from the appointment this was billed against, when there is one.
+  customerName?: string | null;
+  serviceName?: string | null;
+  staffName?: string | null;
 }
 
 export function listTransactions(tenantId: string): Promise<Transaction[]> {

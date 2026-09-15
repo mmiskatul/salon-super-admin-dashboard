@@ -21,6 +21,11 @@ export interface Appointment {
   couponCode: string | null;
   discountAmount: string | number | null;
   createdAt: string;
+  // Resolved server-side, additive on top of the raw fields above.
+  customerName?: string | null;
+  customerPhone?: string | null;
+  customerAvatarUrl?: string | null;
+  staffName?: string | null;
 }
 
 /** Mirrors service-booking `model Review`. */
