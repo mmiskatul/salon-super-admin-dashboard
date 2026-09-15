@@ -105,17 +105,17 @@ export default function BroadcastsPage() {
               flush
               title={`${count(filtered.length)} broadcast${filtered.length === 1 ? '' : 's'} recorded`}
               actions={
-                <label className="relative">
+                <label className="relative font-manrope">
                   <Search
-                    size={13}
-                    className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-ink-3"
+                    size={14}
+                    className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#94A3B8]"
                   />
                   <input
                     type="text"
-                    placeholder="Search broadcasts…"
+                    placeholder="Search broadcasts..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    className="h-7 w-56 rounded border border-rule bg-canvas pl-8 pr-2 text-xs text-ink placeholder:text-ink-3 focus:border-primary-2 focus:outline-none"
+                    className="w-60 rounded-lg border border-[#E2E8F0] bg-white pl-9 pr-3 py-1.5 text-[12px] text-[#1E293B] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent font-manrope transition-all shadow-xs"
                   />
                 </label>
               }

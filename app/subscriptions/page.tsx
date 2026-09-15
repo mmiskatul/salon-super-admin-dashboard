@@ -106,25 +106,25 @@ export default function SubscriptionsPage() {
               flush
               title={`${count(filtered.length)} subscription${filtered.length === 1 ? '' : 's'}`}
               actions={
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2.5 font-manrope">
                   <label className="relative">
                     <Search
-                      size={13}
-                      className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-ink-3"
+                      size={14}
+                      className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#94A3B8]"
                     />
                     <input
                       type="text"
-                      placeholder="Search shop or tenant…"
+                      placeholder="Search shop or tenant..."
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      className="h-7 w-48 rounded border border-rule bg-canvas pl-8 pr-2 text-xs text-ink placeholder:text-ink-3 focus:border-primary-2 focus:outline-none"
+                      className="rounded-lg border border-[#E2E8F0] bg-white pl-9 pr-3 py-1.5 text-[12px] text-[#1E293B] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent font-manrope transition-all shadow-xs"
                     />
                   </label>
 
                   <select
                     value={planFilter}
                     onChange={(e) => setPlanFilter(e.target.value)}
-                    className="h-7 rounded border border-rule bg-canvas px-2 text-xs text-ink focus:border-primary-2 focus:outline-none"
+                    className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-[12px] text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent font-manrope transition-all shadow-xs"
                   >
                     <option value="ALL">All plans</option>
                     <option value="STARTER">Starter</option>
@@ -135,7 +135,7 @@ export default function SubscriptionsPage() {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="h-7 rounded border border-rule bg-canvas px-2 text-xs text-ink focus:border-primary-2 focus:outline-none"
+                    className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-[12px] text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent font-manrope transition-all shadow-xs"
                   >
                     <option value="ALL">All statuses</option>
                     <option value="ACTIVE">Active</option>

@@ -71,7 +71,7 @@ export default function AuditLogPage() {
             flush
             title={`${count(total)} action${total === 1 ? '' : 's'}`}
             actions={
-              <div className="flex items-center gap-1">
+              <div className="flex flex-wrap items-center gap-1.5 font-manrope">
                 {TARGET_TYPES.map((t) => (
                   <button
                     key={t}
@@ -80,8 +80,10 @@ export default function AuditLogPage() {
                       setTargetType(t);
                       setPage(1);
                     }}
-                    className={`rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors ${
-                      targetType === t ? 'bg-primary text-white' : 'text-ink-2 hover:bg-ground hover:text-ink'
+                    className={`rounded-full px-3 py-1 text-[12px] font-manrope transition-all cursor-pointer ${
+                      targetType === t
+                        ? 'bg-[#635BFF] text-white shadow-sm shadow-[#635BFF]/20 font-bold'
+                        : 'bg-white border border-[#E2E8F0] text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#1E293B] font-semibold'
                     }`}
                   >
                     {t === 'ALL' ? 'All' : t}
