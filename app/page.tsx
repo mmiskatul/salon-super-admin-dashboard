@@ -180,7 +180,7 @@ export default function OverviewPage() {
                     );
                   }
                   return (
-                    <ul className="divide-y divide-rule-soft">
+                    <ul className="divide-y divide-[#E2E8F0]">
                       {dormant.map((t) => (
                         <li key={t.id}>
                           <Link
@@ -224,7 +224,7 @@ export default function OverviewPage() {
                     );
                   }
                   return (
-                    <ul className="divide-y divide-rule-soft">
+                    <ul className="divide-y divide-[#E2E8F0]">
                       {idle.map((t) => (
                         <li key={t.id}>
                           <Link
@@ -269,7 +269,7 @@ export default function OverviewPage() {
                     );
                   }
                   return (
-                    <ul className="divide-y divide-rule-soft">
+                    <ul className="divide-y divide-[#E2E8F0]">
                       {staffless.map((t) => (
                         <li key={t.id}>
                           <Link

@@ -59,10 +59,10 @@ export default function SignInPage() {
       <main className="flex items-center px-8 py-14 lg:px-14">
         <form onSubmit={submit} className="w-full max-w-sm space-y-5">
           <div>
-            <h2 className="font-display text-[24px] leading-none font-extrabold tracking-[-0.03em]">
+            <h2 className="text-2xl font-extrabold text-[#1E293B] tracking-tight font-manrope">
               Sign in
             </h2>
-            <p className="mt-2 text-[13px] text-ink-2">Use your platform operator account.</p>
+            <p className="mt-1 text-[13px] text-[#64748B] font-medium font-manrope">Use your platform operator account.</p>
           </div>
 
           <FormError message={error} />
@@ -92,10 +92,10 @@ export default function SignInPage() {
           <button
             type="submit"
             disabled={pending}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-ink-3"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#635BFF] px-4 py-2.5 text-[13px] font-bold text-white transition-colors hover:bg-[#524be0] shadow-sm shadow-[#635BFF]/20 font-manrope disabled:cursor-not-allowed disabled:bg-[#CBD5E1] cursor-pointer"
           >
             {pending ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
-            {pending ? 'Signing in' : 'Sign in'}
+            {pending ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
       </main>
