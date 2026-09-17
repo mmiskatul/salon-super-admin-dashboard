@@ -8,7 +8,7 @@ import { Badge } from './primitives';
  *
  * This is the console's one signature device, and it exists because of a real question the tenant
  * table cannot otherwise answer. Every shop on the platform looks identical in a list of names and
- * subdomains — the ones that signed up and never furnished themselves look exactly like the ones
+ * identifiers — the ones that signed up and never furnished themselves look exactly like the ones
  * running fifty bookings a week. Rendering the four counts as a glyph turns that into something
  * you scan rather than read: an empty shop shows as a row of baseline ticks, and dormant signups
  * appear as gaps running down the column.
