@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ExternalLink, Megaphone, RotateCw, Search, Send } from 'lucide-react';
+import { ExternalLink, Megaphone, RotateCw, Search, Trash2 } from 'lucide-react';
 import { useApi, useMutation } from '@/lib/useApi';
-import { listRecentBroadcasts, sendBroadcast } from '@/lib/api/broadcasts';
+import { deleteBroadcast, listRecentBroadcasts, sendBroadcast } from '@/lib/api/broadcasts';
 import { listTenants } from '@/lib/api/tenants';
 import { count, date, since } from '@/lib/format';
 import {
@@ -24,6 +24,7 @@ import { Field, FormError, Modal, Select, TextArea, TextInput } from '@/componen
 export default function BroadcastsPage() {
   const [query, setQuery] = useState('');
   const [composing, setComposing] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const broadcastsApi = useApi(() => listRecentBroadcasts(), []);
   const tenantsApi = useApi(() => listTenants(), []);
@@ -41,16 +42,31 @@ export default function BroadcastsPage() {
 
   const filtered = allBroadcasts.filter((b) => {
     if (!needle) return true;
+    const shopName = (b.tenantName || (b.tenantId ? tenantsMap.get(b.tenantId) : '') || '').toLowerCase();
     return (
       b.title.toLowerCase().includes(needle) ||
       b.body.toLowerCase().includes(needle) ||
-      (b.tenantId && b.tenantId.toLowerCase().includes(needle))
+      (b.tenantId && b.tenantId.toLowerCase().includes(needle)) ||
+      shopName.includes(needle)
     );
   });
 
   const totalBroadcasts = allBroadcasts.length;
   const globalCount = allBroadcasts.filter((b) => !b.tenantId).length;
   const shopCount = allBroadcasts.filter((b) => !!b.tenantId).length;
+
+  async function handleDelete(id: string, title: string) {
+    if (!confirm(`Are you sure you want to retract and delete broadcast "${title}"?`)) return;
+    try {
+      setBusyId(id);
+      await deleteBroadcast(id);
+      await broadcastsApi.refresh();
+    } catch (err: any) {
+      alert(`Could not delete broadcast: ${err.message || err}`);
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   return (
     <>
@@ -134,11 +150,14 @@ export default function BroadcastsPage() {
                         <Th align="left">Audience target</Th>
                         <Th align="left">Category</Th>
                         <Th align="left">Sent</Th>
+                        <Th align="right">Actions</Th>
                       </Tr>
                     </thead>
                     <tbody>
                       {filtered.map((b) => {
-                        const shopName = b.tenantId ? tenantsMap.get(b.tenantId) ?? b.tenantId : null;
+                        const shopName = b.tenantName || (b.tenantId ? tenantsMap.get(b.tenantId) ?? b.tenantId : null);
+                        const isBusy = busyId === b.id;
+
                         return (
                           <Tr key={b.id}>
                             <Td align="left">
@@ -169,13 +188,24 @@ export default function BroadcastsPage() {
                               )}
                             </Td>
                             <Td align="left">
-                              <Badge tone="plain">{b.category || 'BROADCAST'}</Badge>
+                              <Badge tone="plain">{b.category || 'SYSTEM'}</Badge>
                             </Td>
                             <Td align="left">
                               <div className="flex flex-col gap-0.5">
                                 <span className="text-xs text-ink-2">{since(b.createdAt)}</span>
                                 <span className="text-[10px] text-ink-3">{date(b.createdAt)}</span>
                               </div>
+                            </Td>
+                            <Td align="right">
+                              <Button
+                                variant="outline"
+                                onClick={() => handleDelete(b.id, b.title)}
+                                disabled={isBusy}
+                                className="text-[#64748B] hover:text-[#EF4444] hover:bg-[#FEE2E2]"
+                              >
+                                <Trash2 size={12} />
+                                Delete
+                              </Button>
                             </Td>
                           </Tr>
                         );
@@ -212,6 +242,7 @@ interface SendModalProps {
 function SendBroadcastModal({ tenants, onClose, onSuccess }: SendModalProps) {
   const [targetType, setTargetType] = useState<'ALL' | 'TENANT'>('ALL');
   const [tenantId, setTenantId] = useState(tenants[0]?.id ?? '');
+  const [category, setCategory] = useState<'SYSTEM' | 'PROMOTION' | 'BOOKING' | 'REMINDER'>('SYSTEM');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
 
@@ -222,6 +253,7 @@ function SendBroadcastModal({ tenants, onClose, onSuccess }: SendModalProps) {
     await sendBroadcast({
       title: title.trim(),
       body: body.trim(),
+      category,
       tenantId: targetType === 'TENANT' ? tenantId : undefined,
     });
 
@@ -248,7 +280,7 @@ function SendBroadcastModal({ tenants, onClose, onSuccess }: SendModalProps) {
             value={targetType}
             onChange={(e) => setTargetType(e.target.value as 'ALL' | 'TENANT')}
           >
-            <option value="ALL">All platform users (Global)</option>
+            <option value="ALL">All platform users (Global broadcast)</option>
             <option value="TENANT">Specific salon shop & its users</option>
           </Select>
         </Field>
@@ -268,20 +300,34 @@ function SendBroadcastModal({ tenants, onClose, onSuccess }: SendModalProps) {
           </Field>
         )}
 
+        <Field label="Notification category">
+          <Select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as any)}
+          >
+            <option value="SYSTEM">System Announcement</option>
+            <option value="PROMOTION">Promotional Alert</option>
+            <option value="REMINDER">General Reminder</option>
+            <option value="BOOKING">Booking Notice</option>
+          </Select>
+        </Field>
+
         <Field label="Notification title" hint="Appears as headline on banners and push notifications">
           <TextInput
             placeholder="e.g. Scheduled Maintenance Window"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            required
           />
         </Field>
 
         <Field label="Message body" hint="Details of the announcement">
           <TextArea
-            rows={4}
-            placeholder="Write your announcement details here…"
+            placeholder="Provide relevant information or instructions for the affected salon users..."
             value={body}
             onChange={(e) => setBody(e.target.value)}
+            rows={4}
+            required
           />
         </Field>
 
@@ -290,8 +336,7 @@ function SendBroadcastModal({ tenants, onClose, onSuccess }: SendModalProps) {
             Cancel
           </Button>
           <Button type="submit" disabled={mutation.pending} variant="primary">
-            <Send size={12} />
-            {mutation.pending ? 'Dispatching…' : 'Send notification'}
+            {mutation.pending ? 'Dispatching…' : 'Dispatch broadcast'}
           </Button>
         </div>
       </form>
