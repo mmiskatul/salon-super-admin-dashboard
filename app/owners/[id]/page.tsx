@@ -204,9 +204,10 @@ export default function OwnerDashboardDetailPage() {
               {tenant.isSuspended ? (
                 <Button
                   variant="primary"
+                  disabled={unsuspend.pending}
                   onClick={async () => {
-                    await unsuspend.mutate(tenant.id);
-                    refresh();
+                    const result = await unsuspend.mutate(tenant.id);
+                    if (result) await refresh();
                   }}
                 >
                   <Unlock size={12} />
@@ -215,6 +216,7 @@ export default function OwnerDashboardDetailPage() {
               ) : (
                 <Button
                   variant="danger"
+                  disabled={suspend.pending}
                   onClick={() => {
                     setSuspendReason('');
                     setSuspending(true);
@@ -229,9 +231,10 @@ export default function OwnerDashboardDetailPage() {
               {owner.isBanned ? (
                 <Button
                   variant="secondary"
+                  disabled={unban.pending}
                   onClick={async () => {
-                    await unban.mutate(owner.id);
-                    refresh();
+                    const result = await unban.mutate(owner.id);
+                    if (result) await refresh();
                   }}
                 >
                   <ShieldCheck size={12} />
@@ -240,6 +243,7 @@ export default function OwnerDashboardDetailPage() {
               ) : (
                 <Button
                   variant="danger"
+                  disabled={ban.pending}
                   onClick={() => {
                     setBanReason('');
                     setBanning(true);
@@ -253,7 +257,7 @@ export default function OwnerDashboardDetailPage() {
               {/* Link to Shop Console */}
               <Link
                 href={`/shops/${tenant.id}`}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-rule bg-surface px-3 py-[7px] text-[12px] font-medium text-ink hover:bg-ground transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-rule bg-surface px-3 py-1.75 text-[12px] font-medium text-ink hover:bg-ground transition-colors"
               >
                 <ExternalLink size={12} />
                 Shop Console
@@ -760,9 +764,11 @@ export default function OwnerDashboardDetailPage() {
                   variant="danger"
                   disabled={suspend.pending}
                   onClick={async () => {
-                    await suspend.mutate(tenant.id, suspendReason.trim() || undefined);
-                    setSuspending(false);
-                    refresh();
+                    const result = await suspend.mutate(tenant.id, suspendReason.trim() || undefined);
+                    if (result) {
+                      setSuspending(false);
+                      await refresh();
+                    }
                   }}
                 >
                   {suspend.pending ? 'Suspending...' : 'Confirm Suspension'}
@@ -793,9 +799,11 @@ export default function OwnerDashboardDetailPage() {
                   variant="danger"
                   disabled={ban.pending || !banReason.trim()}
                   onClick={async () => {
-                    await ban.mutate(owner.id, banReason.trim());
-                    setBanning(false);
-                    refresh();
+                    const result = await ban.mutate(owner.id, banReason.trim());
+                    if (result) {
+                      setBanning(false);
+                      await refresh();
+                    }
                   }}
                 >
                   {ban.pending ? 'Banning...' : 'Confirm Ban'}
@@ -830,14 +838,16 @@ export default function OwnerDashboardDetailPage() {
                   variant="primary"
                   disabled={update.pending}
                   onClick={async () => {
-                    await update.mutate(tenant.id, {
+                    const result = await update.mutate(tenant.id, {
                       name: shopName.trim() || undefined,
                       contactEmail: contactEmail.trim() || undefined,
                       contactPhone: contactPhone.trim() || undefined,
                       tagline: tagline.trim() || undefined,
                     });
-                    setEditingShop(false);
-                    refresh();
+                    if (result) {
+                      setEditingShop(false);
+                      await refresh();
+                    }
                   }}
                 >
                   {update.pending ? 'Saving...' : 'Save Changes'}
