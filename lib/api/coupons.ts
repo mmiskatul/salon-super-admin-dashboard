@@ -43,3 +43,19 @@ export function createCoupon(input: CreateCouponInput): Promise<Coupon> {
     body: JSON.stringify(input),
   });
 }
+
+export function updateCoupon(
+  id: string,
+  input: Partial<CreateCouponInput> & { active?: boolean },
+): Promise<Coupon> {
+  return apiFetch<Coupon>(`/coupons/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteCoupon(id: string): Promise<any> {
+  return apiFetch<any>(`/coupons/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}

@@ -1,12 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { LineChart, Plus } from 'lucide-react';
+import { LineChart, Plus, Sparkles } from 'lucide-react';
 import { useApi, useMutation } from '@/lib/useApi';
 import { listTenants } from '@/lib/api/tenants';
-import { metricSeries, recordMetric, type MetricSnapshot } from '@/lib/api/metrics';
+import {
+  generateMetrics,
+  listMetricNames,
+  metricSeries,
+  recordMetric,
+  type MetricSnapshot,
+} from '@/lib/api/metrics';
 import { brandColor, count, dateTime, toNumber } from '@/lib/format';
 import {
+  Badge,
   Button,
   Canvas,
   Empty,
@@ -20,20 +27,16 @@ import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Field, FormError, Modal, Select, TextInput } from '@/components/ui/Form';
 import { Line } from '@/components/chart/Chart';
 
-/**
- * Metric snapshots.
- *
- * service-report is a single table — tenantId, metric name, value, timestamp — with no registry of
- * which metric names exist and no endpoint that lists them. So this screen cannot offer a dropdown
- * of metrics without inventing one: it asks for the shop and the metric name, and plots what comes
- * back. That is the shape of the backend rather than a gap in the screen.
- */
 export default function MetricsPage() {
   const tenants = useApi(() => listTenants(), []);
   const [tenantId, setTenantId] = useState('');
-  const [metric, setMetric] = useState('');
+  const [metric, setMetric] = useState('daily_revenue');
+  const [customMetric, setCustomMetric] = useState('');
   const [queried, setQueried] = useState<{ tenantId: string; metric: string } | null>(null);
   const [recording, setRecording] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
+  const metricNamesApi = useApi(() => listMetricNames(tenantId || undefined), [tenantId]);
 
   const series = useApi(
     () =>
@@ -54,23 +57,49 @@ export default function MetricsPage() {
   const first = values.length > 0 ? values[0] : null;
   const peak = values.length > 0 ? Math.max(...values) : null;
 
+  const effectiveMetric = metric === '__custom__' ? customMetric.trim() : metric;
+
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!tenantId || !metric.trim()) return;
-    setQueried({ tenantId, metric: metric.trim() });
+    if (!tenantId || !effectiveMetric) return;
+    setQueried({ tenantId, metric: effectiveMetric });
+  }
+
+  async function handleAutoGenerate() {
+    try {
+      setGenerating(true);
+      const res = await generateMetrics(tenantId || undefined);
+      alert(res.message || 'Metrics generated successfully!');
+      if (queried) {
+        await series.refresh();
+      } else if (tenantId) {
+        setQueried({ tenantId, metric: effectiveMetric || 'daily_revenue' });
+      }
+      await metricNamesApi.refresh();
+    } catch (err: any) {
+      alert(`Generation failed: ${err.message || err}`);
+    } finally {
+      setGenerating(false);
+    }
   }
 
   return (
     <>
       <PageHead
         eyebrow="Activity"
-        title="Metrics"
-        lede="Snapshots recorded against a shop. Pick a shop and type the metric name you want to see — the backend keeps no list of names, so there is nothing to choose from until you know one."
+        title="Metrics & Signals"
+        lede="Explore real-time business telemetry and snapshot curves across salon storefronts. Select a shop and metric name to plot historical performance."
         actions={
-          <Button variant="primary" onClick={() => setRecording(true)}>
-            <Plus size={12} />
-            Record a snapshot
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleAutoGenerate} disabled={generating} variant="secondary">
+              <Sparkles size={12} className={generating ? 'animate-spin' : 'text-[#635BFF]'} />
+              {generating ? 'Computing…' : 'Generate live metrics'}
+            </Button>
+            <Button variant="primary" onClick={() => setRecording(true)}>
+              <Plus size={12} />
+              Record snapshot
+            </Button>
+          </div>
         }
       />
 
@@ -83,9 +112,16 @@ export default function MetricsPage() {
             <Panel title="Look up a series">
               <form onSubmit={submit} className="flex flex-wrap items-end gap-3">
                 <div className="min-w-[220px] flex-1">
-                  <Field label="Shop">
-                    <Select value={tenantId} onChange={(e) => setTenantId(e.target.value)} required>
-                      <option value="">Choose a shop</option>
+                  <Field label="Shop / Salon">
+                    <Select
+                      value={tenantId}
+                      onChange={(e) => {
+                        setTenantId(e.target.value);
+                        if (queried) setQueried(null);
+                      }}
+                      required
+                    >
+                      <option value="">Choose a salon storefront</option>
                       {tenants.data.map((t) => (
                         <option key={t.id} value={t.id}>
                           {t.name}
@@ -94,18 +130,47 @@ export default function MetricsPage() {
                     </Select>
                   </Field>
                 </div>
-                <div className="min-w-[200px] flex-1">
-                  <Field label="Metric name" hint="Exactly as it was recorded, e.g. daily_revenue">
-                    <TextInput
+
+                <div className="min-w-[240px] flex-1">
+                  <Field label="Metric series" hint="Select a standard metric or enter custom name">
+                    <Select
                       value={metric}
                       onChange={(e) => setMetric(e.target.value)}
-                      placeholder="daily_revenue"
-                      className="tabular"
                       required
-                    />
+                    >
+                      {(metricNamesApi.data && metricNamesApi.data.length > 0
+                        ? metricNamesApi.data
+                        : [
+                            { id: 'daily_revenue', name: 'Daily Gross Revenue (USD)' },
+                            { id: 'monthly_revenue', name: 'Monthly Revenue Run-Rate (USD)' },
+                            { id: 'completed_appointments', name: 'Completed Appointments' },
+                            { id: 'active_customers', name: 'Active Unique Clients' },
+                            { id: 'platform_health_score', name: 'Platform Health Score (%)' },
+                          ]
+                      ).map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} ({m.id})
+                        </option>
+                      ))}
+                      <option value="__custom__">+ Enter custom metric name…</option>
+                    </Select>
                   </Field>
                 </div>
-                <Button type="submit" variant="primary" disabled={!tenantId || !metric.trim()}>
+
+                {metric === '__custom__' && (
+                  <div className="min-w-[180px] flex-1">
+                    <Field label="Custom metric name">
+                      <TextInput
+                        value={customMetric}
+                        onChange={(e) => setCustomMetric(e.target.value)}
+                        placeholder="e.g. churn_rate"
+                        required
+                      />
+                    </Field>
+                  </div>
+                )}
+
+                <Button type="submit" variant="primary" disabled={!tenantId || !effectiveMetric}>
                   <LineChart size={12} />
                   Plot series
                 </Button>
@@ -115,8 +180,14 @@ export default function MetricsPage() {
             {!queried && (
               <Panel>
                 <Empty
-                  title="Nothing plotted yet"
-                  hint="Choose a shop and a metric name above. If nothing comes back, no snapshot has ever been recorded under that name for that shop."
+                  title="No metric selected"
+                  hint="Choose a shop and a metric name above, then click 'Plot series' to visualize telemetry."
+                  action={
+                    <Button onClick={handleAutoGenerate} disabled={generating} variant="secondary">
+                      <Sparkles size={12} />
+                      Generate sample live metrics
+                    </Button>
+                  }
                 />
               </Panel>
             )}
@@ -136,65 +207,82 @@ export default function MetricsPage() {
             {queried && !series.loading && !series.error && rows.length === 0 && (
               <Panel>
                 <Empty
-                  title={`No snapshots named “${queried.metric}”`}
-                  hint="Nothing has been recorded under that name for this shop. Check the spelling, or record the first snapshot yourself."
+                  title={`No snapshots recorded for “${queried.metric}”`}
+                  hint="No snapshots found under this metric for the selected shop. Click below to compute live metrics from real store activity."
                   action={
-                    <Button variant="primary" onClick={() => setRecording(true)}>
-                      <Plus size={12} />
-                      Record a snapshot
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button onClick={handleAutoGenerate} disabled={generating} variant="secondary">
+                        <Sparkles size={12} />
+                        Compute live metrics now
+                      </Button>
+                      <Button variant="primary" onClick={() => setRecording(true)}>
+                        <Plus size={12} />
+                        Record manually
+                      </Button>
+                    </div>
                   }
                 />
               </Panel>
             )}
 
-            {queried && rows.length > 0 && (
+            {queried && !series.loading && !series.error && rows.length > 0 && (
               <>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  <Stat label="Snapshots" value={count(rows.length)} />
-                  <Stat label="Latest" value={latest?.toLocaleString() ?? '—'} />
-                  <Stat label="Peak" value={peak?.toLocaleString() ?? '—'} />
+                  <Stat label="Total snapshots" value={count(rows.length)} />
                   <Stat
-                    label="Change since first"
-                    value={
-                      first != null && latest != null
-                        ? `${latest - first >= 0 ? '+' : ''}${(latest - first).toLocaleString()}`
-                        : '—'
-                    }
-                    tone={first != null && latest != null && latest < first ? 'signal' : 'live'}
+                    label="Latest snapshot"
+                    value={latest !== null ? latest.toLocaleString() : '—'}
+                    tone="live"
+                    sub={rows[rows.length - 1] ? dateTime(rows[rows.length - 1].capturedAt) : undefined}
+                  />
+                  <Stat
+                    label="Earliest snapshot"
+                    value={first !== null ? first.toLocaleString() : '—'}
+                    sub={rows[0] ? dateTime(rows[0].capturedAt) : undefined}
+                  />
+                  <Stat
+                    label="Peak value"
+                    value={peak !== null ? peak.toLocaleString() : '—'}
+                    tone="signal"
+                    sub="Highest recorded in series"
                   />
                 </div>
 
-                <Panel
-                  title={queried.metric}
-                  note={`${tenant?.name ?? queried.tenantId} · oldest to newest, evenly spaced`}
-                >
-                  <Line
-                    color={colour}
-                    height={120}
-                    points={rows.map((r) => ({
-                      value: toNumber(r.value),
-                      label: dateTime(r.capturedAt),
-                    }))}
-                  />
-                </Panel>
+                <Panel title={`${queried.metric} over time`} flush>
+                  <div className="p-4">
+                    <Line
+                      points={rows.map((r) => ({
+                        label: dateTime(r.capturedAt),
+                        value: toNumber(r.value),
+                      }))}
+                      color={colour}
+                      height={260}
+                    />
+                  </div>
 
-                <Panel flush title="Snapshots">
                   <Scroll>
                     <Table>
                       <thead>
-                        <tr>
-                          <Th>Captured</Th>
-                          <Th>Metric</Th>
+                        <Tr>
+                          <Th align="left">Captured at</Th>
+                          <Th align="left">Metric</Th>
                           <Th align="right">Value</Th>
-                        </tr>
+                        </Tr>
                       </thead>
                       <tbody>
-                        {[...rows].reverse().map((row) => (
-                          <Tr key={row.id} accent={colour}>
-                            <Td mono>{dateTime(row.capturedAt)}</Td>
-                            <Td muted mono>{row.metric}</Td>
-                            <Td align="right" mono>{toNumber(row.value).toLocaleString()}</Td>
+                        {rows.map((row) => (
+                          <Tr key={row.id}>
+                            <Td align="left">
+                              <span className="text-xs text-ink-2">
+                                {dateTime(row.capturedAt)}
+                              </span>
+                            </Td>
+                            <Td align="left">
+                              <Badge tone="plain">{row.metric}</Badge>
+                            </Td>
+                            <Td align="right" mono>
+                              {toNumber(row.value).toLocaleString()}
+                            </Td>
                           </Tr>
                         ))}
                       </tbody>
@@ -207,16 +295,18 @@ export default function MetricsPage() {
         )}
       </Canvas>
 
-      {recording && tenants.data && (
-        <RecordDialog
-          tenants={tenants.data.map((t) => ({ id: t.id, name: t.name }))}
-          defaults={{ tenantId, metric }}
+      {recording && (
+        <RecordSnapshotDialog
+          tenants={tenants.data ?? []}
+          initialTenantId={queried?.tenantId ?? tenantId}
+          initialMetric={queried?.metric ?? (effectiveMetric || 'daily_revenue')}
           onClose={() => setRecording(false)}
           onRecorded={(snapshot) => {
             setRecording(false);
             setTenantId(snapshot.tenantId);
             setMetric(snapshot.metric);
             setQueried({ tenantId: snapshot.tenantId, metric: snapshot.metric });
+            void series.refresh();
           }}
         />
       )}
@@ -224,44 +314,45 @@ export default function MetricsPage() {
   );
 }
 
-function RecordDialog({
+function RecordSnapshotDialog({
   tenants,
-  defaults,
+  initialTenantId,
+  initialMetric,
   onClose,
   onRecorded,
 }: {
   tenants: { id: string; name: string }[];
-  defaults: { tenantId: string; metric: string };
+  initialTenantId: string;
+  initialMetric: string;
   onClose: () => void;
   onRecorded: (snapshot: MetricSnapshot) => void;
 }) {
-  const [tenantId, setTenantId] = useState(defaults.tenantId);
-  const [metric, setMetric] = useState(defaults.metric);
+  const [tenantId, setTenantId] = useState(initialTenantId || tenants[0]?.id || '');
+  const [metricName, setMetricName] = useState(initialMetric || 'daily_revenue');
   const [value, setValue] = useState('');
-  const { mutate, pending, error } = useMutation(recordMetric);
 
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
-    const snapshot = await mutate({
+  const mutation = useMutation(async () => {
+    return recordMetric({
       tenantId,
-      metric: metric.trim(),
-      value: Number(value),
+      metric: metricName.trim(),
+      value: parseFloat(value),
     });
-    if (snapshot) onRecorded(snapshot);
-  }
+  });
 
   return (
-    <Modal
-      title="Record a snapshot"
-      note="Writes one point to the shop's series. The metric name is free text — reuse an existing name exactly, or you will start a new series."
-      onClose={onClose}
-    >
-      <form onSubmit={submit} className="space-y-4">
-        <FormError message={error} />
+    <Modal title="Record a metric snapshot" onClose={onClose}>
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const snap = await mutation.mutate();
+          if (snap) onRecorded(snap);
+        }}
+        className="space-y-3.5"
+      >
+        {mutation.error && <FormError message={mutation.error} />}
 
         <Field label="Shop">
           <Select value={tenantId} onChange={(e) => setTenantId(e.target.value)} required>
-            <option value="">Choose a shop</option>
             {tenants.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
@@ -270,35 +361,32 @@ function RecordDialog({
           </Select>
         </Field>
 
-        <Field label="Metric name">
+        <Field label="Metric name" hint="Standard identifier, e.g. daily_revenue or platform_health_score">
           <TextInput
-            value={metric}
-            onChange={(e) => setMetric(e.target.value)}
+            value={metricName}
+            onChange={(e) => setMetricName(e.target.value)}
             placeholder="daily_revenue"
-            className="tabular"
             required
           />
         </Field>
 
-        <Field label="Value">
+        <Field label="Snapshot value (number)" hint="Integer or decimal value">
           <TextInput
             type="number"
             step="any"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            className="tabular"
+            placeholder="1250.50"
             required
           />
         </Field>
 
         <div className="flex justify-end gap-2 border-t border-rule-soft pt-4">
-          <Button onClick={onClose}>Cancel</Button>
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={pending || !tenantId || !metric.trim() || value === ''}
-          >
-            {pending ? 'Recording' : 'Record snapshot'}
+          <Button onClick={onClose} disabled={mutation.pending}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={mutation.pending} variant="primary">
+            {mutation.pending ? 'Recording…' : 'Save snapshot'}
           </Button>
         </div>
       </form>

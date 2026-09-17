@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ExternalLink, Plus, RotateCw, Search, Tag } from 'lucide-react';
+import { ExternalLink, Plus, RotateCw, Search, Tag, Trash2 } from 'lucide-react';
 import { useApi, useMutation } from '@/lib/useApi';
-import { createCoupon, listCoupons } from '@/lib/api/coupons';
+import { createCoupon, deleteCoupon, listCoupons, updateCoupon } from '@/lib/api/coupons';
 import { listTenants } from '@/lib/api/tenants';
 import { count, date, money, shortId, since } from '@/lib/format';
 import {
@@ -19,23 +19,34 @@ import {
   Stat,
 } from '@/components/ui/primitives';
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
-import { Field, FormError, Modal, TextInput } from '@/components/ui/Form';
+import { Field, FormError, Modal, Select, TextInput } from '@/components/ui/Form';
 
 export default function CouponsPage() {
   const [query, setQuery] = useState('');
   const [creating, setCreating] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const coupons = useApi(() => listCoupons(), []);
   const tenants = useApi(() => listTenants(), []);
+
+  const tenantsMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of tenants.data ?? []) {
+      map.set(t.id, t.name);
+    }
+    return map;
+  }, [tenants.data]);
 
   const allCoupons = coupons.data ?? [];
   const needle = query.trim().toLowerCase();
   const visible = allCoupons.filter((c) => {
     if (!needle) return true;
+    const shopName = (c.shopName || tenantsMap.get(c.tenantId) || '').toLowerCase();
     return (
       c.code.toLowerCase().includes(needle) ||
       (c.title && c.title.toLowerCase().includes(needle)) ||
-      c.tenantId.toLowerCase().includes(needle)
+      c.tenantId.toLowerCase().includes(needle) ||
+      shopName.includes(needle)
     );
   });
 
@@ -47,6 +58,31 @@ export default function CouponsPage() {
     return true;
   }).length;
   const totalRedemptions = allCoupons.reduce((sum, c) => sum + (c.usageCount ?? 0), 0);
+
+  async function handleToggleActive(couponId: string, currentActive: boolean) {
+    try {
+      setBusyId(couponId);
+      await updateCoupon(couponId, { active: !currentActive });
+      await coupons.refresh();
+    } catch (err: any) {
+      alert(`Could not update coupon: ${err.message || err}`);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleDelete(couponId: string, code: string) {
+    if (!confirm(`Are you sure you want to permanently delete coupon "${code}"?`)) return;
+    try {
+      setBusyId(couponId);
+      await deleteCoupon(couponId);
+      await coupons.refresh();
+    } catch (err: any) {
+      alert(`Could not delete coupon: ${err.message || err}`);
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   return (
     <>
@@ -121,12 +157,13 @@ export default function CouponsPage() {
                     <thead>
                       <tr>
                         <Th>Code</Th>
-                        <Th>Shop</Th>
+                        <Th>Shop / Salon</Th>
                         <Th align="right">Discount</Th>
                         <Th align="right">Usage count</Th>
                         <Th align="right">Min spend</Th>
                         <Th align="right">Expires</Th>
                         <Th align="right">State</Th>
+                        <Th align="right">Actions</Th>
                       </tr>
                     </thead>
                     <tbody>
@@ -134,6 +171,8 @@ export default function CouponsPage() {
                         const isExpired = c.expiresAt && new Date(c.expiresAt) < new Date();
                         const isExhausted = c.usageLimit != null && c.usageCount >= c.usageLimit;
                         const isLive = c.active && !isExpired && !isExhausted;
+                        const shopName = c.shopName || tenantsMap.get(c.tenantId) || c.tenantId;
+                        const isBusy = busyId === c.id;
 
                         return (
                           <Tr key={c.id}>
@@ -151,13 +190,18 @@ export default function CouponsPage() {
                               </div>
                             </Td>
                             <Td>
-                              <Link
-                                href={`/shops/${c.tenantId}`}
-                                className="inline-flex items-center gap-1 font-mono text-[12px] text-ink hover:underline"
-                              >
-                                {shortId(c.tenantId)}
-                                <ExternalLink size={10} className="text-ink-3" />
-                              </Link>
+                              <div className="flex flex-col gap-0.5">
+                                <Link
+                                  href={`/shops/${c.tenantId}`}
+                                  className="inline-flex items-center gap-1 font-medium text-[12px] text-ink hover:text-accent"
+                                >
+                                  <span>{shopName}</span>
+                                  <ExternalLink size={10} className="text-ink-3" />
+                                </Link>
+                                <span className="font-mono text-[10px] text-ink-3">
+                                  {shortId(c.tenantId)}
+                                </span>
+                              </div>
                             </Td>
                             <Td align="right" mono>
                               {c.discountPercent != null
@@ -190,6 +234,26 @@ export default function CouponsPage() {
                               ) : (
                                 <Badge tone="quiet">Disabled</Badge>
                               )}
+                            </Td>
+                            <Td align="right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => handleToggleActive(c.id, c.active)}
+                                  disabled={isBusy}
+                                  className={c.active ? 'text-[#EF4444] hover:bg-[#FEE2E2]' : 'text-[#10B981] hover:bg-[#D1FAE5]'}
+                                >
+                                  {c.active ? 'Disable' : 'Enable'}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => handleDelete(c.id, c.code)}
+                                  disabled={isBusy}
+                                  className="text-[#64748B] hover:text-[#EF4444] hover:bg-[#FEE2E2]"
+                                >
+                                  <Trash2 size={12} />
+                                </Button>
+                              </div>
                             </Td>
                           </Tr>
                         );
@@ -238,122 +302,110 @@ function CreateCouponDialog({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!tenantId || !code.trim()) return;
+    if (!tenantId) {
+      alert('Please select a salon storefront.');
+      return;
+    }
 
-    const res = await mutate({
+    const val = parseFloat(discountValue);
+    if (isNaN(val) || val <= 0) return;
+
+    await mutate({
       tenantId,
       code: code.trim().toUpperCase(),
-      discountPercent: discountType === 'percent' ? Number(discountValue) : undefined,
-      discountAmount: discountType === 'amount' ? Number(discountValue) : undefined,
-      usageLimit: usageLimit ? Number(usageLimit) : undefined,
-      minOrderAmount: minOrder ? Number(minOrder) : undefined,
+      discountPercent: discountType === 'percent' ? val : undefined,
+      discountAmount: discountType === 'amount' ? val : undefined,
+      usageLimit: usageLimit ? parseInt(usageLimit, 10) : undefined,
+      minOrderAmount: minOrder ? parseFloat(minOrder) : undefined,
       title: title.trim() || undefined,
     });
 
-    if (res) onCreated();
+    onCreated();
   }
 
   return (
     <Modal title="Create Promotional Coupon" onClose={onClose} wide>
-      <form onSubmit={submit} className="space-y-4 text-[13px]">
-        <FormError message={error} />
+      <form onSubmit={submit} className="space-y-4">
+        {error && <FormError message={error} />}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Shop assignment" hint="Coupon will apply to this salon's catalog">
-            <select
-              value={tenantId}
-              onChange={(e) => setTenantId(e.target.value)}
-              className="w-full rounded-lg border border-rule bg-surface p-2 text-[13px] focus:border-primary focus:outline-none"
-              required
-            >
-              {tenants.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({shortId(t.id)})
-                </option>
-              ))}
-            </select>
-          </Field>
+        <Field label="Shop assignment" hint="Coupon will apply to this salon's catalog">
+          <Select value={tenantId} onChange={(e) => setTenantId(e.target.value)} required>
+            {tenants.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Coupon code" hint="e.g. WELCOME20, SUMMER50">
             <TextInput
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="DISCOUNT10"
-              className="font-mono font-bold uppercase"
+              placeholder="SUMMER20"
               required
             />
           </Field>
-
-          <Field label="Discount type">
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setDiscountType('percent')}
-                className={`flex-1 rounded-lg border py-1.5 text-[12px] font-medium transition-colors ${
-                  discountType === 'percent'
-                    ? 'border-primary bg-primary text-white'
-                    : 'border-rule bg-surface text-ink-2'
-                }`}
-              >
-                Percentage (%)
-              </button>
-              <button
-                type="button"
-                onClick={() => setDiscountType('amount')}
-                className={`flex-1 rounded-lg border py-1.5 text-[12px] font-medium transition-colors ${
-                  discountType === 'amount'
-                    ? 'border-primary bg-primary text-white'
-                    : 'border-rule bg-surface text-ink-2'
-                }`}
-              >
-                Fixed Amount (BDT)
-              </button>
-            </div>
+          <Field label="Title / campaign name (optional)">
+            <TextInput
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Summer Discount 20%"
+            />
           </Field>
+        </div>
 
-          <Field label={discountType === 'percent' ? 'Discount percent (%)' : 'Discount amount (BDT)'}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Discount format">
+            <Select
+              value={discountType}
+              onChange={(e) => setDiscountType(e.target.value as 'percent' | 'amount')}
+            >
+              <option value="percent">Percentage discount (%)</option>
+              <option value="amount">Fixed price discount ($)</option>
+            </Select>
+          </Field>
+          <Field label={discountType === 'percent' ? 'Percentage off (%)' : 'Amount off ($)'}>
             <TextInput
               type="number"
-              min={1}
-              max={discountType === 'percent' ? 100 : 100000}
+              min="1"
+              max={discountType === 'percent' ? '100' : undefined}
+              step="any"
               value={discountValue}
               onChange={(e) => setDiscountValue(e.target.value)}
               required
             />
           </Field>
+        </div>
 
-          <Field label="Usage limit" hint="Leave blank for unlimited redemptions">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Global usage limit" hint="Leave blank for unlimited">
             <TextInput
               type="number"
-              min={1}
+              min="1"
               value={usageLimit}
               onChange={(e) => setUsageLimit(e.target.value)}
               placeholder="e.g. 100"
             />
           </Field>
-
-          <Field label="Minimum spend (BDT)" hint="Optional minimum booking order value">
+          <Field label="Minimum cart order ($)" hint="Minimum required booking total">
             <TextInput
               type="number"
-              min={0}
+              min="0"
+              step="any"
               value={minOrder}
               onChange={(e) => setMinOrder(e.target.value)}
-              placeholder="e.g. 500"
+              placeholder="e.g. 50"
             />
           </Field>
         </div>
 
-        <Field label="Campaign Title" hint="Optional short marketing headline">
-          <TextInput
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Special Weekend Discount"
-          />
-        </Field>
-
-        <div className="flex justify-end gap-2 border-t border-rule-soft pt-4">
-          <Button onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="primary" disabled={pending || !code.trim() || !tenantId}>
+        <div className="flex justify-end gap-2 border-t border-rule-soft pt-4 mt-2">
+          <Button onClick={onClose} disabled={pending}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={pending} variant="primary">
             {pending ? 'Creating...' : 'Create coupon'}
           </Button>
         </div>

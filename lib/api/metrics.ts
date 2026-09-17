@@ -1,6 +1,13 @@
 import { apiFetch } from '../api-client';
 
-/** Mirrors service-report `model MetricSnapshot`. */
+export interface MetricDefinition {
+  id: string;
+  name: string;
+  description: string;
+  unit: string;
+  category: string;
+}
+
 export interface MetricSnapshot {
   id: string;
   tenantId: string;
@@ -9,14 +16,11 @@ export interface MetricSnapshot {
   capturedAt: string;
 }
 
-/**
- * Metric snapshots for one shop and one metric name.
- *
- * service-report keeps no registry of metric names — `metric` is a free-text column written by
- * whoever recorded the snapshot, so there is no endpoint that lists which names exist. The signals
- * screen therefore asks the operator for the name rather than offering a dropdown it would have
- * to invent.
- */
+export function listMetricNames(tenantId?: string): Promise<MetricDefinition[]> {
+  const query = tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : '';
+  return apiFetch<MetricDefinition[]>(`/metrics/names${query}`);
+}
+
 export function metricSeries(tenantId: string, metric: string): Promise<MetricSnapshot[]> {
   const params = new URLSearchParams({ tenantId, metric });
   return apiFetch<MetricSnapshot[]>(`/metrics/series?${params.toString()}`);
@@ -31,6 +35,39 @@ export function recordMetric(input: {
   tenantId: string;
   metric: string;
   value: number;
+  capturedAt?: string;
 }): Promise<MetricSnapshot> {
   return apiFetch<MetricSnapshot>('/metrics', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export function generateMetrics(tenantId?: string): Promise<{ message: string; count: number }> {
+  const query = tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : '';
+  return apiFetch<{ message: string; count: number }>(`/metrics/generate${query}`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export function getMetricSummary(tenantId?: string): Promise<any> {
+  const query = tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : '';
+  return apiFetch<any>(`/metrics/summary${query}`);
+}
+
+export function listMetricSnapshots(params?: {
+  tenantId?: string;
+  metric?: string;
+  limit?: number;
+}): Promise<MetricSnapshot[]> {
+  const query = new URLSearchParams();
+  if (params?.tenantId) query.set('tenantId', params.tenantId);
+  if (params?.metric) query.set('metric', params.metric);
+  if (params?.limit) query.set('limit', String(params.limit));
+  const qStr = query.toString();
+  return apiFetch<MetricSnapshot[]>(`/metrics${qStr ? `?${qStr}` : ''}`);
+}
+
+export function deleteMetricSnapshot(id: string): Promise<{ id: string }> {
+  return apiFetch<{ id: string }>(`/metrics/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
 }
