@@ -159,11 +159,18 @@ export const http = axios.create({
 });
 
 http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  // cache: 'no-store' equivalent — this is a live admin console, never serve a disk-cached
-  // response for a GET the operator just asked for.
-  config.headers.set('Cache-Control', 'no-store');
+  // NOTE: deliberately does NOT set a Cache-Control header here (the old fetch-based client's
+  // `cache: 'no-store'` was a RequestInit option, not a real HTTP header, so this is not a
+  // behavior change). Setting one adds it to the CORS preflight's Access-Control-Request-Headers,
+  // and the backend's allowedHeaders list (src/common/cors.config.ts) does not include
+  // Cache-Control — the preflight then fails and every request surfaces as a generic axios
+  // "Network Error" with no further detail, which is exactly what broke this after the axios
+  // migration. XHR/axios GET requests to a JSON API aren't disk-cached by the browser regardless.
+  const method = (config.method ?? 'GET').toUpperCase();
   const isFormData = typeof FormData !== 'undefined' && config.data instanceof FormData;
-  if (!isFormData) config.headers.set('Content-Type', 'application/json');
+  if (!isFormData && (config.data != null || ['POST', 'PUT', 'PATCH'].includes(method))) {
+    config.headers.set('Content-Type', 'application/json');
+  }
 
   const path = config.url ?? '';
   if (!isAuthMintPath(path)) {
