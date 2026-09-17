@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Plus, RotateCw, Search } from 'lucide-react';
 import { usePlatform } from '@/lib/usePlatform';
@@ -15,9 +16,10 @@ import Mark from '@/components/ui/Mark';
 import { ceilingOf, Vitals, VitalityTag } from '@/components/ui/Vitals';
 
 type SortKey = 'name' | 'bookings' | 'revenue' | 'newest';
+type EntityFilter = 'all' | 'shops' | 'individual';
 
 const FILTERS: { key: Vitality | 'all'; label: string }[] = [
-  { key: 'all', label: 'All' },
+  { key: 'all', label: 'All States' },
   { key: 'live', label: 'Taking bookings' },
   { key: 'idle', label: 'No bookings' },
   { key: 'dormant', label: 'Never set up' },
@@ -29,6 +31,7 @@ export default function ShopsPage() {
   const { tenants, vitals, loading, sweeping, swept, error, reload } = usePlatform();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Vitality | 'all'>('all');
+  const [entityFilter, setEntityFilter] = useState<EntityFilter>('all');
   const [sort, setSort] = useState<SortKey>('newest');
   const [creating, setCreating] = useState(false);
 
@@ -40,6 +43,8 @@ export default function ShopsPage() {
 
     const matched = tenants.filter((t) => {
       if (filter !== 'all' && vitalityOf(vitals[t.id]) !== filter) return false;
+      if (entityFilter === 'shops' && t.isIndividual) return false;
+      if (entityFilter === 'individual' && !t.isIndividual) return false;
       if (!needle) return true;
       return (
         t.name.toLowerCase().includes(needle) ||
@@ -63,7 +68,7 @@ export default function ShopsPage() {
       }
     });
     return sorted;
-  }, [tenants, vitals, query, filter, sort]);
+  }, [tenants, vitals, query, filter, entityFilter, sort]);
 
   return (
     <>
@@ -127,22 +132,49 @@ export default function ShopsPage() {
               </div>
             }
           >
-            <div className="flex flex-wrap gap-2 border-b border-[#E2E8F0] px-5 py-3 bg-[#F8FAFC]/50">
-              {FILTERS.map((f) => (
-                <button
-                  key={f.key}
-                  type="button"
-                  onClick={() => setFilter(f.key)}
-                  aria-pressed={filter === f.key}
-                  className={`rounded-full px-3 py-1 text-[12px] font-manrope transition-all cursor-pointer ${
-                    filter === f.key
-                      ? 'bg-[#635BFF] text-white shadow-sm shadow-[#635BFF]/20 font-bold'
-                      : 'bg-white border border-[#E2E8F0] text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#1E293B] font-semibold'
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] px-5 py-3 bg-[#F8FAFC]/50">
+              {/* State Filter pills */}
+              <div className="flex flex-wrap gap-1.5">
+                {FILTERS.map((f) => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setFilter(f.key)}
+                    aria-pressed={filter === f.key}
+                    className={`rounded-full px-3 py-1 text-[12px] font-manrope transition-all cursor-pointer ${
+                      filter === f.key
+                        ? 'bg-[#635BFF] text-white shadow-sm shadow-[#635BFF]/20 font-bold'
+                        : 'bg-white border border-[#E2E8F0] text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#1E293B] font-semibold'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Entity Type Filter pills */}
+              <div className="flex items-center gap-1.5 bg-white border border-[#E2E8F0] rounded-lg p-1">
+                {(
+                  [
+                    { key: 'all', label: 'All Entities' },
+                    { key: 'shops', label: 'Salons' },
+                    { key: 'individual', label: 'Independent Barbers' },
+                  ] as { key: EntityFilter; label: string }[]
+                ).map((ef) => (
+                  <button
+                    key={ef.key}
+                    type="button"
+                    onClick={() => setEntityFilter(ef.key)}
+                    className={`rounded-md px-2.5 py-1 text-[11px] font-manrope transition-all cursor-pointer ${
+                      entityFilter === ef.key
+                        ? 'bg-ink text-white font-bold shadow-xs'
+                        : 'text-ink-2 hover:text-ink font-medium'
+                    }`}
+                  >
+                    {ef.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {rows.length === 0 ? (
@@ -167,7 +199,7 @@ export default function ShopsPage() {
                 <Table>
                   <thead>
                     <tr>
-                      <Th>Shop</Th>
+                      <Th>Shop / Studio</Th>
                       <Th>Vitals</Th>
                       <Th>State</Th>
                       <Th align="right">Barbers</Th>
@@ -177,6 +209,7 @@ export default function ShopsPage() {
                       <Th align="right">Rating</Th>
                       <Th align="right">Last booking</Th>
                       <Th align="right">Joined</Th>
+                      <Th align="right">Controls</Th>
                     </tr>
                   </thead>
                   <tbody>
@@ -198,9 +231,21 @@ export default function ShopsPage() {
                               />
                               <span className="min-w-0">
                                 <span className="block truncate font-medium">{tenant.name}</span>
-                                {!tenant.isListed && (
-                                  <span className="tabular block truncate text-[11px] text-ink-3">Hidden from customers</span>
-                                )}
+                                <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                  {tenant.isIndividual && (
+                                    <span className="rounded bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-bold">
+                                      Independent Barber
+                                    </span>
+                                  )}
+                                  {tenant.isOwnerStudio && (
+                                    <span className="rounded bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 text-[10px] font-bold">
+                                      Owner Studio
+                                    </span>
+                                  )}
+                                  {!tenant.isListed && (
+                                    <span className="tabular block truncate text-[11px] text-ink-3">Hidden from customers</span>
+                                  )}
+                                </div>
                               </span>
                             </span>
                           </Td>
@@ -233,6 +278,20 @@ export default function ShopsPage() {
                           </Td>
                           <Td align="right" mono muted>
                             {date(tenant.createdAt)}
+                          </Td>
+                          <Td align="right">
+                            <div
+                              className="flex items-center justify-end gap-1.5"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Link
+                                href={`/owners/${tenant.id}`}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[#F8FAFC] border border-[#E2E8F0] text-[11px] font-semibold text-[#1E293B] hover:bg-[#635BFF] hover:text-white hover:border-[#635BFF] transition-all"
+                                title="Open connected Owner Dashboard"
+                              >
+                                Owner Dashboard
+                              </Link>
+                            </div>
                           </Td>
                         </Tr>
                       );

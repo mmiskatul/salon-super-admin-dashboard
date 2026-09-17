@@ -22,6 +22,9 @@ export interface Tenant {
   isSuspended: boolean;
   suspendedReason: string | null;
   suspendedAt: string | null;
+  ownerUserId?: string | null;
+  isIndividual?: boolean;
+  isOwnerStudio?: boolean;
   createdAt: string;
   updatedAt: string;
 }

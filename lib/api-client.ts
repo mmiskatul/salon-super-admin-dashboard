@@ -7,7 +7,28 @@
  * role check at login: this console is useless to anyone but a SUPER_ADMIN, so it refuses the
  * session up front rather than letting every panel 403 one by one.
  */
-export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'https://salunbd-backend-service.onrender.com/api').replace(/\/$/, '');
+function resolveApiBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (envUrl) {
+    const cleaned = envUrl.replace(/\/+$/, '');
+    return cleaned.endsWith('/api') ? cleaned : `${cleaned}/api`;
+  }
+
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0') {
+      return 'http://localhost:3000/api';
+    }
+  }
+
+  return 'https://salunbd-backend-service.onrender.com/api';
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
+
+export function getApiBaseUrl(): string {
+  return resolveApiBaseUrl();
+}
 
 /** Deliberately distinct from the owner dashboard's 'salon_session_v1'. */
 const SESSION_KEY = 'salon_platform_session_v1';
@@ -53,14 +74,12 @@ export class ApiError extends Error {
     public status: number,
   ) {
     super(message);
+    this.name = 'ApiError';
   }
 }
 
 /**
  * Sends the operator back to sign-in once the session is definitively gone.
- *
- * A hard assignment rather than the Next router: this is reachable from module scope, on behalf of
- * any in-flight request rather than a component, where no router instance is in hand.
  */
 function redirectToLogin(): void {
   if (typeof window === 'undefined') return;
@@ -68,15 +87,6 @@ function redirectToLogin(): void {
   window.location.assign('/sign-in');
 }
 
-/**
- * Exchanges the stored refresh token for a fresh pair.
- *
- * Held as a module-level promise so a burst of panels all 401-ing at once triggers exactly one
- * exchange. That is not merely an efficiency concern: the server revokes the old refresh token as
- * it issues the new one, so a second concurrent call would present an already-revoked token and
- * sign the operator out for no reason. This console fans out across every tenant on one screen,
- * so simultaneous 401s are the normal case here rather than a rare race.
- */
 let refreshInFlight: Promise<string | null> | null = null;
 
 function refreshSession(): Promise<string | null> {
@@ -86,13 +96,20 @@ function refreshSession(): Promise<string | null> {
     const session = getSession();
     if (!session?.refreshToken) return null;
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      const baseUrl = getApiBaseUrl();
+      const res = await fetch(`${baseUrl}/auth/refresh`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ refreshToken: session.refreshToken }),
       });
-      if (!res.ok) return null;
-      // /auth/refresh answers with tokens only, so the cached user is carried across unchanged.
+      if (!res.ok) {
+        // Only clear if server explicitly rejected the token (400, 401, 403)
+        if (res.status === 400 || res.status === 401 || res.status === 403) {
+          clearSession();
+          redirectToLogin();
+        }
+        return null;
+      }
       const tokens = (await res.json()) as { accessToken: string; refreshToken: string };
       setSession({ ...session, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
       return tokens.accessToken;
@@ -112,30 +129,45 @@ function authHeader(token?: string): Record<string, string> {
 }
 
 async function failureMessage(res: Response, fallback: string): Promise<string> {
-  const body = await res.json().catch(() => ({}));
-  const raw = (body as { message?: unknown })?.message;
-  if (typeof raw === 'string') return raw;
-  // class-validator answers with an array of constraint messages for a bad DTO.
-  if (Array.isArray(raw) && typeof raw[0] === 'string') return raw[0];
+  const body = await res.json().catch(() => null);
+  if (body && typeof body === 'object') {
+    const b = body as Record<string, unknown>;
+    if (typeof b.message === 'string' && b.message.trim()) return b.message;
+    if (Array.isArray(b.message) && typeof b.message[0] === 'string') {
+      return b.message.filter((m) => typeof m === 'string').join(', ');
+    }
+    if (typeof b.error === 'string' && b.error.trim()) return b.error;
+    if (typeof b.detail === 'string' && b.detail.trim()) return b.detail;
+  }
   return fallback;
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const send = (token?: string) =>
-    fetch(`${API_BASE_URL}${path}`, {
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const baseUrl = getApiBaseUrl();
+
+  const isFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData;
+  const hasBody = init?.body !== undefined && init?.body !== null;
+  const shouldSetJsonHeader = hasBody && !isFormData;
+
+  const send = (token?: string) => {
+    const headers: Record<string, string> = {
+      ...(shouldSetJsonHeader ? { 'content-type': 'application/json' } : {}),
+      ...authHeader(token),
+      ...(init?.headers as Record<string, string> | undefined),
+    };
+
+    return fetch(`${baseUrl}${cleanPath}`, {
+      cache: 'no-store',
       ...init,
-      headers: {
-        'content-type': 'application/json',
-        ...authHeader(token),
-        ...init?.headers,
-      },
+      headers,
     });
+  };
 
   let res = await send();
 
   // The auth endpoints mint sessions rather than consuming them; a 401 there is a real answer
-  // (wrong password, dead refresh token), not something a retry could fix.
-  if (res.status === 401 && !path.startsWith('/auth/')) {
+  if (res.status === 401 && !cleanPath.startsWith('/auth/')) {
     const token = await refreshSession();
     if (!token) {
       clearSession();
@@ -148,10 +180,57 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   if (!res.ok) {
     throw new ApiError(await failureMessage(res, `Request failed (${res.status})`), res.status);
   }
+
   if (res.status === 204) return undefined as T;
-  // A handler that returns void still answers 200 with an empty body, which res.json() rejects.
+
   const text = await res.text();
-  return (text ? JSON.parse(text) : undefined) as T;
+  const trimmed = text.trim();
+  if (!trimmed) return undefined as T;
+
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch {
+    // If not valid JSON, return the raw trimmed text
+    return trimmed as unknown as T;
+  }
+}
+
+export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const baseUrl = getApiBaseUrl();
+
+  const send = (token?: string) =>
+    fetch(`${baseUrl}${cleanPath}`, {
+      method: 'POST',
+      cache: 'no-store',
+      headers: authHeader(token),
+      body: form,
+    });
+
+  let res = await send();
+  if (res.status === 401 && !cleanPath.startsWith('/auth/')) {
+    const token = await refreshSession();
+    if (!token) {
+      clearSession();
+      redirectToLogin();
+      throw new ApiError('Your session has expired. Sign in again to continue.', 401);
+    }
+    res = await send(token);
+  }
+
+  if (!res.ok) {
+    throw new ApiError(await failureMessage(res, `Upload failed (${res.status})`), res.status);
+  }
+
+  const text = await res.text();
+  const trimmed = text.trim();
+  if (!trimmed) return undefined as T;
+
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch {
+    return trimmed as unknown as T;
+  }
 }
 
 export async function login(email: string, password: string): Promise<Session> {
@@ -160,10 +239,6 @@ export async function login(email: string, password: string): Promise<Session> {
     { method: 'POST', body: JSON.stringify({ email, password }) },
   );
 
-  // Checked here rather than left to the individual panels. GET /tenants is the spine of this
-  // console and is SUPER_ADMIN-only (service-business/src/tenant/tenant.controller.ts), so an
-  // owner or barber who signs in successfully would land on a console where every panel reads
-  // "Forbidden" — a worse answer than being told plainly that this is the wrong door.
   if (auth.user.role !== 'SUPER_ADMIN') {
     throw new ApiError(
       'That account is not a platform operator. Shop owners sign in on the owner dashboard.',

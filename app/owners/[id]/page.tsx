@@ -185,6 +185,16 @@ export default function OwnerDashboardDetailPage() {
                 Refresh
               </Button>
 
+              {/* View Connected Shop Management */}
+              <Button
+                variant="secondary"
+                onClick={() => router.push(`/shops/${tenant.id}`)}
+                title="Manage shop catalog, team, and inventory"
+              >
+                <Store size={12} />
+                Shop Management
+              </Button>
+
               {/* Edit Shop */}
               <Button
                 onClick={() => {

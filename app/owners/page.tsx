@@ -379,6 +379,16 @@ export default function OwnerDashboardsPage() {
                           {/* Dashboard Actions */}
                           <Td className="text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              {/* Open Connected Shop */}
+                              <Link
+                                href={`/shops/${row.tenantId}`}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border border-rule bg-surface text-ink-2 hover:text-primary hover:bg-ground transition-colors"
+                                title="Open connected shop management"
+                              >
+                                <Store size={11} />
+                                Shop
+                              </Link>
+
                               {/* Open Owner Dashboard Detail */}
                               <Link
                                 href={`/owners/${row.tenantId || row.ownerId}`}

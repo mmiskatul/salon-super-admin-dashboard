@@ -145,6 +145,16 @@ export default function ShopPage() {
                   <p className="mt-2 max-w-[60ch] text-[13px] text-ink-2">{tenant.tagline}</p>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  {tenant.isIndividual && (
+                    <span className="rounded bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[11px] font-bold">
+                      Independent Barber
+                    </span>
+                  )}
+                  {tenant.isOwnerStudio && (
+                    <span className="rounded bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 text-[11px] font-bold">
+                      Owner Studio
+                    </span>
+                  )}
                   {tenant.isSuspended && <Badge tone="signal">Suspended</Badge>}
                   {tenant.isListed ? (
                     <Badge tone="live">Visible to customers</Badge>
@@ -162,7 +172,15 @@ export default function ShopPage() {
               </div>
             </div>
 
-            <div className="flex shrink-0 gap-2">
+            <div className="flex flex-wrap shrink-0 gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => router.push(`/owners/${tenant.id}`)}
+                title="Inspect Owner Dashboard with financial & staff overview"
+              >
+                <ExternalLink size={12} />
+                Owner Dashboard
+              </Button>
               <Button onClick={() => setEditing(true)}>
                 <Pencil size={12} />
                 Edit shop

@@ -1,10 +1,26 @@
 import { apiFetch } from '../api-client';
-import type { Tenant, Location, ShopHours, Product, Client, StoredFile } from './tenants';
-import type { PlatformUser } from './users';
-import type { Staff } from './people';
-import type { ServiceItem } from './catalog';
-import type { Appointment, Review } from './bookings';
-import type { Transaction } from './finance';
+import {
+  listTenants,
+  getTenant,
+  listLocations,
+  getShopHours,
+  listProducts,
+  listClients,
+  listFiles,
+  type Tenant,
+  type Location,
+  type ShopHours,
+  type Product,
+  type Client,
+  type StoredFile,
+} from './tenants';
+import { listUsers, type PlatformUser } from './users';
+import { listStaff, type Staff } from './people';
+import { listServices, type ServiceItem } from './catalog';
+import { listAppointments, listReviews, type Appointment, type Review } from './bookings';
+import { listTransactions, type Transaction } from './finance';
+
+const SETTLED = new Set(['PAID', 'SETTLED', 'COMPLETED', 'SUCCEEDED', 'CAPTURED']);
 
 export interface OwnerDashboardSummary {
   ownerId: string;
@@ -74,18 +90,38 @@ export interface OwnerDashboardDetail {
   files: StoredFile[];
 }
 
+function deriveOwnerName(email: string, fallback: string): string {
+  const name = (email || '').split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  return name || fallback;
+}
+
+/**
+ * Lists all owner dashboards.
+ * Attempts the optimized server-side aggregator `/dashboard/owners` first.
+ * If the endpoint returns an error (e.g. 500 or schema drift on an upstream backend),
+ * it seamlessly falls back to client-side resource aggregation so the dashboard never breaks.
+ */
 export async function listOwnerDashboards(): Promise<OwnerDashboardSummary[]> {
-  return apiFetch<OwnerDashboardSummary[]>('/dashboard/owners');
-  /* const [usersPage, allTenants] = await Promise.all([
+  try {
+    const res = await apiFetch<OwnerDashboardSummary[]>('/dashboard/owners');
+    if (Array.isArray(res)) return res;
+  } catch (err) {
+    console.warn('Dedicated /dashboard/owners endpoint failed, falling back to client-side aggregation:', err);
+  }
+  return fallbackListOwnerDashboards();
+}
+
+async function fallbackListOwnerDashboards(): Promise<OwnerDashboardSummary[]> {
+  const [usersPage, allTenants] = await Promise.all([
     listUsers({ role: 'OWNER', limit: 100 }).catch(() => ({ data: [] as PlatformUser[], total: 0, page: 1, limit: 100 })),
     listTenants().catch(() => [] as Tenant[]),
   ]);
 
-  const owners = usersPage.data;
+  const owners = usersPage.data || [];
   const tenantMap = new Map<string, Tenant>();
   for (const t of allTenants) {
     tenantMap.set(t.id, t);
-    tenantMap.set(t.contactEmail.toLowerCase(), t);
+    if (t.contactEmail) tenantMap.set(t.contactEmail.toLowerCase(), t);
   }
 
   // Create pairing list of { owner, tenant }
@@ -96,7 +132,7 @@ export async function listOwnerDashboards(): Promise<OwnerDashboardSummary[]> {
     let tenant: Tenant | undefined;
     if (owner.tenantId && tenantMap.has(owner.tenantId)) {
       tenant = tenantMap.get(owner.tenantId);
-    } else if (tenantMap.has(owner.email.toLowerCase())) {
+    } else if (owner.email && tenantMap.has(owner.email.toLowerCase())) {
       tenant = tenantMap.get(owner.email.toLowerCase());
     }
 
@@ -109,12 +145,12 @@ export async function listOwnerDashboards(): Promise<OwnerDashboardSummary[]> {
         owner,
         tenant: {
           id: owner.tenantId || `orphaned-${owner.id}`,
-          name: owner.email.split('@')[0],
-          businessType: 'Barber Shop',
+          name: (owner.email || 'Salon').split('@')[0],
+          businessType: 'Salon',
           brandColor: '#635BFF',
           logoUrl: null,
           tagline: null,
-          contactEmail: owner.email,
+          contactEmail: owner.email || '',
           contactPhone: null,
           joinCode: null,
           description: null,
@@ -128,8 +164,8 @@ export async function listOwnerDashboards(): Promise<OwnerDashboardSummary[]> {
           isSuspended: false,
           suspendedReason: null,
           suspendedAt: null,
-          createdAt: owner.createdAt,
-          updatedAt: owner.updatedAt,
+          createdAt: owner.createdAt || new Date().toISOString(),
+          updatedAt: owner.updatedAt || new Date().toISOString(),
         },
       });
     }
@@ -180,26 +216,26 @@ export async function listOwnerDashboards(): Promise<OwnerDashboardSummary[]> {
             listProducts(tenantId),
           ]);
 
-        if (staffRes.status === 'fulfilled') barbersCount = staffRes.value.length;
-        if (clientsRes.status === 'fulfilled') clientsCount = clientsRes.value.length;
-        if (servicesRes.status === 'fulfilled') servicesCount = servicesRes.value.length;
-        if (apptsRes.status === 'fulfilled') appointmentsCount = apptsRes.value.length;
-        if (transRes.status === 'fulfilled') {
+        if (staffRes.status === 'fulfilled' && Array.isArray(staffRes.value)) barbersCount = staffRes.value.length;
+        if (clientsRes.status === 'fulfilled' && Array.isArray(clientsRes.value)) clientsCount = clientsRes.value.length;
+        if (servicesRes.status === 'fulfilled' && Array.isArray(servicesRes.value)) servicesCount = servicesRes.value.length;
+        if (apptsRes.status === 'fulfilled' && Array.isArray(apptsRes.value)) appointmentsCount = apptsRes.value.length;
+        if (transRes.status === 'fulfilled' && Array.isArray(transRes.value)) {
           revenueTotal = transRes.value
             .filter((t) => SETTLED.has(String(t.status ?? '').toUpperCase()))
             .reduce((sum, t) => sum + Number(t.amount ?? 0), 0);
         }
-        if (locsRes.status === 'fulfilled') locationsCount = locsRes.value.length;
-        if (prodsRes.status === 'fulfilled') productsCount = prodsRes.value.length;
+        if (locsRes.status === 'fulfilled' && Array.isArray(locsRes.value)) locationsCount = locsRes.value.length;
+        if (prodsRes.status === 'fulfilled' && Array.isArray(prodsRes.value)) productsCount = prodsRes.value.length;
       }
 
-      const email = owner.email ?? tenant.contactEmail;
-      const derivedName = email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      const email = owner.email ?? tenant.contactEmail ?? '';
+      const derivedName = deriveOwnerName(email, tenant.name);
 
       return {
         ownerId: owner.id ?? tenant.id,
         ownerEmail: email,
-        ownerName: derivedName || tenant.name,
+        ownerName: derivedName,
         ownerPhone: tenant.contactPhone ?? null,
         ownerCreatedAt: owner.createdAt ?? tenant.createdAt,
         isBanned: Boolean(owner.isBanned),
@@ -207,38 +243,50 @@ export async function listOwnerDashboards(): Promise<OwnerDashboardSummary[]> {
         tenantId: tenant.id,
         tenantName: tenant.name,
         businessType: tenant.businessType,
-        brandColor: tenant.brandColor,
-        logoUrl: tenant.logoUrl,
-        joinCode: tenant.joinCode,
-        isSuspended: tenant.isSuspended,
-        suspendedReason: tenant.suspendedReason,
-        isListed: tenant.isListed,
+        brandColor: tenant.brandColor ?? null,
+        logoUrl: tenant.logoUrl ?? null,
+        joinCode: tenant.joinCode ?? null,
+        isSuspended: Boolean(tenant.isSuspended),
+        suspendedReason: tenant.suspendedReason ?? null,
+        isListed: tenant.isListed !== false,
         tenantCreatedAt: tenant.createdAt,
         barbersCount,
         clientsCount,
         servicesCount,
         appointmentsCount,
-        revenueTotal,
+        revenueTotal: Math.round(revenueTotal * 100) / 100,
         locationsCount,
         productsCount,
-        ratingAvg: tenant.ratingAvg,
-        ratingCount: tenant.ratingCount,
+        ratingAvg: tenant.ratingAvg ?? 0,
+        ratingCount: tenant.ratingCount ?? 0,
       };
     }),
   );
 
-  return summaries; */
+  return summaries;
 }
 
+/**
+ * Gets a specific owner dashboard.
+ * Attempts the dedicated endpoint `/dashboard/owners/:id` first, falling back to client-side
+ * resource aggregation if unavailable.
+ */
 export async function getOwnerDashboard(id: string): Promise<OwnerDashboardDetail> {
-  return apiFetch<OwnerDashboardDetail>(`/dashboard/owners/${encodeURIComponent(id)}`);
-  /*
+  try {
+    const res = await apiFetch<OwnerDashboardDetail>(`/dashboard/owners/${encodeURIComponent(id)}`);
+    if (res && res.owner && res.tenant) return res;
+  } catch (err) {
+    console.warn(`Dedicated /dashboard/owners/${id} endpoint failed, falling back to client-side aggregation:`, err);
+  }
+  return fallbackGetOwnerDashboard(id);
+}
+
+async function fallbackGetOwnerDashboard(id: string): Promise<OwnerDashboardDetail> {
   // 1. Resolve tenant first
   let tenant: Tenant | null = null;
   try {
     tenant = await getTenant(id);
   } catch {
-    // If id was not a tenant id, find among listTenants
     const allTenants = await listTenants().catch(() => [] as Tenant[]);
     tenant = allTenants.find((t) => t.id === id) ?? null;
   }
@@ -248,7 +296,7 @@ export async function getOwnerDashboard(id: string): Promise<OwnerDashboardDetai
   let ownerUser: PlatformUser | undefined;
 
   if (tenant) {
-    ownerUser = usersPage.data.find((u) => u.tenantId === tenant!.id || u.email.toLowerCase() === tenant!.contactEmail.toLowerCase());
+    ownerUser = usersPage.data.find((u) => u.tenantId === tenant!.id || (u.email && tenant!.contactEmail && u.email.toLowerCase() === tenant!.contactEmail.toLowerCase()));
   } else {
     ownerUser = usersPage.data.find((u) => u.id === id);
     if (ownerUser && ownerUser.tenantId) {
@@ -263,12 +311,12 @@ export async function getOwnerDashboard(id: string): Promise<OwnerDashboardDetai
   if (!tenant && ownerUser) {
     tenant = {
       id: ownerUser.tenantId || `tenant-${ownerUser.id}`,
-      name: ownerUser.email.split('@')[0],
-      businessType: 'Barber Shop',
+      name: (ownerUser.email || 'Salon').split('@')[0],
+      businessType: 'Salon',
       brandColor: '#635BFF',
       logoUrl: null,
       tagline: null,
-      contactEmail: ownerUser.email,
+      contactEmail: ownerUser.email || '',
       contactPhone: null,
       joinCode: null,
       description: null,
@@ -282,8 +330,8 @@ export async function getOwnerDashboard(id: string): Promise<OwnerDashboardDetai
       isSuspended: false,
       suspendedReason: null,
       suspendedAt: null,
-      createdAt: ownerUser.createdAt,
-      updatedAt: ownerUser.updatedAt,
+      createdAt: ownerUser.createdAt || new Date().toISOString(),
+      updatedAt: ownerUser.updatedAt || new Date().toISOString(),
     };
   }
 
@@ -314,16 +362,16 @@ export async function getOwnerDashboard(id: string): Promise<OwnerDashboardDetai
     listFiles(tenantId),
   ]);
 
-  const barbers = barbersRes.status === 'fulfilled' ? barbersRes.value : [];
-  const clients = clientsRes.status === 'fulfilled' ? clientsRes.value : [];
-  const appointments = apptsRes.status === 'fulfilled' ? apptsRes.value : [];
-  const services = servicesRes.status === 'fulfilled' ? servicesRes.value : [];
-  const transactions = transRes.status === 'fulfilled' ? transRes.value : [];
-  const locations = locsRes.status === 'fulfilled' ? locsRes.value : [];
+  const barbers = barbersRes.status === 'fulfilled' && Array.isArray(barbersRes.value) ? barbersRes.value : [];
+  const clients = clientsRes.status === 'fulfilled' && Array.isArray(clientsRes.value) ? clientsRes.value : [];
+  const appointments = apptsRes.status === 'fulfilled' && Array.isArray(apptsRes.value) ? apptsRes.value : [];
+  const services = servicesRes.status === 'fulfilled' && Array.isArray(servicesRes.value) ? servicesRes.value : [];
+  const transactions = transRes.status === 'fulfilled' && Array.isArray(transRes.value) ? transRes.value : [];
+  const locations = locsRes.status === 'fulfilled' && Array.isArray(locsRes.value) ? locsRes.value : [];
   const shopHours = hoursRes.status === 'fulfilled' ? hoursRes.value : null;
-  const products = prodsRes.status === 'fulfilled' ? prodsRes.value : [];
-  const reviews = reviewsRes.status === 'fulfilled' ? reviewsRes.value : [];
-  const files = filesRes.status === 'fulfilled' ? filesRes.value : [];
+  const products = prodsRes.status === 'fulfilled' && Array.isArray(prodsRes.value) ? prodsRes.value : [];
+  const reviews = reviewsRes.status === 'fulfilled' && Array.isArray(reviewsRes.value) ? reviewsRes.value : [];
+  const files = filesRes.status === 'fulfilled' && Array.isArray(filesRes.value) ? filesRes.value : [];
 
   const now = Date.now();
   let upcomingAppointments = 0;
@@ -334,20 +382,20 @@ export async function getOwnerDashboard(id: string): Promise<OwnerDashboardDetai
     const status = String(a.status ?? '').toUpperCase();
     if (status === 'COMPLETED') completedAppointments++;
     else if (status === 'CANCELLED' || status === 'NO_SHOW') cancelledAppointments++;
-    else if (new Date(a.startAt).getTime() >= now) upcomingAppointments++;
+    else if (a.startAt && new Date(a.startAt).getTime() >= now) upcomingAppointments++;
   }
 
   const settledTransactions = transactions.filter((t) => SETTLED.has(String(t.status ?? '').toUpperCase()));
   const revenueTotal = settledTransactions.reduce((sum, t) => sum + Number(t.amount ?? 0), 0);
 
-  const email = ownerUser?.email ?? tenant!.contactEmail;
-  const derivedName = email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  const email = ownerUser?.email ?? tenant!.contactEmail ?? '';
+  const derivedName = deriveOwnerName(email, tenant!.name);
 
   return {
     owner: {
       id: ownerUser?.id ?? `owner-${tenantId}`,
       email,
-      name: derivedName || tenant!.name,
+      name: derivedName,
       phone: tenant!.contactPhone ?? null,
       role: ownerUser?.role ?? 'OWNER',
       isBanned: Boolean(ownerUser?.isBanned),
@@ -364,11 +412,11 @@ export async function getOwnerDashboard(id: string): Promise<OwnerDashboardDetai
       upcomingAppointments,
       completedAppointments,
       cancelledAppointments,
-      revenueTotal,
+      revenueTotal: Math.round(revenueTotal * 100) / 100,
       locationsCount: locations.length,
       productsCount: products.length,
-      ratingAvg: tenant!.ratingAvg,
-      ratingCount: tenant!.ratingCount,
+      ratingAvg: tenant!.ratingAvg ?? 0,
+      ratingCount: tenant!.ratingCount ?? 0,
     },
     barbers,
     clients,
@@ -380,5 +428,5 @@ export async function getOwnerDashboard(id: string): Promise<OwnerDashboardDetai
     products,
     reviews,
     files,
-  }; */
+  };
 }
