@@ -4,9 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, ExternalLink, Pencil, ShieldAlert, ShieldCheck, Trash2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useApi, useMutation } from '@/lib/useApi';
-import { useAppDispatch } from '@/lib/redux/hooks';
-import { invalidatePlatformData } from '@/lib/redux/slices/platformSlice';
 import {
   deleteTenant,
   getTenant,
@@ -53,7 +52,8 @@ export default function ShopPage() {
   const params = useParams<{ tenantId: string }>();
   const tenantId = params.tenantId;
   const router = useRouter();
-  const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
+  const invalidatePlatform = () => void queryClient.invalidateQueries({ queryKey: ['platform-overview'] });
   const [tab, setTab] = useState<Tab>('Barbers');
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -195,7 +195,7 @@ export default function ShopPage() {
                     if (result) {
                       shop.setData(result);
                       await shopDashboard.refresh();
-                      dispatch(invalidatePlatformData());
+                      invalidatePlatform();
                     }
                   }}
                   disabled={unsuspend.pending}
@@ -837,7 +837,7 @@ export default function ShopPage() {
           onSaved={(next) => {
             shop.setData(next);
             void shopDashboard.refresh();
-            dispatch(invalidatePlatformData());
+            invalidatePlatform();
             setEditing(false);
           }}
         />
@@ -848,7 +848,7 @@ export default function ShopPage() {
           tenant={tenant}
           onClose={() => setConfirmingDelete(false)}
           onDeleted={() => {
-            dispatch(invalidatePlatformData());
+            invalidatePlatform();
             router.push('/shops');
           }}
         />
@@ -859,7 +859,7 @@ export default function ShopPage() {
           tenant={tenant}
           onClose={() => setSuspending(false)}
           onSuspended={(next) => {
-            dispatch(invalidatePlatformData());
+            invalidatePlatform();
             shop.setData(next);
             void shopDashboard.refresh();
             setSuspending(false);

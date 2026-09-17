@@ -4,9 +4,8 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Plus, RotateCw, Search } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { usePlatform } from '@/lib/usePlatform';
-import { useAppDispatch } from '@/lib/redux/hooks';
-import { invalidatePlatformData } from '@/lib/redux/slices/platformSlice';
 import { vitalityOf, type Vitality } from '@/lib/api/platform';
 import { createTenant, type Tenant } from '@/lib/api/tenants';
 import { useMutation } from '@/lib/useApi';
@@ -30,7 +29,7 @@ const FILTERS: { key: Vitality | 'all'; label: string }[] = [
 
 export default function ShopsPage() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
   const { tenants, vitals, loading, sweeping, swept, error, reload } = usePlatform();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Vitality | 'all'>('all');
@@ -312,7 +311,7 @@ export default function ShopsPage() {
           onClose={() => setCreating(false)}
           onCreated={(tenant) => {
             setCreating(false);
-            dispatch(invalidatePlatformData());
+            void queryClient.invalidateQueries({ queryKey: ['platform-overview'] });
             router.push(`/shops/${tenant.id}`);
           }}
         />

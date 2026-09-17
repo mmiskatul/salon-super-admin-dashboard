@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -16,7 +16,8 @@ import { Line } from 'react-chartjs-2';
 import { TrendingUp } from 'lucide-react';
 import { money } from '@/lib/format';
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
-import { loadPlatformCharts, setSelectedPeriod } from '@/lib/redux/slices/platformSlice';
+import { setSelectedPeriod } from '@/lib/redux/slices/platformSlice';
+import { usePlatformCharts } from '@/lib/query/platformQueries';
 import type { PlatformChartsDto } from '@/lib/api/platform';
 
 ChartJS.register(
@@ -42,15 +43,10 @@ export default function PlatformRevenueChart({
   chart,
 }: PlatformRevenueChartProps) {
   const dispatch = useAppDispatch();
-  const { charts, chartsLoading, selectedPeriod } = useAppSelector((state) => state.platform);
+  const selectedPeriod = useAppSelector((state) => state.platform.selectedPeriod);
   const period = selectedPeriod;
-  const liveChart = chart ?? charts[period.toLowerCase()] ?? null;
-
-  useEffect(() => {
-    if (!charts[period.toLowerCase()]) {
-      dispatch(loadPlatformCharts(period));
-    }
-  }, [dispatch, period, charts]);
+  const chartsQuery = usePlatformCharts(period);
+  const liveChart = chart ?? chartsQuery.data ?? null;
 
   const { labels, currentData, previousData } = useMemo(() => {
     if (

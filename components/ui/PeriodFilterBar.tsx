@@ -3,11 +3,7 @@
 import React from 'react';
 import { Calendar } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
-import {
-  loadPlatformCharts,
-  loadPlatformOverview,
-  setSelectedPeriod,
-} from '@/lib/redux/slices/platformSlice';
+import { setSelectedPeriod } from '@/lib/redux/slices/platformSlice';
 import type { PlatformPeriod } from '@/lib/api/platform';
 
 interface PeriodFilterBarProps {
@@ -29,15 +25,14 @@ export default function PeriodFilterBar({
   className = '',
 }: PeriodFilterBarProps) {
   const dispatch = useAppDispatch();
-  const { selectedPeriod, charts } = useAppSelector((state) => state.platform);
+  const selectedPeriod = useAppSelector((state) => state.platform.selectedPeriod);
 
+  // Just flips the shared "what period is selected" flag — every widget reading it via
+  // usePlatform()/usePlatformCharts() picks up the new period as a query-key change and
+  // fetches (or serves from cache) on its own; no need to manually kick off fetches here.
   const handleSelect = (period: PlatformPeriod) => {
     if (period === selectedPeriod) return;
     dispatch(setSelectedPeriod(period));
-    dispatch(loadPlatformOverview(period));
-    if (!charts[period.toLowerCase()]) {
-      dispatch(loadPlatformCharts(period));
-    }
   };
 
   const isSm = size === 'sm';
