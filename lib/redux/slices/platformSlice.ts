@@ -7,6 +7,7 @@ import {
   totalsOf,
   type PlatformChartsDto,
   type PlatformOverviewDto,
+  type PlatformPeriod,
   type PlatformTotals,
   type TenantVitals,
 } from '@/lib/api/platform';
@@ -19,7 +20,7 @@ export interface PlatformSliceState {
   totals: PlatformTotals | null;
   charts: Record<string, PlatformChartsDto>;
   chartsLoading: boolean;
-  selectedPeriod: 'Monthly' | 'Weekly' | 'Yearly';
+  selectedPeriod: PlatformPeriod;
   loading: boolean;
   sweeping: boolean;
   swept: number;
@@ -44,11 +45,11 @@ const initialState: PlatformSliceState = {
 
 export const loadPlatformOverview = createAsyncThunk(
   'platform/loadOverview',
-  async (_, { rejectWithValue }) => {
+  async (period: PlatformPeriod | undefined = undefined, { rejectWithValue }) => {
     try {
       // 1. Try first-class overview endpoint
       try {
-        const overview = await fetchPlatformOverview();
+        const overview = await fetchPlatformOverview(period);
         return {
           type: 'full' as const,
           overview,
@@ -91,7 +92,7 @@ export const loadPlatformOverview = createAsyncThunk(
 
 export const loadPlatformCharts = createAsyncThunk(
   'platform/loadCharts',
-  async (period: 'Monthly' | 'Weekly' | 'Yearly', { rejectWithValue }) => {
+  async (period: PlatformPeriod, { rejectWithValue }) => {
     try {
       const data = await fetchPlatformCharts(period);
       return { period, data };
@@ -107,7 +108,7 @@ export const platformSlice = createSlice({
   name: 'platform',
   initialState,
   reducers: {
-    setSelectedPeriod: (state, action: PayloadAction<'Monthly' | 'Weekly' | 'Yearly'>) => {
+    setSelectedPeriod: (state, action: PayloadAction<PlatformPeriod>) => {
       state.selectedPeriod = action.payload;
     },
     updateTenantVitals: (state, action: PayloadAction<TenantVitals>) => {

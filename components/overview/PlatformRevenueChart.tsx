@@ -62,6 +62,12 @@ export default function PlatformRevenueChart({
       };
     }
 
+    if (period === 'Daily') {
+      const hours = ['12 AM', '2 AM', '4 AM', '6 AM', '8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM', '8 PM', '10 PM'];
+      const cur = hours.map((_, i) => (i === 6 ? totalRevenue : 0));
+      return { labels: hours, currentData: cur, previousData: hours.map(() => 0) };
+    }
+
     if (period === 'Weekly') {
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       const todayIndex = (new Date().getDay() + 6) % 7;
@@ -218,18 +224,25 @@ export default function PlatformRevenueChart({
         </div>
 
         {/* Period Selector Tabs */}
-        <div className="flex items-center bg-[#F1F5F9] p-1 rounded-lg self-start sm:self-auto">
-          {(['Monthly', 'Weekly', 'Yearly'] as const).map((tab) => (
+        <div className="flex items-center bg-[#F1F5F9] p-1 rounded-lg self-start sm:self-auto border border-[#E2E8F0]/40">
+          {(
+            [
+              { key: 'Daily', label: 'Day' },
+              { key: 'Weekly', label: 'Weekly' },
+              { key: 'Monthly', label: 'Monthly' },
+              { key: 'Yearly', label: 'Yearly' },
+            ] as const
+          ).map((tab) => (
             <button
-              key={tab}
-              onClick={() => dispatch(setSelectedPeriod(tab))}
+              key={tab.key}
+              onClick={() => dispatch(setSelectedPeriod(tab.key))}
               className={`px-3 py-1 rounded-md text-[12px] font-bold transition-all cursor-pointer ${
-                period === tab
+                period === tab.key
                   ? 'bg-white text-[#635BFF] shadow-xs'
                   : 'text-[#64748B] hover:text-[#1E293B]'
               }`}
             >
-              {tab}
+              {tab.label}
             </button>
           ))}
         </div>

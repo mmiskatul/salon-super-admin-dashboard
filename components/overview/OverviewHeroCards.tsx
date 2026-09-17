@@ -5,6 +5,7 @@ import { Store, CalendarCheck, Banknote, Users, Activity } from 'lucide-react';
 import { Stat } from '@/components/ui/primitives';
 import { count, compact, money } from '@/lib/format';
 import type { PlatformTotals } from '@/lib/api/platform';
+import { useAppSelector } from '@/lib/redux/hooks';
 
 interface OverviewHeroCardsProps {
   totals: PlatformTotals;
@@ -13,9 +14,24 @@ interface OverviewHeroCardsProps {
 }
 
 export default function OverviewHeroCards({ totals, sweeping, swept }: OverviewHeroCardsProps) {
+  const selectedPeriod = useAppSelector((state) => state.platform.selectedPeriod);
   const liveRatio = totals.tenants > 0 ? Math.round((totals.live / totals.tenants) * 100) : 0;
   const completionRate =
     totals.appointments > 0 ? Math.round((totals.completed / totals.appointments) * 100) : 0;
+
+  const periodRevChange = {
+    Daily: '+8.4% Today',
+    Weekly: '+11.6% WoW',
+    Monthly: '+14.2% MoM',
+    Yearly: '+22.8% YoY',
+  }[selectedPeriod] || '+14.2% MoM';
+
+  const periodRevSub = {
+    Daily: "Today's settled transactions",
+    Weekly: "Weekly settled volume",
+    Monthly: "Completed payments",
+    Yearly: "Annual network volume",
+  }[selectedPeriod] || 'Completed payments';
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
@@ -32,8 +48,8 @@ export default function OverviewHeroCards({ totals, sweeping, swept }: OverviewH
       <Stat
         label="Settled Revenue"
         value={money(totals.revenue)}
-        sub="Completed payments"
-        change="+14.2% MoM"
+        sub={periodRevSub}
+        change={periodRevChange}
         icon={<Banknote className="w-5 h-5 text-[#10B981]" />}
         iconBg="bg-[#D1FAE5]"
         gradient="bg-gradient-to-b from-[#10B981]/[12%] to-[#10B981]/[2%]"

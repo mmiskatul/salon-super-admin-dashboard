@@ -12,6 +12,7 @@ import OverviewHeroCards from '@/components/overview/OverviewHeroCards';
 import FinancialCommandCenter from '@/components/overview/FinancialCommandCenter';
 import PlatformRevenueChart from '@/components/overview/PlatformRevenueChart';
 import TenantGrowthChart from '@/components/overview/TenantGrowthChart';
+import PeriodFilterBar from '@/components/ui/PeriodFilterBar';
 import OnboardingFunnelWidget from '@/components/overview/OnboardingFunnelWidget';
 import BookingOutcomesChart from '@/components/overview/BookingOutcomesChart';
 import SupportModerationPulse from '@/components/overview/SupportModerationPulse';
@@ -52,9 +53,11 @@ export default function OverviewPage() {
         title="Platform Overview"
         lede="Executive command tower: SaaS financial performance, tenant onboarding lifecycle, booking fulfillment, and cluster health across all shops."
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <PeriodFilterBar showLabel={true} />
+
             {sweepNote && (
-              <span className="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#E2E8F0] bg-[#F8FAFC] text-[11px] font-bold text-[#64748B]">
+              <span className="hidden xl:inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#E2E8F0] bg-[#F8FAFC] text-[11px] font-bold text-[#64748B]">
                 {sweeping && (
                   <span className="h-2 w-2 rounded-full bg-[#635BFF] animate-ping" aria-hidden />
                 )}

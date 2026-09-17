@@ -165,11 +165,14 @@ export interface PlatformChartsDto {
   };
 }
 
-export function fetchPlatformOverview(): Promise<PlatformOverviewDto> {
-  return apiFetch<PlatformOverviewDto>('/dashboard/platform-overview');
+export type PlatformPeriod = 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+
+export function fetchPlatformOverview(period?: PlatformPeriod): Promise<PlatformOverviewDto> {
+  const query = period ? `?period=${encodeURIComponent(period)}` : '';
+  return apiFetch<PlatformOverviewDto>(`/dashboard/platform-overview${query}`);
 }
 
-export function fetchPlatformCharts(period = 'Monthly'): Promise<PlatformChartsDto> {
+export function fetchPlatformCharts(period: PlatformPeriod = 'Monthly'): Promise<PlatformChartsDto> {
   return apiFetch<PlatformChartsDto>(`/dashboard/platform-charts?period=${encodeURIComponent(period)}`);
 }
 
