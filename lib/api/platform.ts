@@ -176,8 +176,9 @@ export function fetchPlatformCharts(period: PlatformPeriod = 'Monthly'): Promise
   return apiFetch<PlatformChartsDto>(`/dashboard/platform-charts?period=${encodeURIComponent(period)}`);
 }
 
-export function fetchPlatformVitals(): Promise<TenantVitals[]> {
-  return apiFetch<TenantVitals[]>('/dashboard/platform-vitals');
+export function fetchPlatformVitals(period?: PlatformPeriod): Promise<TenantVitals[]> {
+  const query = period ? `?period=${encodeURIComponent(period)}` : '';
+  return apiFetch<TenantVitals[]>(`/dashboard/platform-vitals${query}`);
 }
 
 /** Runs one tenant's five probes concurrently, recording failures instead of throwing. */

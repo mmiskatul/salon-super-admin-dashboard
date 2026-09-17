@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { money } from '@/lib/format';
+import type { PlatformPeriod } from '@/lib/api/platform';
 
 interface FinancialCommandCenterProps {
   totalRevenue: number;
@@ -19,6 +20,7 @@ interface FinancialCommandCenterProps {
   activeSalons: number;
   platformNetEarnings?: number;
   subscriptionMrr?: number;
+  period?: PlatformPeriod;
 }
 
 export default function FinancialCommandCenter({
@@ -27,6 +29,7 @@ export default function FinancialCommandCenter({
   activeSalons,
   platformNetEarnings,
   subscriptionMrr,
+  period = 'Monthly',
 }: FinancialCommandCenterProps) {
   const [metricView, setMetricView] = useState<'net' | 'gmv'>('net');
 
@@ -42,18 +45,21 @@ export default function FinancialCommandCenter({
     <div className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm font-manrope">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#F1F5F9]">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-[16px] font-bold text-[#1E293B]">Financial Command Center</h2>
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#ECFDF5] px-2.5 py-0.5 text-[11px] font-bold text-[#10B981]">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              SaaS Ledger Verified
-            </span>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-[16px] font-bold text-[#1E293B]">Financial Command Center</h2>
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#ECFDF5] px-2.5 py-0.5 text-[11px] font-bold text-[#10B981]">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                SaaS Ledger Verified
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[11px] font-bold text-[#635BFF]">
+                {period}
+              </span>
+            </div>
+            <p className="text-[12px] font-medium text-[#94A3B8] mt-0.5">
+              Gross Merchandise Value (GMV) vs Platform Commission &amp; Subscription MRR
+            </p>
           </div>
-          <p className="text-[12px] font-medium text-[#94A3B8] mt-0.5">
-            Gross Merchandise Value (GMV) vs Platform Commission & Subscription MRR
-          </p>
-        </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <Link

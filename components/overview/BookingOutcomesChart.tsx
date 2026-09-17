@@ -3,16 +3,18 @@
 import React from 'react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
-import { CalendarCheck, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { CalendarCheck, CheckCircle2, Clock, XCircle, Calendar } from 'lucide-react';
 import type { PlatformTotals } from '@/lib/api/platform';
+import type { PlatformPeriod } from '@/lib/api/platform';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface BookingOutcomesChartProps {
   totals: PlatformTotals;
+  period?: PlatformPeriod;
 }
 
-export default function BookingOutcomesChart({ totals }: BookingOutcomesChartProps) {
+export default function BookingOutcomesChart({ totals, period = 'Monthly' }: BookingOutcomesChartProps) {
   const total = Math.max(1, totals.appointments);
   const completed = totals.completed;
   const upcoming = totals.upcoming;
@@ -93,10 +95,18 @@ export default function BookingOutcomesChart({ totals }: BookingOutcomesChartPro
   return (
     <div className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm font-manrope">
       <div className="pb-4 border-b border-[#F1F5F9]">
-        <h2 className="text-[16px] font-bold text-[#1E293B]">Booking Outcome Breakdown</h2>
-        <p className="text-[12px] font-medium text-[#94A3B8] mt-0.5">
-          System-wide appointment fulfillment and retention rates
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-[16px] font-bold text-[#1E293B]">Booking Outcome Breakdown</h2>
+            <p className="text-[12px] font-medium text-[#94A3B8] mt-0.5">
+              System-wide appointment fulfillment and retention rates
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EEF2FF] text-[11px] font-bold text-[#635BFF] shrink-0">
+            <Calendar className="w-3 h-3" />
+            {period}
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-6 pt-5">

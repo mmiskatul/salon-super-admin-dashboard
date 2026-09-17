@@ -20,7 +20,7 @@ import ClusterHealthWidget from '@/components/overview/ClusterHealthWidget';
 
 export default function OverviewPage() {
   const platform = usePlatform();
-  const { overview, tenants, vitals, totals, loading, sweeping, swept, error, reload } = platform;
+  const { overview, tenants, vitals, totals, loading, sweeping, swept, error, reload, selectedPeriod } = platform;
 
   const sweepNote = tenants
     ? sweeping
@@ -118,6 +118,7 @@ export default function OverviewPage() {
               activeSalons={totals.live}
               platformNetEarnings={overview?.summary?.platformNetEarnings}
               subscriptionMrr={overview?.summary?.subscriptionMrr}
+              period={selectedPeriod}
             />
 
             {/* 3. Primary Graphs: Revenue Trajectory & Tenant Growth */}
@@ -126,7 +127,7 @@ export default function OverviewPage() {
                 totalRevenue={totals.revenue}
                 totalAppointments={totals.appointments}
               />
-              <TenantGrowthChart totals={totals} tenants={tenants} vitals={vitals} />
+              <TenantGrowthChart totals={totals} tenants={tenants} vitals={vitals} period={selectedPeriod} />
             </div>
 
             {/* 4. Tenant Onboarding & Activation Lifecycle Funnel */}
@@ -134,8 +135,8 @@ export default function OverviewPage() {
 
             {/* 5. Marketplace Operations: Booking Outcomes & Support/Moderation Pulse */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <BookingOutcomesChart totals={totals} />
-              <SupportModerationPulse totals={totals} />
+              <BookingOutcomesChart totals={totals} period={selectedPeriod} />
+              <SupportModerationPulse totals={totals} period={selectedPeriod} />
             </div>
 
             {/* 6. Infrastructure & Leaderboard: Cluster Health & Busiest Salons */}

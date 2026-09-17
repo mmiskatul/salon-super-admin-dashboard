@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from './redux/hooks';
-import { loadPlatformOverview } from './redux/slices/platformSlice';
-import type { PlatformOverviewDto, PlatformTotals, TenantVitals } from './api/platform';
+import { loadPlatformCharts, loadPlatformOverview } from './redux/slices/platformSlice';
+import type { PlatformOverviewDto, PlatformPeriod, PlatformTotals, TenantVitals } from './api/platform';
 import type { Tenant } from './api/tenants';
 
 export interface PlatformState {
@@ -18,15 +18,15 @@ export interface PlatformState {
   swept: number;
   error: string | null;
   reload: () => void;
+  selectedPeriod: PlatformPeriod;
 }
 
 /**
  * Connects directly to the global Redux store (`platformSlice`).
  *
- * Benefits:
- * 1. Fast, instant page navigation across `/` (Overview), `/shops` (Salons), etc.
- * 2. Shared caching: avoids redundant requests and layout jitter when switching views.
- * 3. Unified reload: dispatching `loadPlatformOverview` re-syncs all components simultaneously.
+ * Whenever `selectedPeriod` changes (via the PeriodFilterBar), this hook
+ * automatically re-fetches the overview and charts for the new period so
+ * every widget on the Overview page reflects the correct time range.
  */
 export function usePlatform(): PlatformState {
   const dispatch = useAppDispatch();
@@ -40,18 +40,40 @@ export function usePlatform(): PlatformState {
     swept,
     error,
     lastFetched,
+    selectedPeriod,
+    charts,
   } = useAppSelector((state) => state.platform);
 
+  // Track previous period to detect changes
+  const prevPeriodRef = useRef<PlatformPeriod | null>(null);
+
   useEffect(() => {
-    // Initial fetch if store does not have platform telemetry yet
-    if (!lastFetched && !loading && !overview && !tenants) {
-      dispatch(loadPlatformOverview());
+    const periodChanged = prevPeriodRef.current !== null && prevPeriodRef.current !== selectedPeriod;
+    prevPeriodRef.current = selectedPeriod;
+
+    if (periodChanged) {
+      // Re-fetch overview for the new period
+      dispatch(loadPlatformOverview(selectedPeriod));
+      // Load charts if not cached for this period
+      if (!charts[selectedPeriod.toLowerCase()]) {
+        dispatch(loadPlatformCharts(selectedPeriod));
+      }
+      return;
     }
-  }, [dispatch, lastFetched, loading, overview, tenants]);
+
+    // Initial fetch if store has no data yet
+    if (!lastFetched && !loading && !overview && !tenants) {
+      dispatch(loadPlatformOverview(selectedPeriod));
+      if (!charts[selectedPeriod.toLowerCase()]) {
+        dispatch(loadPlatformCharts(selectedPeriod));
+      }
+    }
+  }, [dispatch, lastFetched, loading, overview, tenants, selectedPeriod, charts]);
 
   const reload = useCallback(() => {
-    dispatch(loadPlatformOverview());
-  }, [dispatch]);
+    dispatch(loadPlatformOverview(selectedPeriod));
+    dispatch(loadPlatformCharts(selectedPeriod));
+  }, [dispatch, selectedPeriod]);
 
   return {
     overview,
@@ -63,5 +85,6 @@ export function usePlatform(): PlatformState {
     swept,
     error,
     reload,
+    selectedPeriod,
   };
 }

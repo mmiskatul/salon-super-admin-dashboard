@@ -11,9 +11,9 @@ import {
   Legend,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
-import { Store, ArrowUpRight } from 'lucide-react';
-import Link from 'next/link';
+import { Store, ArrowUpRight, Calendar } from 'lucide-react';
 import type { PlatformTotals, TenantVitals } from '@/lib/api/platform';
+import type { PlatformPeriod } from '@/lib/api/platform';
 import type { Tenant } from '@/lib/api/tenants';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -22,9 +22,12 @@ interface TenantGrowthChartProps {
   totals: PlatformTotals;
   tenants?: Tenant[];
   vitals?: Record<string, TenantVitals>;
+  period?: PlatformPeriod;
 }
 
-export default function TenantGrowthChart({ totals, tenants, vitals }: TenantGrowthChartProps) {
+import Link from 'next/link';
+
+export default function TenantGrowthChart({ totals, tenants, vitals, period = 'Monthly' }: TenantGrowthChartProps) {
   const { labels, liveSeries, idleSeries, dormantSeries } = useMemo(() => {
     const monthNames = [
       'Jan',
@@ -186,6 +189,10 @@ export default function TenantGrowthChart({ totals, tenants, vitals }: TenantGro
             <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF2FF] px-2 py-0.5 text-[11px] font-bold text-[#635BFF]">
               <Store className="w-3 h-3" />
               {totals.tenants} Total
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F0FDF4] px-2 py-0.5 text-[11px] font-bold text-[#10B981]">
+              <Calendar className="w-3 h-3" />
+              {period}
             </span>
           </div>
           <p className="text-[12px] font-medium text-[#94A3B8] mt-0.5">

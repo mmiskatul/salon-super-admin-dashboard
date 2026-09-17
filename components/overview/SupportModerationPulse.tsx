@@ -12,13 +12,14 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { listTickets, type Ticket } from '@/lib/api/support';
-import type { PlatformTotals } from '@/lib/api/platform';
+import type { PlatformTotals, PlatformPeriod } from '@/lib/api/platform';
 
 interface SupportModerationPulseProps {
   totals: PlatformTotals;
+  period?: PlatformPeriod;
 }
 
-export default function SupportModerationPulse({ totals }: SupportModerationPulseProps) {
+export default function SupportModerationPulse({ totals, period = 'Monthly' }: SupportModerationPulseProps) {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,11 +44,14 @@ export default function SupportModerationPulse({ totals }: SupportModerationPuls
     <div className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm font-manrope">
       <div className="flex items-center justify-between pb-4 border-b border-[#F1F5F9]">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-[16px] font-bold text-[#1E293B]">Marketplace Trust & Support Pulse</h2>
             <span className="inline-flex items-center gap-1 rounded-full bg-[#FEF3C7] px-2.5 py-0.5 text-[11px] font-bold text-[#D97706]">
               <LifeBuoy className="w-3.5 h-3.5" />
               {openTickets.length} Open Tickets
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[11px] font-bold text-[#635BFF]">
+              {period}
             </span>
           </div>
           <p className="text-[12px] font-medium text-[#94A3B8] mt-0.5">

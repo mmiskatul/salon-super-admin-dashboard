@@ -63,7 +63,7 @@ export const loadPlatformOverview = createAsyncThunk(
       const roster = await listTenants();
       let vitalsList: TenantVitals[] = [];
       try {
-        vitalsList = await fetchPlatformVitals();
+        vitalsList = await fetchPlatformVitals(period);
       } catch {
         // Empty vitals fallback
       }
@@ -110,6 +110,7 @@ export const platformSlice = createSlice({
   reducers: {
     setSelectedPeriod: (state, action: PayloadAction<PlatformPeriod>) => {
       state.selectedPeriod = action.payload;
+      state.lastFetched = null;
     },
     updateTenantVitals: (state, action: PayloadAction<TenantVitals>) => {
       state.vitals[action.payload.tenantId] = action.payload;

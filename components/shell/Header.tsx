@@ -4,7 +4,6 @@ import React from 'react';
 import Link from 'next/link';
 import { Bell, Menu, Search, ShieldCheck } from 'lucide-react';
 import type { Session } from '@/lib/api-client';
-import PeriodFilterBar from '@/components/ui/PeriodFilterBar';
 
 interface HeaderProps {
   session: Session;
@@ -34,11 +33,6 @@ export default function Header({ session, onOpenMobileNav }: HeaderProps) {
             className="w-full pl-9 md:pl-11 pr-4 py-2 md:py-2.5 rounded-full border border-[#E2E8F0] bg-white text-[13px] md:text-sm focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent font-manrope transition-all placeholder:text-[#94A3B8]"
           />
         </div>
-      </div>
-
-      {/* Center: Global Period Filter */}
-      <div className="hidden md:flex items-center">
-        <PeriodFilterBar size="sm" showLabel={true} />
       </div>
 
       {/* Right: Role indicator, notifications & operator profile */}
