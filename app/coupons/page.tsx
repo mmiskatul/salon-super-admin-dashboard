@@ -20,11 +20,30 @@ import {
 } from '@/components/ui/primitives';
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Field, FormError, Modal, Select, TextInput } from '@/components/ui/Form';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 export default function CouponsPage() {
   const [query, setQuery] = useState('');
+  const [filterShop, setFilterShop] = useState('ALL');
   const [creating, setCreating] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  const [confirmAction, setConfirmAction] = useState<{
+    open: boolean;
+    type: 'delete' | 'toggle';
+    couponId: string;
+    code: string;
+    active?: boolean;
+    pending: boolean;
+    error: string | null;
+  }>({
+    open: false,
+    type: 'delete',
+    couponId: '',
+    code: '',
+    pending: false,
+    error: null,
+  });
 
   const coupons = useApi(() => listCoupons(), []);
   const tenants = useApi(() => listTenants(), []);
@@ -39,7 +58,8 @@ export default function CouponsPage() {
 
   const allCoupons = coupons.data ?? [];
   const needle = query.trim().toLowerCase();
-  const visible = allCoupons.filter((c) => {
+  const filtered = allCoupons.filter((c) => {
+    if (filterShop !== 'ALL' && c.tenantId !== filterShop) return false;
     if (!needle) return true;
     const shopName = (c.shopName || tenantsMap.get(c.tenantId) || '').toLowerCase();
     return (
@@ -49,6 +69,7 @@ export default function CouponsPage() {
       shopName.includes(needle)
     );
   });
+  const visible = filtered;
 
   const totalCoupons = allCoupons.length;
   const activeCoupons = allCoupons.filter((c) => {
@@ -59,28 +80,47 @@ export default function CouponsPage() {
   }).length;
   const totalRedemptions = allCoupons.reduce((sum, c) => sum + (c.usageCount ?? 0), 0);
 
-  async function handleToggleActive(couponId: string, currentActive: boolean) {
-    try {
-      setBusyId(couponId);
-      await updateCoupon(couponId, { active: !currentActive });
-      await coupons.refresh();
-    } catch (err: any) {
-      alert(`Could not update coupon: ${err.message || err}`);
-    } finally {
-      setBusyId(null);
-    }
+  function promptDelete(couponId: string, code: string) {
+    setConfirmAction({
+      open: true,
+      type: 'delete',
+      couponId,
+      code,
+      pending: false,
+      error: null,
+    });
   }
 
-  async function handleDelete(couponId: string, code: string) {
-    if (!confirm(`Are you sure you want to permanently delete coupon "${code}"?`)) return;
+  function promptToggle(couponId: string, code: string, currentActive: boolean) {
+    setConfirmAction({
+      open: true,
+      type: 'toggle',
+      couponId,
+      code,
+      active: currentActive,
+      pending: false,
+      error: null,
+    });
+  }
+
+  async function handleConfirmedAction() {
+    const { type, couponId, active } = confirmAction;
+    if (!couponId) return;
+    setConfirmAction((prev) => ({ ...prev, pending: true, error: null }));
     try {
-      setBusyId(couponId);
-      await deleteCoupon(couponId);
+      if (type === 'delete') {
+        await deleteCoupon(couponId);
+      } else {
+        await updateCoupon(couponId, { active: !active });
+      }
       await coupons.refresh();
+      setConfirmAction((prev) => ({ ...prev, open: false, pending: false }));
     } catch (err: any) {
-      alert(`Could not delete coupon: ${err.message || err}`);
-    } finally {
-      setBusyId(null);
+      setConfirmAction((prev) => ({
+        ...prev,
+        pending: false,
+        error: err?.message || 'Operation failed. Please try again.',
+      }));
     }
   }
 
@@ -239,16 +279,16 @@ export default function CouponsPage() {
                               <div className="flex items-center justify-end gap-1.5">
                                 <Button
                                   variant="outline"
-                                  onClick={() => handleToggleActive(c.id, c.active)}
-                                  disabled={isBusy}
+                                  onClick={() => promptToggle(c.id, c.code, c.active)}
+                                  disabled={confirmAction.pending && confirmAction.couponId === c.id}
                                   className={c.active ? 'text-[#EF4444] hover:bg-[#FEE2E2]' : 'text-[#10B981] hover:bg-[#D1FAE5]'}
                                 >
                                   {c.active ? 'Disable' : 'Enable'}
                                 </Button>
                                 <Button
                                   variant="outline"
-                                  onClick={() => handleDelete(c.id, c.code)}
-                                  disabled={isBusy}
+                                  onClick={() => promptDelete(c.id, c.code)}
+                                  disabled={confirmAction.pending && confirmAction.couponId === c.id}
                                   className="text-[#64748B] hover:text-[#EF4444] hover:bg-[#FEE2E2]"
                                 >
                                   <Trash2 size={12} />
@@ -277,6 +317,52 @@ export default function CouponsPage() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmAction.open}
+        title={
+          confirmAction.type === 'delete'
+            ? 'Delete promotional coupon'
+            : confirmAction.active
+            ? 'Disable promotional coupon'
+            : 'Enable promotional coupon'
+        }
+        description={
+          confirmAction.type === 'delete' ? (
+            <p>
+              Are you sure you want to permanently delete coupon code{' '}
+              <strong className="text-[#1E293B] font-bold">&ldquo;{confirmAction.code}&rdquo;</strong>? This
+              action cannot be undone and customers will no longer be able to apply it.
+            </p>
+          ) : confirmAction.active ? (
+            <p>
+              Disable coupon <strong className="text-[#1E293B] font-bold">&ldquo;{confirmAction.code}&rdquo;</strong>? Customers
+              will not be able to apply it until it is enabled again.
+            </p>
+          ) : (
+            <p>
+              Enable coupon <strong className="text-[#1E293B] font-bold">&ldquo;{confirmAction.code}&rdquo;</strong>? It will
+              immediately become active for customer checkouts and appointments.
+            </p>
+          )
+        }
+        confirmLabel={
+          confirmAction.type === 'delete'
+            ? 'Confirm Delete'
+            : confirmAction.active
+            ? 'Confirm Disable'
+            : 'Confirm Enable'
+        }
+        variant={confirmAction.type === 'delete' || confirmAction.active ? 'danger' : 'primary'}
+        pending={confirmAction.pending}
+        error={confirmAction.error}
+        onConfirm={handleConfirmedAction}
+        onClose={() => {
+          if (!confirmAction.pending) {
+            setConfirmAction((prev) => ({ ...prev, open: false, error: null }));
+          }
+        }}
+      />
     </>
   );
 }
@@ -297,18 +383,23 @@ function CreateCouponDialog({
   const [usageLimit, setUsageLimit] = useState('');
   const [minOrder, setMinOrder] = useState('');
   const [title, setTitle] = useState('');
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const { mutate, pending, error } = useMutation(createCoupon);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    setValidationError(null);
     if (!tenantId) {
-      alert('Please select a salon storefront.');
+      setValidationError('Please select a salon storefront.');
       return;
     }
 
     const val = parseFloat(discountValue);
-    if (isNaN(val) || val <= 0) return;
+    if (isNaN(val) || val <= 0) {
+      setValidationError('Please enter a valid discount value greater than 0.');
+      return;
+    }
 
     await mutate({
       tenantId,
@@ -326,7 +417,7 @@ function CreateCouponDialog({
   return (
     <Modal title="Create Promotional Coupon" onClose={onClose} wide>
       <form onSubmit={submit} className="space-y-4">
-        {error && <FormError message={error} />}
+        {(validationError || error) && <FormError message={validationError || error} />}
 
         <Field label="Shop assignment" hint="Coupon will apply to this salon's catalog">
           <Select value={tenantId} onChange={(e) => setTenantId(e.target.value)} required>

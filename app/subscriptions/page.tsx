@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/primitives';
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Field, FormError, Modal, Select, TextInput } from '@/components/ui/Form';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 export default function SubscriptionsPage() {
   const [query, setQuery] = useState('');
@@ -33,6 +34,23 @@ export default function SubscriptionsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [editingSub, setEditingSub] = useState<Subscription | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+
+  // Replaces browser confirm/alert with rich confirm modal
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    type: 'cancel' | 'reactivate';
+    tenantId: string;
+    shopName: string;
+    pending: boolean;
+    error: string | null;
+  }>({
+    open: false,
+    type: 'cancel',
+    tenantId: '',
+    shopName: '',
+    pending: false,
+    error: null,
+  });
 
   const subsApi = useApi(() => listSubscriptions(), []);
   const tenantsApi = useApi(() => listTenants(), []);
@@ -45,7 +63,7 @@ export default function SubscriptionsPage() {
     return map;
   }, [tenantsApi.data]);
 
-  const allSubs = subsApi.data ?? [];
+  const allSubs = useMemo(() => subsApi.data ?? [], [subsApi.data]);
   const needle = query.trim().toLowerCase();
 
   const filtered = allSubs.filter((s) => {
@@ -66,28 +84,46 @@ export default function SubscriptionsPage() {
   const trialingSubs = allSubs.filter((s) => s.status === 'TRIALING').length;
   const pastDueSubs = allSubs.filter((s) => s.status === 'PAST_DUE' || s.status === 'CANCELLED').length;
 
-  async function handleCancel(tenantId: string) {
-    if (!confirm('Are you sure you want to cancel this shop subscription?')) return;
-    try {
-      setActionLoadingId(tenantId);
-      await cancelSubscription(tenantId, false);
-      await subsApi.refresh();
-    } catch (err: any) {
-      alert(`Could not cancel subscription: ${err.message || err}`);
-    } finally {
-      setActionLoadingId(null);
-    }
+  function promptCancel(tenantId: string, shopName: string) {
+    setConfirmState({
+      open: true,
+      type: 'cancel',
+      tenantId,
+      shopName,
+      pending: false,
+      error: null,
+    });
   }
 
-  async function handleReactivate(tenantId: string) {
+  function promptReactivate(tenantId: string, shopName: string) {
+    setConfirmState({
+      open: true,
+      type: 'reactivate',
+      tenantId,
+      shopName,
+      pending: false,
+      error: null,
+    });
+  }
+
+  async function handleConfirmedAction() {
+    const { type, tenantId } = confirmState;
+    if (!tenantId) return;
+    setConfirmState((prev) => ({ ...prev, pending: true, error: null }));
     try {
-      setActionLoadingId(tenantId);
-      await reactivateSubscription(tenantId);
+      if (type === 'cancel') {
+        await cancelSubscription(tenantId, false);
+      } else {
+        await reactivateSubscription(tenantId);
+      }
       await subsApi.refresh();
+      setConfirmState((prev) => ({ ...prev, open: false, pending: false }));
     } catch (err: any) {
-      alert(`Could not reactivate subscription: ${err.message || err}`);
-    } finally {
-      setActionLoadingId(null);
+      setConfirmState((prev) => ({
+        ...prev,
+        pending: false,
+        error: err?.message || 'Operation failed. Please try again.',
+      }));
     }
   }
 
@@ -270,8 +306,8 @@ export default function SubscriptionsPage() {
                                 {sub.status === 'ACTIVE' || sub.status === 'TRIALING' ? (
                                   <Button
                                     variant="outline"
-                                    onClick={() => handleCancel(sub.tenantId)}
-                                    disabled={isActionLoading}
+                                    onClick={() => promptCancel(sub.tenantId, shopName)}
+                                    disabled={confirmState.pending}
                                     className="text-[#EF4444] hover:bg-[#FEE2E2]"
                                   >
                                     <XCircle size={12} />
@@ -280,8 +316,8 @@ export default function SubscriptionsPage() {
                                 ) : (
                                   <Button
                                     variant="outline"
-                                    onClick={() => handleReactivate(sub.tenantId)}
-                                    disabled={isActionLoading}
+                                    onClick={() => promptReactivate(sub.tenantId, shopName)}
+                                    disabled={confirmState.pending}
                                     className="text-[#10B981] hover:bg-[#D1FAE5]"
                                   >
                                     <CheckCircle2 size={12} />
@@ -313,6 +349,32 @@ export default function SubscriptionsPage() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmState.open}
+        title={confirmState.type === 'cancel' ? 'Cancel shop subscription' : 'Reactivate shop subscription'}
+        description={
+          confirmState.type === 'cancel' ? (
+            <p>
+              Are you sure you want to cancel the subscription for{' '}
+              <strong className="text-[#1E293B] font-bold">{confirmState.shopName}</strong>? The salon will lose access
+              to premium features at the end of the billing period.
+            </p>
+          ) : (
+            <p>
+              Reactivate subscription for{' '}
+              <strong className="text-[#1E293B] font-bold">{confirmState.shopName}</strong>? The shop&apos;s recurring billing cycle
+              and access will resume immediately.
+            </p>
+          )
+        }
+        confirmLabel={confirmState.type === 'cancel' ? 'Confirm Cancellation' : 'Confirm Reactivation'}
+        variant={confirmState.type === 'cancel' ? 'danger' : 'primary'}
+        pending={confirmState.pending}
+        error={confirmState.error}
+        onConfirm={handleConfirmedAction}
+        onClose={() => setConfirmState((prev) => ({ ...prev, open: false, error: null }))}
+      />
     </>
   );
 }

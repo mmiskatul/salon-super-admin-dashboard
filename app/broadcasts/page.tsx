@@ -20,11 +20,15 @@ import {
 } from '@/components/ui/primitives';
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Field, FormError, Modal, Select, TextArea, TextInput } from '@/components/ui/Form';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 export default function BroadcastsPage() {
   const [query, setQuery] = useState('');
+  const [filterShop, setFilterShop] = useState('ALL');
   const [composing, setComposing] = useState(false);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const broadcastsApi = useApi(() => listRecentBroadcasts(), []);
   const tenantsApi = useApi(() => listTenants(), []);
@@ -41,6 +45,8 @@ export default function BroadcastsPage() {
   const needle = query.trim().toLowerCase();
 
   const filtered = allBroadcasts.filter((b) => {
+    if (filterShop === 'GLOBAL' && b.tenantId) return false;
+    if (filterShop !== 'ALL' && filterShop !== 'GLOBAL' && b.tenantId !== filterShop) return false;
     if (!needle) return true;
     const shopName = (b.tenantName || (b.tenantId ? tenantsMap.get(b.tenantId) : '') || '').toLowerCase();
     return (
@@ -55,16 +61,18 @@ export default function BroadcastsPage() {
   const globalCount = allBroadcasts.filter((b) => !b.tenantId).length;
   const shopCount = allBroadcasts.filter((b) => !!b.tenantId).length;
 
-  async function handleDelete(id: string, title: string) {
-    if (!confirm(`Are you sure you want to retract and delete broadcast "${title}"?`)) return;
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
     try {
-      setBusyId(id);
-      await deleteBroadcast(id);
+      setDeletePending(true);
+      setDeleteError(null);
+      await deleteBroadcast(deleteTarget.id);
       await broadcastsApi.refresh();
+      setDeleteTarget(null);
     } catch (err: any) {
-      alert(`Could not delete broadcast: ${err.message || err}`);
+      setDeleteError(err?.message || 'Could not delete broadcast. Please try again.');
     } finally {
-      setBusyId(null);
+      setDeletePending(false);
     }
   }
 
@@ -156,7 +164,7 @@ export default function BroadcastsPage() {
                     <tbody>
                       {filtered.map((b) => {
                         const shopName = b.tenantName || (b.tenantId ? tenantsMap.get(b.tenantId) ?? b.tenantId : null);
-                        const isBusy = busyId === b.id;
+                        const isBusy = deletePending && deleteTarget?.id === b.id;
 
                         return (
                           <Tr key={b.id}>
@@ -199,8 +207,8 @@ export default function BroadcastsPage() {
                             <Td align="right">
                               <Button
                                 variant="outline"
-                                onClick={() => handleDelete(b.id, b.title)}
-                                disabled={isBusy}
+                                onClick={() => setDeleteTarget({ id: b.id, title: b.title })}
+                                disabled={deletePending && deleteTarget?.id === b.id}
                                 className="text-[#64748B] hover:text-[#EF4444] hover:bg-[#FEE2E2]"
                               >
                                 <Trash2 size={12} />
@@ -229,6 +237,29 @@ export default function BroadcastsPage() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Retract & delete broadcast"
+        description={
+          <p>
+            Are you sure you want to retract and delete broadcast{' '}
+            <strong className="text-[#1E293B] font-bold">&ldquo;{deleteTarget?.title}&rdquo;</strong>? This
+            will permanently remove it from user notification feeds.
+          </p>
+        }
+        confirmLabel="Confirm Delete"
+        variant="danger"
+        pending={deletePending}
+        error={deleteError}
+        onConfirm={handleConfirmDelete}
+        onClose={() => {
+          if (!deletePending) {
+            setDeleteTarget(null);
+            setDeleteError(null);
+          }
+        }}
+      />
     </>
   );
 }

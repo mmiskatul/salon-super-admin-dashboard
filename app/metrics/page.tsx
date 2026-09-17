@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/primitives';
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Field, FormError, Modal, Select, TextInput } from '@/components/ui/Form';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Line } from '@/components/chart/Chart';
 
 export default function MetricsPage() {
@@ -35,16 +36,19 @@ export default function MetricsPage() {
   const [queried, setQueried] = useState<{ tenantId: string; metric: string } | null>(null);
   const [recording, setRecording] = useState(false);
   const [generating, setGenerating] = useState(false);
-
-  const metricNamesApi = useApi(() => listMetricNames(tenantId || undefined), [tenantId]);
+  const [confirmGenerate, setConfirmGenerate] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [successBanner, setSuccessBanner] = useState<string | null>(null);
 
   const series = useApi(
-    () =>
-      queried
-        ? metricSeries(queried.tenantId, queried.metric)
-        : Promise.resolve([] as MetricSnapshot[]),
-    [queried?.tenantId, queried?.metric],
+    async () => {
+      if (!queried) return [];
+      return metricSeries(queried.tenantId, queried.metric);
+    },
+    [queried],
   );
+
+  const metricNamesApi = useApi(() => listMetricNames(tenantId || undefined), [tenantId]);
 
   const tenant = tenants.data?.find((t) => t.id === (queried?.tenantId ?? tenantId));
   const colour = brandColor(tenant?.brandColor);
@@ -68,8 +72,11 @@ export default function MetricsPage() {
   async function handleAutoGenerate() {
     try {
       setGenerating(true);
+      setGenerateError(null);
       const res = await generateMetrics(tenantId || undefined);
-      alert(res.message || 'Metrics generated successfully!');
+      setConfirmGenerate(false);
+      setSuccessBanner(res.message || 'Metrics generated successfully!');
+      setTimeout(() => setSuccessBanner(null), 5000);
       if (queried) {
         await series.refresh();
       } else if (tenantId) {
@@ -77,7 +84,7 @@ export default function MetricsPage() {
       }
       await metricNamesApi.refresh();
     } catch (err: any) {
-      alert(`Generation failed: ${err.message || err}`);
+      setGenerateError(err?.message || 'Generation failed. Please try again.');
     } finally {
       setGenerating(false);
     }
@@ -91,7 +98,7 @@ export default function MetricsPage() {
         lede="Explore real-time business telemetry and snapshot curves across salon storefronts. Select a shop and metric name to plot historical performance."
         actions={
           <div className="flex items-center gap-2">
-            <Button onClick={handleAutoGenerate} disabled={generating} variant="secondary">
+            <Button onClick={() => setConfirmGenerate(true)} disabled={generating} variant="secondary">
               <Sparkles size={12} className={generating ? 'animate-spin' : 'text-[#635BFF]'} />
               {generating ? 'Computing…' : 'Generate live metrics'}
             </Button>
@@ -102,6 +109,19 @@ export default function MetricsPage() {
           </div>
         }
       />
+
+      {successBanner && (
+        <div className="mx-5 sm:mx-8 mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] font-semibold text-emerald-800 flex items-center justify-between">
+          <span>{successBanner}</span>
+          <button
+            type="button"
+            onClick={() => setSuccessBanner(null)}
+            className="text-emerald-600 hover:text-emerald-900 cursor-pointer text-xs"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <Canvas>
         {tenants.loading && <Loading label="Loading shops" />}
@@ -310,6 +330,27 @@ export default function MetricsPage() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmGenerate}
+        title="Generate telemetry signals"
+        description={
+          <p>
+            Auto-compute and snapshot 7-day metric telemetry curves (gross revenue, completed appointments, active clients, and health score) based on live ledger appointments and storefront activity?
+          </p>
+        }
+        confirmLabel="Generate Signals"
+        variant="primary"
+        pending={generating}
+        error={generateError}
+        onConfirm={handleAutoGenerate}
+        onClose={() => {
+          if (!generating) {
+            setConfirmGenerate(false);
+            setGenerateError(null);
+          }
+        }}
+      />
     </>
   );
 }

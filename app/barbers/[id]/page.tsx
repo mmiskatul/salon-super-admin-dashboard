@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/primitives';
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Field, FormError, Modal, TextInput } from '@/components/ui/Form';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import Mark from '@/components/ui/Mark';
 import WalletPanel from '@/components/ui/WalletPanel';
 
@@ -67,6 +68,8 @@ export default function BarberDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>('Appointments & Bookings');
   const [banning, setBanning] = useState(false);
   const [banReason, setBanReason] = useState('');
+  const [unbanConfirm, setUnbanConfirm] = useState(false);
+  const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
 
   const ban = useMutation(banUser);
   const unban = useMutation(unbanUser);
@@ -121,8 +124,13 @@ export default function BarberDetailPage() {
   }
 
   async function handleUnban() {
+    setUnbanConfirm(true);
+  }
+
+  async function handleUnbanConfirm() {
     try {
       await unban.mutate(barber.id);
+      setUnbanConfirm(false);
       refresh();
     } catch {
       // handled by useMutation
@@ -130,9 +138,14 @@ export default function BarberDetailPage() {
   }
 
   async function handleDeleteReview(reviewId: string) {
-    if (!confirm('Are you sure you want to permanently delete this customer review?')) return;
+    setReviewToDelete(reviewId);
+  }
+
+  async function handleConfirmDeleteReview() {
+    if (!reviewToDelete) return;
     try {
-      await deleteReviewMut.mutate(reviewId);
+      await deleteReviewMut.mutate(reviewToDelete);
+      setReviewToDelete(null);
       refresh();
     } catch {
       // handled by useMutation
@@ -862,6 +875,38 @@ export default function BarberDetailPage() {
           </div>
         </Modal>
       )}
+
+      {/* Unban Confirmation Dialog */}
+      <ConfirmDialog
+        open={unbanConfirm}
+        title={`Unban ${barber.name}`}
+        description={
+          <p>
+            Are you sure you want to lift the suspension for{' '}
+            <strong className="text-[#1E293B] font-bold">{barber.name}</strong>? They will regain access to sign in to the
+            barber app and their calendar availability will be restored.
+          </p>
+        }
+        confirmLabel="Confirm Unban"
+        variant="primary"
+        pending={unban.pending}
+        error={unban.error}
+        onConfirm={handleUnbanConfirm}
+        onClose={() => setUnbanConfirm(false)}
+      />
+
+      {/* Delete Review Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!reviewToDelete}
+        title="Delete customer review"
+        description="Are you sure you want to permanently delete this customer review? The barber's rating aggregate will be recalculated."
+        confirmLabel="Confirm Delete"
+        variant="danger"
+        pending={deleteReviewMut.pending}
+        error={deleteReviewMut.error}
+        onConfirm={handleConfirmDeleteReview}
+        onClose={() => setReviewToDelete(null)}
+      />
     </>
   );
 }
