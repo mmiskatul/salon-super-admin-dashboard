@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Activity, CheckCircle2, AlertCircle, ArrowUpRight, RefreshCw, Server } from 'lucide-react';
-import Link from 'next/link';
+import { Activity, CheckCircle2, AlertCircle, RefreshCw, Server } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-client';
 
 interface ServiceProbe {
@@ -94,12 +93,6 @@ export default function ClusterHealthWidget() {
           >
             <RefreshCw className={`w-4 h-4 ${isPinging ? 'animate-spin text-[#635BFF]' : ''}`} />
           </button>
-          <Link
-            href="/system"
-            className="text-xs font-bold text-[#635BFF] hover:text-[#524be0] inline-flex items-center gap-1 hover:underline"
-          >
-            Diagnostics <ArrowUpRight className="w-3.5 h-3.5" />
-          </Link>
         </div>
       </div>
 

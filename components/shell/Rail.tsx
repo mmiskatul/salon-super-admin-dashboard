@@ -15,7 +15,6 @@ import {
   type LucideIcon,
   Megaphone,
   Menu,
-  Network,
   Scissors,
   Store,
   Tag,
@@ -64,7 +63,6 @@ const GROUPS: { heading: string; items: NavItem[] }[] = [
       { href: '/broadcasts', label: 'Broadcasts', icon: Megaphone },
       { href: '/support', label: 'Support', icon: LifeBuoy },
       { href: '/audit-log', label: 'Audit log', icon: History },
-      { href: '/system', label: 'API coverage', icon: Network },
     ],
   },
 ];

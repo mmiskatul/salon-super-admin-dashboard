@@ -60,8 +60,7 @@ endpoint is scoped to a single shop. So platform-wide figures are assembled in t
 each shop in turn — pooled six at a time, painting rows as they land, and recording a failed shop as
 `null` rather than `0` so a service outage never quietly understates a total.
 
-This is a real constraint, not a stylistic choice, and it is the first thing to fix if the platform
-grows. `app/system/page.tsx` lists it alongside the other backend gaps that shape these screens.
+This is a real constraint, not a stylistic choice, and it is the first thing to fix if the platform grows.
 
 ## Design
 
