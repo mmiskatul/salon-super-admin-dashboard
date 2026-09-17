@@ -72,27 +72,61 @@ export function Stat({
   sub,
   pending,
   tone = 'plain',
+  icon,
+  iconBg,
+  gradient,
+  change,
 }: {
   label: string;
   value: React.ReactNode;
   sub?: React.ReactNode;
   pending?: boolean;
   tone?: 'plain' | 'signal' | 'live';
+  icon?: React.ReactNode;
+  iconBg?: string;
+  gradient?: string;
+  change?: React.ReactNode;
 }) {
   const toneClass =
     tone === 'signal' ? 'text-[#EF4444]' : tone === 'live' ? 'text-[#10B981]' : 'text-[#1E293B]';
 
+  const cardBg = gradient || 'bg-white';
+
   return (
-    <div className="rounded-lg border border-[#E2E8F0] bg-white p-5 shadow-sm relative overflow-hidden flex flex-col justify-between transition-all hover:shadow-md hover:border-[#CBD5E1] font-manrope">
-      <p className="text-xs font-bold text-[#64748B] uppercase tracking-wider font-manrope">{label}</p>
-      <p
-        className={`mt-2 text-[26px] md:text-[28px] font-extrabold font-manrope tracking-tight tabular-nums ${
-          pending ? 'text-[#94A3B8]' : toneClass
-        }`}
-      >
-        {pending ? '·····' : value}
-      </p>
-      {sub && <p className="mt-1 text-[12px] font-semibold text-[#94A3B8]">{sub}</p>}
+    <div
+      className={`rounded-xl border border-[#E2E8F0] ${cardBg} p-5 shadow-[0px_4px_20px_0px_rgba(0,0,0,0.02)] relative overflow-hidden flex flex-col justify-between transition-all hover:shadow-md hover:border-[#CBD5E1] font-manrope min-h-[140px]`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-[#64748B] uppercase tracking-wider font-manrope">{label}</p>
+        </div>
+        {icon && (
+          <div
+            className={`w-9 h-9 rounded-lg ${iconBg || 'bg-[#F1F5F9]'} flex items-center justify-center shrink-0`}
+          >
+            {icon}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3">
+        <p
+          className={`text-[26px] md:text-[28px] font-extrabold font-manrope tracking-tight tabular-nums leading-none ${
+            pending ? 'text-[#94A3B8]' : toneClass
+          }`}
+        >
+          {pending ? '·····' : value}
+        </p>
+
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[12px]">
+          {change && (
+            <span className="font-bold text-[#10B981] inline-flex items-center gap-0.5">
+              {change}
+            </span>
+          )}
+          {sub && <span className="font-semibold text-[#94A3B8]">{sub}</span>}
+        </div>
+      </div>
     </div>
   );
 }

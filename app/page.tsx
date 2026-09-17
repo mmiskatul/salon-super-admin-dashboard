@@ -1,14 +1,21 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, RotateCw } from 'lucide-react';
+import { ArrowUpRight, RotateCw, Megaphone, AlertCircle } from 'lucide-react';
 import { usePlatform } from '@/lib/usePlatform';
 import { vitalityOf } from '@/lib/api/platform';
-import { brandColor, compact, count, money, since } from '@/lib/format';
-import { Button, Canvas, Failed, Loading, PageHead, Panel, Stat } from '@/components/ui/primitives';
-import { Ranked, Split } from '@/components/chart/Chart';
+import { brandColor, count, since } from '@/lib/format';
+import { Button, Canvas, Failed, Loading, PageHead, Panel } from '@/components/ui/primitives';
+import { Ranked } from '@/components/chart/Chart';
 import Mark from '@/components/ui/Mark';
 import { VitalityTag } from '@/components/ui/Vitals';
+
+import OverviewHeroCards from '@/components/overview/OverviewHeroCards';
+import PlatformRevenueChart from '@/components/overview/PlatformRevenueChart';
+import TenantGrowthChart from '@/components/overview/TenantGrowthChart';
+import BookingOutcomesChart from '@/components/overview/BookingOutcomesChart';
+import ClusterHealthWidget from '@/components/overview/ClusterHealthWidget';
 
 export default function OverviewPage() {
   const platform = usePlatform();
@@ -16,182 +23,169 @@ export default function OverviewPage() {
 
   const sweepNote = tenants
     ? sweeping
-      ? `Reading ${swept} of ${tenants.length} shops`
-      : `${tenants.length} shops read`
+      ? `Syncing ${swept} of ${tenants.length} shops...`
+      : `${tenants.length} shops synchronized`
     : null;
 
   return (
     <>
       <PageHead
-        eyebrow="Platform"
-        title="Overview"
-        lede="Totals across every shop on the platform. There is no cross-tenant aggregate in the backend, so these are summed from each shop in turn — the figures fill in as the sweep runs."
+        eyebrow="Super Admin Console"
+        title="Platform Overview"
+        lede="System-wide aggregate performance, tenant growth trajectory, booking fulfillment, and cluster health across all shops."
         actions={
-          <>
+          <div className="flex items-center gap-3">
             {sweepNote && (
-              <span className="tabular flex items-center gap-1.5 text-[11px] text-ink-2">
+              <span className="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#E2E8F0] bg-[#F8FAFC] text-[11px] font-bold text-[#64748B]">
                 {sweeping && (
-                  <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-ink-3" aria-hidden />
+                  <span className="h-2 w-2 rounded-full bg-[#635BFF] animate-ping" aria-hidden />
                 )}
                 {sweepNote}
               </span>
             )}
-            <Button onClick={reload} disabled={loading || sweeping}>
-              <RotateCw size={12} className={sweeping ? 'animate-spin' : ''} />
-              Refresh
+
+            <Link href="/broadcasts">
+              <Button variant="secondary" className="hidden md:inline-flex">
+                <Megaphone className="w-3.5 h-3.5 text-[#635BFF]" />
+                Broadcast Alert
+              </Button>
+            </Link>
+
+            <Button
+              variant="primary"
+              onClick={reload}
+              disabled={loading || sweeping}
+              className="shadow-sm shadow-[#635BFF]/25"
+            >
+              <RotateCw className={`w-3.5 h-3.5 ${sweeping ? 'animate-spin' : ''}`} />
+              Refresh Snapshot
             </Button>
-          </>
+          </div>
         }
       />
 
       <Canvas>
         {error && <Failed message={error} onRetry={reload} />}
-        {loading && !error && <Loading label="Loading the shop roster" />}
+        {loading && !error && <Loading label="Aggregating platform telemetry and shop rosters..." />}
 
         {tenants && totals && !error && (
-          <>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
-              <Stat
-                label="Shops"
-                value={count(totals.tenants)}
-                sub={`${count(totals.listed)} visible to customers`}
-              />
-              <Stat
-                label="Bookings"
-                value={compact(totals.appointments)}
-                sub={`${count(totals.upcoming)} still upcoming`}
-                pending={sweeping && totals.appointments === 0}
-              />
-              <Stat
-                label="Settled revenue"
-                value={money(totals.revenue)}
-                sub="Completed transactions only"
-                pending={sweeping && totals.revenue === 0}
-              />
-              <Stat
-                label="Barbers on staff"
-                value={count(totals.staff)}
-                sub={`${count(totals.services)} services listed`}
-                pending={sweeping && totals.staff === 0}
-              />
-              <Stat
-                label="Never set up"
-                value={count(totals.dormant)}
-                tone={totals.dormant > 0 ? 'signal' : 'live'}
-                sub="Signed up with no staff and no services"
-                pending={sweeping && swept === 0}
-              />
-            </div>
+          <div className="space-y-6 pb-6">
+            {/* 1. Hero KPI Cards (Owner Dashboard Aesthetic) */}
+            <OverviewHeroCards totals={totals} sweeping={sweeping} swept={swept} />
 
+            {/* Incomplete / Degraded Shop Warning Notice */}
             {totals.incomplete > 0 && (
-              <p className="rounded-lg border border-signal/25 bg-signal-soft px-4 py-2.5 text-[12px] text-signal">
-                {count(totals.incomplete)} shop{totals.incomplete === 1 ? '' : 's'} did not answer
-                every request, so the totals above are short by whatever those hold. Open the shop
-                to see which service is not responding.
-              </p>
+              <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50/70 text-amber-800 text-xs font-medium">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold">
+                    {count(totals.incomplete)} shop{totals.incomplete === 1 ? '' : 's'} did not respond to telemetry requests.
+                  </span>{' '}
+                  Aggregate counts above reflect answering nodes. Inspect individual shops in the{' '}
+                  <Link href="/shops" className="font-bold underline hover:text-amber-900">
+                    Shops Directory
+                  </Link>{' '}
+                  for details.
+                </div>
+              </div>
             )}
 
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Panel
-                title="How the platform is being used"
-                note="Every shop, grouped by how far it has got."
-              >
-                <Split
-                  height={10}
-                  segments={[
-                    { key: 'live', label: 'Taking bookings', value: totals.live, color: '#22c55e' },
-                    { key: 'idle', label: 'Set up, no bookings', value: totals.idle, color: '#94a3b8' },
-                    { key: 'dormant', label: 'Never set up', value: totals.dormant, color: '#ef4444' },
-                  ]}
-                />
-                <p className="mt-4 max-w-[56ch] border-t border-rule-soft pt-3 text-[12px] leading-relaxed text-ink-2">
-                  A shop counts as never set up when it has no barbers and no services. Nothing in
-                  the backend records this — it is worked out from what each shop actually holds.
-                </p>
-              </Panel>
-
-              <Panel title="Bookings by outcome" note="Across every shop, for all time.">
-                <Split
-                  height={10}
-                  segments={[
-                    { key: 'completed', label: 'Completed', value: totals.completed, color: '#22c55e' },
-                    {
-                      key: 'open',
-                      label: 'Open',
-                      value: Math.max(
-                        0,
-                        totals.appointments - totals.completed - totals.cancelled,
-                      ),
-                      color: '#1e293b',
-                    },
-                    {
-                      key: 'cancelled',
-                      label: 'Cancelled or no-show',
-                      value: totals.cancelled,
-                      color: '#ef4444',
-                    },
-                  ]}
-                />
-                <p className="mt-4 max-w-[56ch] border-t border-rule-soft pt-3 text-[12px] leading-relaxed text-ink-2">
-                  {totals.reviews > 0
-                    ? `${count(totals.reviews)} reviews left across the platform.`
-                    : 'No reviews have been left on the platform yet.'}
-                </p>
-              </Panel>
+            {/* 2. Primary Graphs Row: Revenue Trajectory & Tenant Growth */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <PlatformRevenueChart
+                totalRevenue={totals.revenue}
+                totalAppointments={totals.appointments}
+              />
+              <TenantGrowthChart totals={totals} />
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-2">
+            {/* 3. Secondary Row: Booking Outcomes & Busiest Salons Leaderboard */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <BookingOutcomesChart totals={totals} />
+
               <Panel
-                title="Busiest shops"
-                note="By bookings taken."
+                title="Busiest Salons Leaderboard"
+                note="Ranked by total customer bookings taken to date"
                 actions={
-                  <Link href="/shops" className="flex items-center gap-1 text-[12px] text-ink-2 hover:text-ink">
-                    All shops <ArrowUpRight size={12} />
+                  <Link
+                    href="/shops"
+                    className="text-xs font-bold text-[#635BFF] hover:text-[#524be0] inline-flex items-center gap-1 hover:underline"
+                  >
+                    All shops <ArrowUpRight className="w-3.5 h-3.5" />
                   </Link>
                 }
               >
-                <Ranked
-                  format={(v) => count(v)}
-                  rows={tenants
-                    .map((t) => ({
-                      key: t.id,
-                      label: t.name,
-                      value: vitals[t.id]?.appointments ?? 0,
-                      color: brandColor(t.brandColor),
-                    }))
-                    .filter((r) => r.value > 0)
-                    .sort((a, b) => b.value - a.value)
-                    .slice(0, 6)}
-                />
-              </Panel>
+                <div className="pt-2">
+                  <Ranked
+                    format={(v) => `${count(v)} bookings`}
+                    rows={tenants
+                      .map((t) => ({
+                        key: t.id,
+                        label: t.name,
+                        value: vitals[t.id]?.appointments ?? 0,
+                        color: brandColor(t.brandColor),
+                      }))
+                      .filter((r) => r.value > 0)
+                      .sort((a, b) => b.value - a.value)
+                      .slice(0, 6)}
+                  />
 
-              <Panel title="Needs attention" note="Shops that signed up but never furnished themselves.">
+                  {tenants.every((t) => (vitals[t.id]?.appointments ?? 0) === 0) && (
+                    <p className="py-8 text-center text-xs font-semibold text-[#94A3B8]">
+                      {sweeping
+                        ? 'Calculating bookings across salons...'
+                        : 'No bookings recorded across the platform yet.'}
+                    </p>
+                  )}
+                </div>
+              </Panel>
+            </div>
+
+            {/* 4. Operations Row: Cluster Health & Attention Required Queue */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <ClusterHealthWidget />
+
+              <Panel
+                title="Onboarding & Setup Attention Queue"
+                note="Shops registered on the platform that require staff or service setup"
+              >
                 {(() => {
                   const dormant = tenants
                     .filter((t) => vitalityOf(vitals[t.id]) === 'dormant')
-                    .slice(0, 6);
+                    .slice(0, 5);
+
                   if (dormant.length === 0) {
                     return (
-                      <p className="py-6 text-[12px] text-ink-2">
-                        {sweeping
-                          ? 'Still reading the roster.'
-                          : 'Every shop on the platform has at least a barber or a service.'}
-                      </p>
+                      <div className="py-8 text-center">
+                        <p className="text-xs font-semibold text-[#10B981]">
+                          {sweeping
+                            ? 'Auditing shop configurations...'
+                            : 'Every shop on the platform has at least a barber or a catalog service configured.'}
+                        </p>
+                      </div>
                     );
                   }
+
                   return (
-                    <ul className="divide-y divide-[#E2E8F0]">
+                    <ul className="divide-y divide-[#F1F5F9]">
                       {dormant.map((t) => (
                         <li key={t.id}>
                           <Link
                             href={`/shops/${t.id}`}
-                            className="flex items-center gap-3 py-2.5 hover:opacity-70"
+                            className="flex items-center gap-3 py-3 hover:bg-[#F8FAFC] px-2 rounded-lg transition-colors group"
                           >
-                            <Mark name={t.name} logoUrl={t.logoUrl} color={t.brandColor} size={24} />
+                            <Mark
+                              name={t.name}
+                              logoUrl={t.logoUrl}
+                              color={t.brandColor}
+                              size={28}
+                            />
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-[13px]">{t.name}</span>
-                              <span className="tabular block text-[11px] text-ink-3">
-                                signed up {since(t.createdAt)}
+                              <span className="block truncate text-[13px] font-bold text-[#1E293B] group-hover:text-[#635BFF]">
+                                {t.name}
+                              </span>
+                              <span className="block text-[11px] font-medium text-[#94A3B8]">
+                                Registered {since(t.createdAt)} · 0 staff · 0 services
                               </span>
                             </span>
                             <VitalityTag vitality="dormant" />
@@ -203,95 +197,7 @@ export default function OverviewPage() {
                 })()}
               </Panel>
             </div>
-
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Panel
-                title="Set up, never booked"
-                note="Has a barber and a service, but no bookings yet — worth a check-in."
-              >
-                {(() => {
-                  const idle = tenants
-                    .filter((t) => vitalityOf(vitals[t.id]) === 'idle')
-                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                    .slice(0, 6);
-                  if (idle.length === 0) {
-                    return (
-                      <p className="py-6 text-[12px] text-ink-2">
-                        {sweeping
-                          ? 'Still reading the roster.'
-                          : 'Every furnished shop on the platform has taken at least one booking.'}
-                      </p>
-                    );
-                  }
-                  return (
-                    <ul className="divide-y divide-[#E2E8F0]">
-                      {idle.map((t) => (
-                        <li key={t.id}>
-                          <Link
-                            href={`/shops/${t.id}`}
-                            className="flex items-center gap-3 py-2.5 hover:opacity-70"
-                          >
-                            <Mark name={t.name} logoUrl={t.logoUrl} color={t.brandColor} size={24} />
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-[13px]">{t.name}</span>
-                              <span className="tabular block text-[11px] text-ink-3">
-                                {count(vitals[t.id]?.staff ?? 0)} staff ·{' '}
-                                {count(vitals[t.id]?.services ?? 0)} services
-                              </span>
-                            </span>
-                            <VitalityTag vitality="idle" />
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  );
-                })()}
-              </Panel>
-
-              <Panel
-                title="No barbers on staff"
-                note="Has at least one service listed but nobody to perform it — cannot actually take a booking."
-              >
-                {(() => {
-                  const staffless = tenants
-                    .filter((t) => {
-                      const v = vitals[t.id];
-                      return v && v.staff === 0 && (v.services ?? 0) > 0;
-                    })
-                    .slice(0, 6);
-                  if (staffless.length === 0) {
-                    return (
-                      <p className="py-6 text-[12px] text-ink-2">
-                        {sweeping
-                          ? 'Still reading the roster.'
-                          : 'Every shop with a service listed has at least one barber on staff.'}
-                      </p>
-                    );
-                  }
-                  return (
-                    <ul className="divide-y divide-[#E2E8F0]">
-                      {staffless.map((t) => (
-                        <li key={t.id}>
-                          <Link
-                            href={`/shops/${t.id}`}
-                            className="flex items-center gap-3 py-2.5 hover:opacity-70"
-                          >
-                            <Mark name={t.name} logoUrl={t.logoUrl} color={t.brandColor} size={24} />
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-[13px]">{t.name}</span>
-                              <span className="tabular block text-[11px] text-ink-3">
-                                {count(vitals[t.id]?.services ?? 0)} services, 0 staff
-                              </span>
-                            </span>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  );
-                })()}
-              </Panel>
-            </div>
-          </>
+          </div>
         )}
       </Canvas>
     </>
