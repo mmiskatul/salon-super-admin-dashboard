@@ -1,10 +1,10 @@
 import { apiFetch } from '../api-client';
-import { listTenants, getTenant, listLocations, getShopHours, listProducts, listClients, listFiles, type Tenant, type Location, type ShopHours, type Product, type Client, type StoredFile } from './tenants';
-import { listUsers, type PlatformUser } from './users';
-import { listStaff, type Staff } from './people';
-import { listServices, type ServiceItem } from './catalog';
-import { listAppointments, listReviews, type Appointment, type Review } from './bookings';
-import { listTransactions, type Transaction } from './finance';
+import type { Tenant, Location, ShopHours, Product, Client, StoredFile } from './tenants';
+import type { PlatformUser } from './users';
+import type { Staff } from './people';
+import type { ServiceItem } from './catalog';
+import type { Appointment, Review } from './bookings';
+import type { Transaction } from './finance';
 
 export interface OwnerDashboardSummary {
   ownerId: string;
@@ -75,10 +75,9 @@ export interface OwnerDashboardDetail {
   files: StoredFile[];
 }
 
-const SETTLED = new Set(['COMPLETED', 'PAID', 'SUCCEEDED', 'CAPTURED']);
-
 export async function listOwnerDashboards(): Promise<OwnerDashboardSummary[]> {
-  const [usersPage, allTenants] = await Promise.all([
+  return apiFetch<OwnerDashboardSummary[]>('/dashboard/owners');
+  /* const [usersPage, allTenants] = await Promise.all([
     listUsers({ role: 'OWNER', limit: 100 }).catch(() => ({ data: [] as PlatformUser[], total: 0, page: 1, limit: 100 })),
     listTenants().catch(() => [] as Tenant[]),
   ]);
@@ -231,10 +230,12 @@ export async function listOwnerDashboards(): Promise<OwnerDashboardSummary[]> {
     }),
   );
 
-  return summaries;
+  return summaries; */
 }
 
 export async function getOwnerDashboard(id: string): Promise<OwnerDashboardDetail> {
+  return apiFetch<OwnerDashboardDetail>(`/dashboard/owners/${encodeURIComponent(id)}`);
+  /*
   // 1. Resolve tenant first
   let tenant: Tenant | null = null;
   try {
@@ -383,5 +384,5 @@ export async function getOwnerDashboard(id: string): Promise<OwnerDashboardDetai
     products,
     reviews,
     files,
-  };
+  }; */
 }
