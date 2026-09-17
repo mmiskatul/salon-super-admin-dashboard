@@ -14,13 +14,6 @@ function resolveApiBaseUrl(): string {
     return cleaned.endsWith('/api') ? cleaned : `${cleaned}/api`;
   }
 
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0') {
-      return 'http://localhost:3000/api';
-    }
-  }
-
   return 'https://salunbd-backend-service.onrender.com/api';
 }
 
