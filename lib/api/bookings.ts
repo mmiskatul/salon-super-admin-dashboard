@@ -26,6 +26,9 @@ export interface Appointment {
   customerPhone?: string | null;
   customerAvatarUrl?: string | null;
   staffName?: string | null;
+  tenantName?: string | null;
+  tenantBrandColor?: string | null;
+  tenantLogoUrl?: string | null;
 }
 
 /** Mirrors service-booking `model Review`. */
@@ -47,23 +50,66 @@ export interface Review {
 export const APPOINTMENT_STATUSES = [
   'PENDING',
   'CONFIRMED',
-  'IN_PROGRESS',
+  'IN_QUEUE',
+  'ONGOING',
   'COMPLETED',
   'CANCELLED',
   'NO_SHOW',
 ] as const;
 
+export interface ListAppointmentsParams {
+  tenantId?: string;
+  day?: string;
+  date?: string;
+  status?: string;
+  staffId?: string;
+  customerId?: string;
+  from?: string;
+  to?: string;
+}
+
 /**
- * A shop's appointments, optionally narrowed to one day.
- *
- * `date` is an ISO yyyy-mm-dd; omit it for the shop's full history. There is no cross-tenant
- * appointment endpoint, so anything platform-wide is assembled by fanning this out over the
- * roster — see lib/api/platform.ts.
+ * Lists appointments. Can be scoped to a single shop or queried cross-platform by SUPER_ADMIN.
+ * Backward-compatible with `listAppointments(tenantId, day)` or `listAppointments({ ...params })`.
  */
-export function listAppointments(tenantId: string, day?: string): Promise<Appointment[]> {
-  const params = new URLSearchParams({ tenantId });
-  if (day) params.set('date', day);
-  return apiFetch<Appointment[]>(`/appointments?${params.toString()}`);
+export function listAppointments(
+  arg1?: string | ListAppointmentsParams,
+  arg2?: string,
+): Promise<Appointment[]> {
+  const params = new URLSearchParams();
+  if (typeof arg1 === 'object' && arg1 !== null) {
+    if (arg1.tenantId) params.set('tenantId', arg1.tenantId);
+    const date = arg1.date ?? arg1.day;
+    if (date) params.set('date', date);
+    if (arg1.status && arg1.status !== 'ALL') params.set('status', arg1.status);
+    if (arg1.staffId) params.set('staffId', arg1.staffId);
+    if (arg1.customerId) params.set('customerId', arg1.customerId);
+    if (arg1.from) params.set('from', arg1.from);
+    if (arg1.to) params.set('to', arg1.to);
+  } else {
+    if (arg1) params.set('tenantId', arg1);
+    if (arg2) params.set('date', arg2);
+  }
+  const query = params.toString();
+  return apiFetch<Appointment[]>(`/appointments${query ? `?${query}` : ''}`);
+}
+
+export function updateAppointmentStatus(
+  id: string,
+  status: string,
+  cancellationReason?: string,
+): Promise<Appointment> {
+  return apiFetch<Appointment>(`/appointments/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, cancellationReason }),
+  });
+}
+
+export function cancelAppointment(id: string, reason?: string): Promise<Appointment> {
+  const query = reason ? `?reason=${encodeURIComponent(reason)}` : '';
+  return apiFetch<Appointment>(`/appointments/${encodeURIComponent(id)}${query}`, {
+    method: 'DELETE',
+  });
 }
 
 export function listReviews(tenantId: string): Promise<Review[]> {
