@@ -163,7 +163,6 @@ export default function OwnerDashboardDetailPage() {
                     <Store size={12} className="text-ink-3" />
                     <strong className="text-ink">{tenant.name}</strong>
                   </span>
-                  <span className="text-ink-3 font-mono">{tenant.subdomain}.salunbd.com</span>
                   <span className="flex items-center gap-1">
                     <Mail size={12} className="text-ink-3" />
                     {owner.email}
@@ -266,7 +265,7 @@ export default function OwnerDashboardDetailPage() {
           </div>
         </div>
 
-        {/* Join Code and Subdomain Banner */}
+        {/* Join Code Banner */}
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rule-soft bg-ground p-3 text-[12px]">
           <div className="flex flex-wrap items-center gap-4">
             <div>
@@ -283,17 +282,6 @@ export default function OwnerDashboardDetailPage() {
               ) : (
                 <span className="italic text-ink-3 ml-1">None generated</span>
               )}
-            </div>
-            <div>
-              <span className="text-ink-3">Subdomain URL: </span>
-              <a
-                href={`https://${tenant.subdomain}.salunbd.com`}
-                target="_blank"
-                rel="noreferrer"
-                className="font-mono text-primary hover:underline ml-1"
-              >
-                https://{tenant.subdomain}.salunbd.com
-              </a>
             </div>
             <div>
               <span className="text-ink-3">User ID: </span>

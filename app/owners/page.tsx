@@ -121,7 +121,6 @@ export default function OwnerDashboardsPage() {
           d.ownerName.toLowerCase().includes(q) ||
           d.ownerEmail.toLowerCase().includes(q) ||
           d.tenantName.toLowerCase().includes(q) ||
-          d.subdomain.toLowerCase().includes(q) ||
           (d.joinCode && d.joinCode.toLowerCase().includes(q)) ||
           d.ownerId.toLowerCase().includes(q) ||
           d.tenantId.toLowerCase().includes(q)
@@ -185,7 +184,7 @@ export default function OwnerDashboardsPage() {
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
                     <input
                       type="text"
-                      placeholder="Search by owner, salon name, subdomain, join code..."
+                      placeholder="Search by owner, salon name, or join code..."
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       className="w-full rounded-lg border border-[#E2E8F0] bg-white pl-9 pr-3 py-2 text-[13px] text-[#1E293B] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent font-manrope transition-all"
@@ -234,7 +233,7 @@ export default function OwnerDashboardsPage() {
                   <thead>
                     <Tr>
                       <Th>Salon Owner</Th>
-                      <Th>Salon & Subdomain</Th>
+                      <Th>Salon</Th>
                       <Th>Connected Network</Th>
                       <Th>Total Revenue</Th>
                       <Th>Join Code</Th>
@@ -295,9 +294,6 @@ export default function OwnerDashboardsPage() {
                                 >
                                   {row.tenantName}
                                 </Link>
-                              </div>
-                              <div className="text-[11px] font-mono text-ink-3 mt-0.5">
-                                {row.subdomain}.salunbd.com
                               </div>
                               <div className="text-[10px] text-ink-2 mt-0.5">
                                 {row.businessType}

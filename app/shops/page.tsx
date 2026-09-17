@@ -43,7 +43,6 @@ export default function ShopsPage() {
       if (!needle) return true;
       return (
         t.name.toLowerCase().includes(needle) ||
-        t.subdomain.toLowerCase().includes(needle) ||
         t.contactEmail.toLowerCase().includes(needle) ||
         t.businessType.toLowerCase().includes(needle)
       );
@@ -199,10 +198,9 @@ export default function ShopsPage() {
                               />
                               <span className="min-w-0">
                                 <span className="block truncate font-medium">{tenant.name}</span>
-                                <span className="tabular block truncate text-[11px] text-ink-3">
-                                  {tenant.subdomain}
-                                  {!tenant.isListed && ' · hidden from customers'}
-                                </span>
+                                {!tenant.isListed && (
+                                  <span className="tabular block truncate text-[11px] text-ink-3">Hidden from customers</span>
+                                )}
                               </span>
                             </span>
                           </Td>
@@ -276,7 +274,6 @@ function NewShopDialog({
   onCreated: (tenant: Tenant) => void;
 }) {
   const [name, setName] = useState('');
-  const [subdomain, setSubdomain] = useState('');
   const [businessType, setBusinessType] = useState('Barbershop');
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
@@ -284,27 +281,14 @@ function NewShopDialog({
   const [tagline, setTagline] = useState('');
   const { mutate, pending, error } = useMutation(createTenant);
 
-  // Typing a subdomain by hand is the usual way to collide with the unique constraint, so it is
-  // suggested from the name until the operator edits it themselves.
-  const [subdomainTouched, setSubdomainTouched] = useState(false);
   function onNameChange(value: string) {
     setName(value);
-    if (!subdomainTouched) {
-      setSubdomain(
-        value
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-+|-+$/g, '')
-          .slice(0, 40),
-      );
-    }
   }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const created = await mutate({
       name: name.trim(),
-      subdomain: subdomain.trim(),
       businessType: businessType.trim(),
       contactEmail: contactEmail.trim(),
       ...(contactPhone.trim() ? { contactPhone: contactPhone.trim() } : {}),
@@ -327,17 +311,6 @@ function NewShopDialog({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Shop name">
             <TextInput value={name} onChange={(e) => onNameChange(e.target.value)} required />
-          </Field>
-          <Field label="Subdomain" hint="Must be unique across the platform.">
-            <TextInput
-              value={subdomain}
-              onChange={(e) => {
-                setSubdomainTouched(true);
-                setSubdomain(e.target.value);
-              }}
-              required
-              className="tabular"
-            />
           </Field>
           <Field label="Business type">
             <Select value={businessType} onChange={(e) => setBusinessType(e.target.value)}>

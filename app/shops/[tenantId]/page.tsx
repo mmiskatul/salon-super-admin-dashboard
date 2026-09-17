@@ -135,7 +135,7 @@ export default function ShopPage() {
                   {tenant.name}
                 </h1>
                 <p className="tabular mt-2 text-[12px] text-ink-2">
-                  {tenant.subdomain} · {tenant.businessType} · joined {date(tenant.createdAt)}
+                  {tenant.businessType} · joined {date(tenant.createdAt)}
                 </p>
                 {tenant.tagline && (
                   <p className="mt-2 max-w-[60ch] text-[13px] text-ink-2">{tenant.tagline}</p>
@@ -891,8 +891,6 @@ function EditShopDialog({
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    // The subdomain is absent on purpose: UpdateTenantDto has no subdomain field, so the backend
-    // would silently ignore it and the operator would think they had renamed the shop's address.
     const next = await mutate(tenant.id, {
       name: name.trim(),
       contactEmail: contactEmail.trim(),
@@ -912,9 +910,6 @@ function EditShopDialog({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Shop name">
             <TextInput value={name} onChange={(e) => setName(e.target.value)} required />
-          </Field>
-          <Field label="Subdomain" hint="Fixed after the shop is created.">
-            <TextInput value={tenant.subdomain} disabled readOnly className="tabular text-ink-3" />
           </Field>
           <Field label="Contact email">
             <TextInput
@@ -1032,7 +1027,7 @@ function SuspendShopDialog({
 /**
  * Deleting a shop.
  *
- * Typing the subdomain is the confirmation rather than a plain "are you sure": DELETE /tenants/:id
+ * Typing the shop name is the confirmation rather than a plain "are you sure": DELETE /tenants/:id
  * is the single most destructive call this console can make, and the records that hang off a
  * tenant live in four other services that this delete does not touch. The dialog says so.
  */
@@ -1047,7 +1042,7 @@ function DeleteShopDialog({
 }) {
   const [typed, setTyped] = useState('');
   const { mutate, pending, error } = useMutation(deleteTenant);
-  const armed = typed.trim() === tenant.subdomain;
+  const armed = typed.trim() === tenant.name;
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -1067,7 +1062,7 @@ function DeleteShopDialog({
 
         <FormError message={error} />
 
-        <Field label="Type the subdomain to confirm" hint={`Enter ${tenant.subdomain}`}>
+        <Field label="Type the shop name to confirm" hint={`Enter ${tenant.name}`}>
           <TextInput
             value={typed}
             onChange={(e) => setTyped(e.target.value)}

@@ -16,7 +16,6 @@ export interface OwnerDashboardSummary {
   bannedReason: string | null;
   tenantId: string;
   tenantName: string;
-  subdomain: string;
   businessType: string;
   brandColor: string | null;
   logoUrl: string | null;
@@ -111,7 +110,6 @@ export async function listOwnerDashboards(): Promise<OwnerDashboardSummary[]> {
         tenant: {
           id: owner.tenantId || `orphaned-${owner.id}`,
           name: owner.email.split('@')[0],
-          subdomain: owner.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, ''),
           businessType: 'Barber Shop',
           brandColor: '#635BFF',
           logoUrl: null,
@@ -208,7 +206,6 @@ export async function listOwnerDashboards(): Promise<OwnerDashboardSummary[]> {
         bannedReason: owner.bannedReason ?? null,
         tenantId: tenant.id,
         tenantName: tenant.name,
-        subdomain: tenant.subdomain,
         businessType: tenant.businessType,
         brandColor: tenant.brandColor,
         logoUrl: tenant.logoUrl,
@@ -243,7 +240,7 @@ export async function getOwnerDashboard(id: string): Promise<OwnerDashboardDetai
   } catch {
     // If id was not a tenant id, find among listTenants
     const allTenants = await listTenants().catch(() => [] as Tenant[]);
-    tenant = allTenants.find((t) => t.id === id || t.subdomain === id) ?? null;
+    tenant = allTenants.find((t) => t.id === id) ?? null;
   }
 
   // 2. Resolve owner user
@@ -267,7 +264,6 @@ export async function getOwnerDashboard(id: string): Promise<OwnerDashboardDetai
     tenant = {
       id: ownerUser.tenantId || `tenant-${ownerUser.id}`,
       name: ownerUser.email.split('@')[0],
-      subdomain: ownerUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, ''),
       businessType: 'Barber Shop',
       brandColor: '#635BFF',
       logoUrl: null,

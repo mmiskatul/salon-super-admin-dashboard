@@ -4,7 +4,6 @@ import { apiFetch } from '../api-client';
 export interface Tenant {
   id: string;
   name: string;
-  subdomain: string;
   businessType: string;
   brandColor: string | null;
   logoUrl: string | null;
@@ -40,7 +39,6 @@ export interface Location {
 
 export interface CreateTenantInput {
   name: string;
-  subdomain: string;
   businessType: string;
   contactEmail: string;
   contactPhone?: string;
