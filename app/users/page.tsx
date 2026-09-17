@@ -52,26 +52,31 @@ export default function UsersPage() {
     setPage(1);
   }
 
-  // The backend paginates (up to 50 accounts per page), so `rows` is only the current page —
-  // not the whole roster. `total` below comes from the server's count, not rows.length.
-  const rows = users.data?.data ?? [];
+  // Handle both { data: [...], total } and raw array [...] responses from backends
+  const rows = Array.isArray(users.data)
+    ? users.data
+    : (users.data?.data ?? []);
 
   const needle = query.trim().toLowerCase();
   const visible = rows.filter((u) => {
     if (!needle) return true;
-    return (
-      u.email.toLowerCase().includes(needle) ||
-      u.id.toLowerCase().includes(needle) ||
-      (u.tenantId && u.tenantId.toLowerCase().includes(needle))
-    );
+    const email = (u?.email || '').toLowerCase();
+    const id = (u?.id || '').toLowerCase();
+    const tenantId = (u?.tenantId || '').toLowerCase();
+    return email.includes(needle) || id.includes(needle) || tenantId.includes(needle);
   });
 
-  const total = users.data?.total ?? 0;
+  const total = Array.isArray(users.data)
+    ? users.data.length
+    : (users.data?.total ?? rows.length);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const customers = rows.filter((u) => u.role === 'CUSTOMER').length;
-  const barbers = rows.filter((u) => u.role === 'BARBER' || u.role === 'STAFF').length;
-  const owners = rows.filter((u) => u.role === 'OWNER').length;
-  const admins = rows.filter((u) => u.role === 'SUPER_ADMIN').length;
+  const customers = rows.filter((u) => (u?.role || '').toUpperCase() === 'CUSTOMER').length;
+  const barbers = rows.filter((u) => {
+    const r = (u?.role || '').toUpperCase();
+    return r === 'BARBER' || r === 'STAFF';
+  }).length;
+  const owners = rows.filter((u) => (u?.role || '').toUpperCase() === 'OWNER').length;
+  const admins = rows.filter((u) => (u?.role || '').toUpperCase() === 'SUPER_ADMIN').length;
 
   return (
     <>
@@ -394,8 +399,8 @@ export default function UsersPage() {
   );
 }
 
-function UserRoleBadge({ role }: { role: string }) {
-  const normalized = role.toUpperCase();
+function UserRoleBadge({ role }: { role?: string }) {
+  const normalized = (role || '').toUpperCase();
   switch (normalized) {
     case 'SUPER_ADMIN':
       return <Badge tone="signal">Super Admin</Badge>;
@@ -408,6 +413,6 @@ function UserRoleBadge({ role }: { role: string }) {
     case 'CUSTOMER':
       return <Badge tone="quiet">Customer</Badge>;
     default:
-      return <Badge tone="quiet">{role}</Badge>;
+      return <Badge tone="quiet">{role || 'Unknown'}</Badge>;
   }
 }

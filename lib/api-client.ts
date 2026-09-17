@@ -142,6 +142,16 @@ async function failureMessage(res: Response, fallback: string): Promise<string> 
   return fallback;
 }
 
+function isAuthMintPath(path: string): boolean {
+  return (
+    path === '/auth/login' ||
+    path === '/auth/register' ||
+    path === '/auth/refresh' ||
+    path === '/auth/forgot-password' ||
+    path === '/auth/reset-password'
+  );
+}
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   const baseUrl = getApiBaseUrl();
@@ -166,8 +176,9 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
   let res = await send();
 
-  // The auth endpoints mint sessions rather than consuming them; a 401 there is a real answer
-  if (res.status === 401 && !cleanPath.startsWith('/auth/')) {
+  // The auth mint endpoints mint sessions rather than consuming them; a 401 there is a real answer.
+  // Authenticated routes like /auth/users or /auth/me MUST refresh and replay on 401.
+  if (res.status === 401 && !isAuthMintPath(cleanPath)) {
     const token = await refreshSession();
     if (!token) {
       clearSession();
@@ -208,7 +219,7 @@ export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
     });
 
   let res = await send();
-  if (res.status === 401 && !cleanPath.startsWith('/auth/')) {
+  if (res.status === 401 && !isAuthMintPath(cleanPath)) {
     const token = await refreshSession();
     if (!token) {
       clearSession();
