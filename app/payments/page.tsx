@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { listTenants, type Tenant } from '@/lib/api/tenants';
 import { listTransactions, refundTransaction, type Transaction } from '@/lib/api/finance';
-import { useMutation } from '@/lib/useApi';
+import { useApi, useMutation } from '@/lib/useApi';
 import { brandColor, count, dateTime, money, shortId, toNumber } from '@/lib/format';
 import {
   Badge,
@@ -41,11 +41,6 @@ const REFUNDABLE_TYPE = 'PAYMENT';
 const SETTLED_STATUSES = ['COMPLETED', 'PAID', 'SUCCEEDED', 'CAPTURED'];
 
 export default function PaymentsPage() {
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   // Filters
   const [shopFilter, setShopFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -55,44 +50,21 @@ export default function PaymentsPage() {
   // Refund modal state
   const [refunding, setRefunding] = useState<{ row: Transaction; tenantName: string; brandColor?: string } | null>(null);
 
-  // Load tenants roster for shop filter dropdown & fallback lookup
-  useEffect(() => {
-    let active = true;
-    listTenants()
-      .then((data) => {
-        if (active) setTenants(data);
-      })
-      .catch((err) => {
-        console.warn('Could not fetch tenants roster:', err);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  // Load tenants roster for shop filter dropdown & fallback lookup with TanStack caching
+  const tenantsApi = useApi(() => listTenants(), []);
+  const tenants = tenantsApi.data ?? [];
 
-  const tenantMap = useMemo(() => {
-    const map = new Map<string, Tenant>();
-    for (const t of tenants) {
-      map.set(t.id, t);
-    }
-    return map;
-  }, [tenants]);
-
-  // Primary fetch: directly query transactions from backend
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await listTransactions({
-        tenantId: shopFilter !== 'ALL' ? shopFilter : undefined,
-        status: statusFilter !== 'ALL' ? statusFilter : undefined,
-        type: typeFilter !== 'ALL' ? typeFilter : undefined,
-      });
-      setTransactions(data);
-    } catch (err) {
-      // Fallback: if server returned 400 because tenantId is required (older microservice), sweep across known tenants
-      if ((err as Error)?.message?.includes('tenantId is required') && tenants.length > 0) {
-        try {
+  // Primary fetch: directly query transactions from backend with TanStack caching
+  const transactionsApi = useApi(
+    async () => {
+      try {
+        return await listTransactions({
+          tenantId: shopFilter !== 'ALL' ? shopFilter : undefined,
+          status: statusFilter !== 'ALL' ? statusFilter : undefined,
+          type: typeFilter !== 'ALL' ? typeFilter : undefined,
+        });
+      } catch (err) {
+        if ((err as Error)?.message?.includes('tenantId is required') && tenants.length > 0) {
           const results = await Promise.allSettled(
             tenants.map((t) => listTransactions(t.id)),
           );
@@ -102,21 +74,26 @@ export default function PaymentsPage() {
               collected.push(...res.value);
             }
           }
-          setTransactions(collected);
-        } catch (sweepErr) {
-          setError((sweepErr as Error).message || 'Failed to load transactions');
+          return collected;
         }
-      } else {
-        setError((err as Error).message || 'Failed to load transactions');
+        throw err;
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [shopFilter, statusFilter, typeFilter, tenants]);
+    },
+    [shopFilter, statusFilter, typeFilter, tenants],
+  );
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const transactions = transactionsApi.data ?? [];
+  const loading = transactionsApi.loading;
+  const error = transactionsApi.error;
+  const loadData = transactionsApi.refresh;
+
+  const tenantMap = useMemo(() => {
+    const map = new Map<string, Tenant>();
+    for (const t of tenants) {
+      map.set(t.id, t);
+    }
+    return map;
+  }, [tenants]);
 
   // Sorted and searched transactions
   const visible = useMemo(() => {
@@ -208,9 +185,9 @@ export default function PaymentsPage() {
 
       <Canvas>
         {error && <Failed message={error} onRetry={loadData} />}
-        {loading && !error && <Loading label="Reading transactions from ledger..." />}
+        {loading && !transactions.length && !error && <Loading label="Reading transactions from ledger..." />}
 
-        {!loading && !error && (
+        {(transactions.length > 0 || (!loading && !error)) && (
           <>
             {/* Top KPI Statistics */}
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

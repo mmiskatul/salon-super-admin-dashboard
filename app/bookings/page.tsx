@@ -26,6 +26,7 @@ import {
   type Appointment,
 } from '@/lib/api/bookings';
 import { brandColor, count, dateTime, isoDay, money, time } from '@/lib/format';
+import { useApi } from '@/lib/useApi';
 import {
   Badge,
   Button,
@@ -49,31 +50,53 @@ export default function BookingsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const [selected, setSelected] = useState<{
     row: Appointment;
     tenant?: Tenant;
   } | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
-  // Load salon roster for dropdown and tenant metadata lookup
-  useEffect(() => {
-    let active = true;
-    listTenants()
-      .then((data) => {
-        if (active && Array.isArray(data)) setTenants(data);
-      })
-      .catch(() => {
-        // Tenants will be seamlessly resolved from appointments if roster query fails
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  // Load salon roster for dropdown and tenant metadata lookup with TanStack caching
+  const tenantsApi = useApi(() => listTenants(), []);
+  const tenants = tenantsApi.data ?? [];
+
+  // Load appointments with TanStack caching
+  const bookingsApi = useApi(
+    async () => {
+      try {
+        const data = await listAppointments({
+          tenantId: shopFilter !== 'ALL' ? shopFilter : undefined,
+          date: useDateFilter ? day : undefined,
+          status: statusFilter !== 'ALL' ? statusFilter : undefined,
+        });
+        return data ?? [];
+      } catch (err) {
+        // Fallback: if single-query failed because backend is on legacy per-tenant mode
+        if (shopFilter === 'ALL' && tenants.length > 0) {
+          const results = await Promise.allSettled(
+            tenants.map((t) => listAppointments(t.id, useDateFilter ? day : undefined)),
+          );
+          const collected: Appointment[] = [];
+          for (const res of results) {
+            if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+              collected.push(...res.value);
+            }
+          }
+          return collected;
+        }
+        throw err;
+      }
+    },
+    [shopFilter, useDateFilter, day, statusFilter, tenants],
+  );
+
+  const appointments = bookingsApi.data ?? [];
+  const loading = bookingsApi.loading;
+  const error = bookingsApi.error;
+  const fetchBookings = bookingsApi.refresh;
+  const setAppointments = (updater: Appointment[] | ((prev: Appointment[]) => Appointment[])) => {
+    bookingsApi.setData(typeof updater === 'function' ? updater(appointments) : updater);
+  };
 
   const tenantMap = useMemo(() => {
     const map = new Map<string, Tenant>();
@@ -104,46 +127,6 @@ export default function BookingsPage() {
     }
     return list;
   }, [tenants, appointments]);
-
-  // Load appointments
-  const fetchBookings = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await listAppointments({
-        tenantId: shopFilter !== 'ALL' ? shopFilter : undefined,
-        date: useDateFilter ? day : undefined,
-        status: statusFilter !== 'ALL' ? statusFilter : undefined,
-      });
-      setAppointments(data ?? []);
-    } catch (err) {
-      // Fallback: if single-query failed because backend is on legacy per-tenant mode
-      try {
-        if (shopFilter === 'ALL' && tenants.length > 0) {
-          const results = await Promise.allSettled(
-            tenants.map((t) => listAppointments(t.id, useDateFilter ? day : undefined)),
-          );
-          const collected: Appointment[] = [];
-          for (const res of results) {
-            if (res.status === 'fulfilled' && Array.isArray(res.value)) {
-              collected.push(...res.value);
-            }
-          }
-          setAppointments(collected);
-        } else {
-          setError((err as Error).message || 'Failed to load bookings');
-        }
-      } catch (fallbackErr) {
-        setError((fallbackErr as Error).message || 'Failed to load bookings');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [shopFilter, useDateFilter, day, statusFilter, tenants]);
-
-  useEffect(() => {
-    fetchBookings();
-  }, [fetchBookings]);
 
   function shiftDay(days: number) {
     const next = new Date(`${day}T12:00:00`);
@@ -397,12 +380,12 @@ export default function BookingsPage() {
 
         {/* Error / Loading State */}
         {error && <Failed message={error} onRetry={fetchBookings} />}
-        {loading && !error && (
+        {loading && !appointments.length && !error && (
           <Loading label={useDateFilter ? `Loading bookings for ${day}...` : 'Loading all bookings...'} />
         )}
 
         {/* Data Table */}
-        {!loading && !error && (
+        {(appointments.length > 0 || (!loading && !error)) && (
           <Panel
             flush
             title={
