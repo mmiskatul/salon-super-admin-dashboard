@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { listTenants, type Tenant } from './api/tenants';
 import {
+  fetchPlatformOverview,
   fetchPlatformVitals,
   probeAll,
   totalsOf,
@@ -67,6 +68,19 @@ export function usePlatform(): PlatformState {
     setVitals({});
 
     (async () => {
+      // 1. First-class: Single-call complete platform overview endpoint
+      try {
+        const overview = await fetchPlatformOverview();
+        if (!live()) return;
+        setTenants(overview.tenants);
+        setVitals(Object.fromEntries(overview.vitals.map((v: TenantVitals) => [v.tenantId, v])));
+        setLoading(false);
+        setSweeping(false);
+        return;
+      } catch {
+        // Fall through to separate roster + vitals query
+      }
+
       let roster: Tenant[];
       try {
         roster = await listTenants();

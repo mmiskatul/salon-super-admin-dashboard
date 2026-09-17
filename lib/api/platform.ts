@@ -98,6 +98,81 @@ function summariseAppointments(rows: Appointment[]) {
  * don't need to change — see `usePlatform`, which tries this first and only falls back to
  * `probeAll` if it fails (e.g. talking to a backend deployment that predates this endpoint).
  */
+export interface PlatformSummaryDto {
+  totalTenants: number;
+  liveTenants: number;
+  idleTenants: number;
+  dormantTenants: number;
+  totalRevenue: number;
+  platformNetEarnings: number;
+  subscriptionMrr: number;
+  totalAppointments: number;
+  completedAppointments: number;
+  cancelledAppointments: number;
+  upcomingAppointments: number;
+  totalStaff: number;
+  totalServices: number;
+  totalReviews: number;
+  currency: string;
+}
+
+export interface PlatformOverviewDto {
+  summary: PlatformSummaryDto;
+  vitals: TenantVitals[];
+  tenants: Tenant[];
+  funnel: {
+    stages: Array<{ name: string; count: number; pct: number }>;
+    stalledShops: Array<{ id: string; name: string; slug: string | null; brandColor: string | null; missing: string[] }>;
+  };
+  leaderboard: Array<{
+    id: string;
+    name: string;
+    brandColor: string;
+    appointments: number;
+    revenue: number;
+    staff: number;
+  }>;
+  outcomes: {
+    completed: number;
+    upcoming: number;
+    cancelled: number;
+    total: number;
+  };
+  trustPulse: {
+    qualityScore: number;
+    completionRate: number;
+    disputeRate: number;
+    activeTickets: number;
+  };
+}
+
+export interface PlatformChartsDto {
+  period: string;
+  labels: string[];
+  revenueTrend: {
+    labels: string[];
+    current: number[];
+    previous: number[];
+    netEarnings: number[];
+  };
+  appointmentsTrend: {
+    labels: string[];
+    data: number[];
+  };
+  tenantGrowth: {
+    labels: string[];
+    data: number[];
+  };
+}
+
+export function fetchPlatformOverview(): Promise<PlatformOverviewDto> {
+  return apiFetch<PlatformOverviewDto>('/dashboard/platform-overview');
+}
+
+export function fetchPlatformCharts(period = 'Monthly'): Promise<PlatformChartsDto> {
+  return apiFetch<PlatformChartsDto>(`/dashboard/platform-charts?period=${encodeURIComponent(period)}`);
+}
+
 export function fetchPlatformVitals(): Promise<TenantVitals[]> {
   return apiFetch<TenantVitals[]>('/dashboard/platform-vitals');
 }

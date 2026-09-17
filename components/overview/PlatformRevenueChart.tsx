@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -15,6 +15,7 @@ import {
 import { Line } from 'react-chartjs-2';
 import { TrendingUp, DollarSign } from 'lucide-react';
 import { money } from '@/lib/format';
+import { fetchPlatformCharts, type PlatformChartsDto } from '@/lib/api/platform';
 
 ChartJS.register(
   CategoryScale,
@@ -37,8 +38,35 @@ export default function PlatformRevenueChart({
   totalAppointments,
 }: PlatformRevenueChartProps) {
   const [period, setPeriod] = useState<'Monthly' | 'Weekly' | 'Yearly'>('Monthly');
+  const [liveChart, setLiveChart] = useState<PlatformChartsDto | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchPlatformCharts(period)
+      .then((data) => {
+        if (active && data?.revenueTrend?.labels?.length) {
+          setLiveChart(data);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [period]);
 
   const { labels, currentData, previousData } = useMemo(() => {
+    if (
+      liveChart &&
+      liveChart.period?.toLowerCase() === period.toLowerCase() &&
+      liveChart.revenueTrend?.labels?.length
+    ) {
+      return {
+        labels: liveChart.revenueTrend.labels,
+        currentData: liveChart.revenueTrend.current,
+        previousData: liveChart.revenueTrend.previous,
+      };
+    }
+
     if (period === 'Weekly') {
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       // Distribute weekly pattern based on totalRevenue
