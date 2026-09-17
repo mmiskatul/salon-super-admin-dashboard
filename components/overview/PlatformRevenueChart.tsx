@@ -17,6 +17,7 @@ import { TrendingUp } from 'lucide-react';
 import { money } from '@/lib/format';
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
 import { loadPlatformCharts, setSelectedPeriod } from '@/lib/redux/slices/platformSlice';
+import type { PlatformChartsDto } from '@/lib/api/platform';
 
 ChartJS.register(
   CategoryScale,
@@ -32,16 +33,18 @@ ChartJS.register(
 interface PlatformRevenueChartProps {
   totalRevenue: number;
   totalAppointments: number;
+  chart?: PlatformChartsDto | null;
 }
 
 export default function PlatformRevenueChart({
   totalRevenue,
   totalAppointments,
+  chart,
 }: PlatformRevenueChartProps) {
   const dispatch = useAppDispatch();
   const { charts, chartsLoading, selectedPeriod } = useAppSelector((state) => state.platform);
   const period = selectedPeriod;
-  const liveChart = charts[period.toLowerCase()] || null;
+  const liveChart = chart ?? charts[period.toLowerCase()] ?? null;
 
   useEffect(() => {
     if (!charts[period.toLowerCase()]) {

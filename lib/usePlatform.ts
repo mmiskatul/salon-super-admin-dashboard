@@ -19,6 +19,8 @@ export interface PlatformState {
   error: string | null;
   reload: () => void;
   selectedPeriod: PlatformPeriod;
+  charts: Record<string, import('./api/platform').PlatformChartsDto>;
+  trustPulse: PlatformOverviewDto['trustPulse'] | null;
 }
 
 /**
@@ -86,5 +88,7 @@ export function usePlatform(): PlatformState {
     error,
     reload,
     selectedPeriod,
+    charts,
+    trustPulse: overview?.trustPulse ?? null,
   };
 }

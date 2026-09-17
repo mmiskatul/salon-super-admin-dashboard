@@ -14,6 +14,7 @@ import { Bar } from 'react-chartjs-2';
 import { Store, ArrowUpRight, Calendar } from 'lucide-react';
 import type { PlatformTotals, TenantVitals } from '@/lib/api/platform';
 import type { PlatformPeriod } from '@/lib/api/platform';
+import type { PlatformChartsDto } from '@/lib/api/platform';
 import type { Tenant } from '@/lib/api/tenants';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -23,12 +24,22 @@ interface TenantGrowthChartProps {
   tenants?: Tenant[];
   vitals?: Record<string, TenantVitals>;
   period?: PlatformPeriod;
+  chart?: PlatformChartsDto | null;
 }
 
 import Link from 'next/link';
 
-export default function TenantGrowthChart({ totals, tenants, vitals, period = 'Monthly' }: TenantGrowthChartProps) {
+export default function TenantGrowthChart({ totals, tenants, vitals, period = 'Monthly', chart }: TenantGrowthChartProps) {
   const { labels, liveSeries, idleSeries, dormantSeries } = useMemo(() => {
+    if (chart?.tenantGrowth?.labels?.length) {
+      return {
+        labels: chart.tenantGrowth.labels,
+        liveSeries: chart.tenantGrowth.data,
+        idleSeries: chart.tenantGrowth.data.map(() => 0),
+        dormantSeries: chart.tenantGrowth.data.map(() => 0),
+      };
+    }
+
     const monthNames = [
       'Jan',
       'Feb',
@@ -104,33 +115,43 @@ export default function TenantGrowthChart({ totals, tenants, vitals, period = 'M
       idleSeries: [0, 0, 0, 0, 0, totals.idle],
       dormantSeries: [0, 0, 0, 0, 0, totals.dormant],
     };
-  }, [totals, tenants, vitals]);
+  }, [chart, totals, tenants, vitals]);
 
+  const hasBackendGrowth = Boolean(chart?.tenantGrowth?.labels?.length);
   const chartData = {
     labels,
-    datasets: [
-      {
-        label: 'Live (Bookings Active)',
-        data: liveSeries,
-        backgroundColor: '#10B981',
-        borderRadius: 4,
-        stack: 'Stack 0',
-      },
-      {
-        label: 'Furnished (Idle)',
-        data: idleSeries,
-        backgroundColor: '#635BFF',
-        borderRadius: 4,
-        stack: 'Stack 0',
-      },
-      {
-        label: 'Needs Setup',
-        data: dormantSeries,
-        backgroundColor: '#CBD5E1',
-        borderRadius: 4,
-        stack: 'Stack 0',
-      },
-    ],
+    datasets: hasBackendGrowth
+      ? [
+          {
+            label: 'New Salons',
+            data: liveSeries,
+            backgroundColor: '#635BFF',
+            borderRadius: 4,
+          },
+        ]
+      : [
+          {
+            label: 'Live (Bookings Active)',
+            data: liveSeries,
+            backgroundColor: '#10B981',
+            borderRadius: 4,
+            stack: 'Stack 0',
+          },
+          {
+            label: 'Furnished (Idle)',
+            data: idleSeries,
+            backgroundColor: '#635BFF',
+            borderRadius: 4,
+            stack: 'Stack 0',
+          },
+          {
+            label: 'Needs Setup',
+            data: dormantSeries,
+            backgroundColor: '#CBD5E1',
+            borderRadius: 4,
+            stack: 'Stack 0',
+          },
+        ],
   };
 
   const chartOptions: any = {

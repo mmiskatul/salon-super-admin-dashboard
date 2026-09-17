@@ -20,7 +20,21 @@ import ClusterHealthWidget from '@/components/overview/ClusterHealthWidget';
 
 export default function OverviewPage() {
   const platform = usePlatform();
-  const { overview, tenants, vitals, totals, loading, sweeping, swept, error, reload, selectedPeriod } = platform;
+  const {
+    overview,
+    tenants,
+    vitals,
+    totals,
+    loading,
+    sweeping,
+    swept,
+    error,
+    reload,
+    selectedPeriod,
+    charts,
+    trustPulse,
+  } = platform;
+  const selectedCharts = charts[selectedPeriod.toLowerCase()] ?? null;
 
   const sweepNote = tenants
     ? sweeping
@@ -126,8 +140,15 @@ export default function OverviewPage() {
               <PlatformRevenueChart
                 totalRevenue={totals.revenue}
                 totalAppointments={totals.appointments}
+                chart={selectedCharts}
               />
-              <TenantGrowthChart totals={totals} tenants={tenants} vitals={vitals} period={selectedPeriod} />
+              <TenantGrowthChart
+                totals={totals}
+                tenants={tenants}
+                vitals={vitals}
+                period={selectedPeriod}
+                chart={selectedCharts}
+              />
             </div>
 
             {/* 4. Tenant Onboarding & Activation Lifecycle Funnel */}
@@ -136,7 +157,7 @@ export default function OverviewPage() {
             {/* 5. Marketplace Operations: Booking Outcomes & Support/Moderation Pulse */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <BookingOutcomesChart totals={totals} period={selectedPeriod} />
-              <SupportModerationPulse totals={totals} period={selectedPeriod} />
+              <SupportModerationPulse totals={totals} period={selectedPeriod} trustPulse={trustPulse} />
             </div>
 
             {/* 6. Infrastructure & Leaderboard: Cluster Health & Busiest Salons */}

@@ -17,9 +17,15 @@ import type { PlatformTotals, PlatformPeriod } from '@/lib/api/platform';
 interface SupportModerationPulseProps {
   totals: PlatformTotals;
   period?: PlatformPeriod;
+  trustPulse?: {
+    qualityScore: number;
+    completionRate: number;
+    disputeRate: number;
+    activeTickets: number;
+  } | null;
 }
 
-export default function SupportModerationPulse({ totals, period = 'Monthly' }: SupportModerationPulseProps) {
+export default function SupportModerationPulse({ totals, period = 'Monthly', trustPulse }: SupportModerationPulseProps) {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,10 +41,9 @@ export default function SupportModerationPulse({ totals, period = 'Monthly' }: S
   const recentTickets = tickets.slice(0, 3);
 
   // Platform Trust Metrics
-  const completionRate =
-    totals.appointments > 0
-      ? Math.round((totals.completed / totals.appointments) * 1000) / 10
-      : 100;
+  const completionRate = trustPulse?.completionRate ?? (totals.appointments > 0
+    ? Math.round((totals.completed / totals.appointments) * 1000) / 10
+    : 100);
 
   return (
     <div className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm font-manrope">
@@ -138,7 +143,9 @@ export default function SupportModerationPulse({ totals, period = 'Monthly' }: S
               </span>
               <div className="flex items-center text-amber-500 gap-1 font-bold text-sm">
                 <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                {totals.reviews > 0 ? `5.0 / 5.0 (${totals.reviews})` : '— / 5.0'}
+                {trustPulse && trustPulse.qualityScore > 0
+                  ? `${trustPulse.qualityScore.toFixed(1)} / 5.0 (${totals.reviews})`
+                  : '— / 5.0'}
               </div>
             </div>
 
@@ -170,9 +177,11 @@ export default function SupportModerationPulse({ totals, period = 'Monthly' }: S
                 <div className="flex items-center justify-between text-xs font-semibold mb-1">
                   <span className="text-[#64748B]">Dispute / Cancellation Rate</span>
                   <span className="text-[#EF4444] font-bold">
-                    {totals.appointments > 0
-                      ? Math.round((totals.cancelled / totals.appointments) * 100)
-                      : 0}
+                    {trustPulse
+                      ? trustPulse.disputeRate
+                      : totals.appointments > 0
+                        ? Math.round((totals.cancelled / totals.appointments) * 100)
+                        : 0}
                     %
                   </span>
                 </div>
