@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,9 +13,10 @@ import {
   Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { TrendingUp, DollarSign } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { money } from '@/lib/format';
-import { fetchPlatformCharts, type PlatformChartsDto } from '@/lib/api/platform';
+import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
+import { loadPlatformCharts, setSelectedPeriod } from '@/lib/redux/slices/platformSlice';
 
 ChartJS.register(
   CategoryScale,
@@ -37,22 +38,16 @@ export default function PlatformRevenueChart({
   totalRevenue,
   totalAppointments,
 }: PlatformRevenueChartProps) {
-  const [period, setPeriod] = useState<'Monthly' | 'Weekly' | 'Yearly'>('Monthly');
-  const [liveChart, setLiveChart] = useState<PlatformChartsDto | null>(null);
+  const dispatch = useAppDispatch();
+  const { charts, chartsLoading, selectedPeriod } = useAppSelector((state) => state.platform);
+  const period = selectedPeriod;
+  const liveChart = charts[period.toLowerCase()] || null;
 
   useEffect(() => {
-    let active = true;
-    fetchPlatformCharts(period)
-      .then((data) => {
-        if (active && data?.revenueTrend?.labels?.length) {
-          setLiveChart(data);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [period]);
+    if (!charts[period.toLowerCase()]) {
+      dispatch(loadPlatformCharts(period));
+    }
+  }, [dispatch, period, charts]);
 
   const { labels, currentData, previousData } = useMemo(() => {
     if (
@@ -227,7 +222,7 @@ export default function PlatformRevenueChart({
           {(['Monthly', 'Weekly', 'Yearly'] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => setPeriod(tab)}
+              onClick={() => dispatch(setSelectedPeriod(tab))}
               className={`px-3 py-1 rounded-md text-[12px] font-bold transition-all cursor-pointer ${
                 period === tab
                   ? 'bg-white text-[#635BFF] shadow-xs'

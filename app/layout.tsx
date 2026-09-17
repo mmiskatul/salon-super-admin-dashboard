@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Manrope, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import AppShell from '@/components/shell/AppShell';
+import StoreProvider from '@/lib/redux/StoreProvider';
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -37,7 +38,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         >
           Skip to content
         </a>
-        <AppShell>{children}</AppShell>
+        <StoreProvider>
+          <AppShell>{children}</AppShell>
+        </StoreProvider>
       </body>
     </html>
   );
