@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export interface AsyncState<T> {
   data: T | null;
@@ -10,6 +11,8 @@ export interface AsyncState<T> {
   refresh: () => Promise<void>;
   /** Local override, for optimistic updates that don't warrant a round trip. */
   setData: (next: T | null) => void;
+  /** True when a background revalidation is running even though cached data is displayed. */
+  isFetching?: boolean;
 }
 
 function messageOf(err: unknown): string {
@@ -18,65 +21,62 @@ function messageOf(err: unknown): string {
 }
 
 /**
- * Loads on mount and whenever `deps` change.
+ * Loads on mount and caches server state via TanStack Query.
  *
- * The loader is held in a ref rather than being an effect dependency: these are written inline
- * (`useApi(() => listTenants(), [])`), so a fresh function identity arrives on every render and
- * depending on it directly would re-fetch forever.
+ * When navigating between pages or switching routes, previously loaded data is served
+ * INSTANTLY from memory cache without showing a full-page loading spinner.
+ * In the background, a silent revalidation runs (stale-while-revalidate), and updates
+ * the UI seamlessly whenever fresh data is available.
  */
-export function useApi<T>(loader: () => Promise<T>, deps: unknown[] = []): AsyncState<T> {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+export function useApi<T>(
+  loader: () => Promise<T>,
+  deps: unknown[] = [],
+  customKey?: string,
+): AsyncState<T> {
+  const queryClient = useQueryClient();
   const loaderRef = useRef(loader);
-
-  // Guards a slow first request resolving after a newer one, and setting state on an unmounted
-  // component when the operator navigates away mid-flight.
-  const runIdRef = useRef(0);
-  const mountedRef = useRef(true);
-
-  // Declared before the fetch effect below so it is committed first on any render that changes
-  // both: effects fire in declaration order, so the loader is always current by the time the
-  // fetch effect reads it. Writing the ref during render instead would be a render side effect.
   useEffect(() => {
     loaderRef.current = loader;
   });
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const run = useCallback(async () => {
-    const runId = runIdRef.current + 1;
-    runIdRef.current = runId;
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await loaderRef.current();
-      if (!mountedRef.current || runIdRef.current !== runId) return;
-      setData(result);
-    } catch (err) {
-      if (!mountedRef.current || runIdRef.current !== runId) return;
-      setError(messageOf(err));
-    } finally {
-      if (mountedRef.current && runIdRef.current === runId) setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    // `run` enters the loading state synchronously, which is this effect's purpose: fetching
-    // on mount and on every dependency change. The lint rule below targets derived state,
-    // which this is not.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void run();
+  const queryKey = useMemo(() => {
+    if (customKey) return ['useApi', customKey, ...deps];
+    // Clean string representation of the loader to create a stable, deterministic key
+    const fnStr = loader.toString().replace(/\s+/g, ' ').slice(0, 120);
+    return ['useApi', fnStr, ...deps];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [customKey, ...deps]);
 
-  return { data, loading, error, refresh: run, setData };
+  const query = useQuery<T, Error>({
+    queryKey,
+    queryFn: async () => {
+      return await loaderRef.current();
+    },
+    staleTime: 30_000, // Data remains fresh for 30s before background revalidation
+    gcTime: 10 * 60_000, // Retain in memory for 10 minutes across page transitions
+    refetchOnWindowFocus: true,
+  });
+
+  const refresh = useCallback(async () => {
+    await query.refetch();
+  }, [query]);
+
+  const setData = useCallback(
+    (next: T | null) => {
+      queryClient.setQueryData(queryKey, next);
+    },
+    [queryClient, queryKey],
+  );
+
+  return {
+    data: query.data ?? null,
+    // Only display full-page loading spinner when there is NO cached data at all
+    loading: query.isLoading && query.data === undefined,
+    error: query.error ? messageOf(query.error) : null,
+    refresh,
+    setData,
+    isFetching: query.isFetching,
+  };
 }
 
 /**
