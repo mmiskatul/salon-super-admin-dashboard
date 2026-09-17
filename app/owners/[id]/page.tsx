@@ -96,7 +96,7 @@ export default function OwnerDashboardDetailPage() {
     setTimeout(() => setCopiedJoinCode(false), 2000);
   }
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <Canvas>
         <Loading label="Loading owner dashboard inspection..." />
@@ -180,8 +180,8 @@ export default function OwnerDashboardDetailPage() {
 
             {/* Quick Administrative Action Buttons */}
             <div className="flex flex-wrap items-center gap-2 shrink-0">
-              <Button onClick={refresh}>
-                <RotateCw size={12} />
+              <Button onClick={refresh} disabled={loading}>
+                <RotateCw size={12} className={loading ? 'animate-spin' : ''} />
                 Refresh
               </Button>
 

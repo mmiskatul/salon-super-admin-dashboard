@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, ExternalLink, Pencil, ShieldAlert, ShieldCheck, Trash2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Pencil, RotateCw, ShieldAlert, ShieldCheck, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useApi, useMutation } from '@/lib/useApi';
 import {
@@ -98,7 +98,7 @@ export default function ShopPage() {
   );
   const settledTotal = settled.reduce((sum, t) => sum + Number(t.amount ?? 0), 0);
 
-  if (shop.loading || shopDashboard.loading) {
+  if ((shop.loading && !tenant) || (shopDashboard.loading && !shopDashboard.data)) {
     return (
       <Canvas>
         <Loading label="Loading shop" />
@@ -111,7 +111,9 @@ export default function ShopPage() {
       <Canvas>
         <Failed
           message={shop.error ?? shopDashboard.error ?? 'That shop could not be loaded.'}
-          onRetry={shop.refresh}
+          onRetry={async () => {
+            await Promise.all([shop.refresh(), shopDashboard.refresh()]);
+          }}
         />
         <Link href="/shops" className="text-[13px] text-ink-2 hover:text-ink">
           ← Back to shops
@@ -176,6 +178,16 @@ export default function ShopPage() {
             </div>
 
             <div className="flex flex-wrap shrink-0 gap-2">
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  await Promise.all([shop.refresh(), shopDashboard.refresh()]);
+                }}
+                disabled={shop.loading || shopDashboard.loading}
+              >
+                <RotateCw size={12} className={shop.loading || shopDashboard.loading ? 'animate-spin' : ''} />
+                Refresh
+              </Button>
               <Button
                 variant="secondary"
                 onClick={() => router.push(`/owners/${tenant.id}`)}

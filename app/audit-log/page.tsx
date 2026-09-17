@@ -92,13 +92,13 @@ export default function AuditLogPage() {
               </div>
             }
           >
-            {actions.loading && rows.length === 0 && (
+            {actions.loading && !actions.data && (
               <div className="p-6">
                 <Loading label="Reading the audit log" />
               </div>
             )}
 
-            {!actions.loading && rows.length === 0 && (
+            {!actions.loading && actions.data && rows.length === 0 && (
               <div className="p-8">
                 <Empty
                   title="No admin actions recorded yet"

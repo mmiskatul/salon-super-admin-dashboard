@@ -77,7 +77,7 @@ export default function BarberDetailPage() {
 
   const { data, loading, error, refresh } = useApi(() => getBarberDashboard(id), [id]);
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <Canvas>
         <Loading label="Loading barber inspection & activity hub..." />
