@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, ExternalLink, Pencil, ShieldAlert, ShieldCheck, Trash2 } from 'lucide-react';
 import { useApi, useMutation } from '@/lib/useApi';
+import { useAppDispatch } from '@/lib/redux/hooks';
+import { invalidatePlatformData } from '@/lib/redux/slices/platformSlice';
 import {
   deleteTenant,
   getTenant,
@@ -51,6 +53,7 @@ export default function ShopPage() {
   const params = useParams<{ tenantId: string }>();
   const tenantId = params.tenantId;
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [tab, setTab] = useState<Tab>('Barbers');
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -192,6 +195,7 @@ export default function ShopPage() {
                     if (result) {
                       shop.setData(result);
                       await shopDashboard.refresh();
+                      dispatch(invalidatePlatformData());
                     }
                   }}
                   disabled={unsuspend.pending}
@@ -833,6 +837,7 @@ export default function ShopPage() {
           onSaved={(next) => {
             shop.setData(next);
             void shopDashboard.refresh();
+            dispatch(invalidatePlatformData());
             setEditing(false);
           }}
         />
@@ -842,7 +847,10 @@ export default function ShopPage() {
         <DeleteShopDialog
           tenant={tenant}
           onClose={() => setConfirmingDelete(false)}
-          onDeleted={() => router.push('/shops')}
+          onDeleted={() => {
+            dispatch(invalidatePlatformData());
+            router.push('/shops');
+          }}
         />
       )}
 
@@ -851,6 +859,7 @@ export default function ShopPage() {
           tenant={tenant}
           onClose={() => setSuspending(false)}
           onSuspended={(next) => {
+            dispatch(invalidatePlatformData());
             shop.setData(next);
             void shopDashboard.refresh();
             setSuspending(false);
