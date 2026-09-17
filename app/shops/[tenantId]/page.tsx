@@ -7,23 +7,14 @@ import { ArrowLeft, ExternalLink, Pencil, ShieldAlert, ShieldCheck, Trash2 } fro
 import { useApi, useMutation } from '@/lib/useApi';
 import {
   deleteTenant,
-  getShopHours,
   getTenant,
-  listClients,
-  listFiles,
-  listLocations,
-  listProducts,
   suspendTenant,
   unsuspendTenant,
   updateTenant,
   type Tenant,
 } from '@/lib/api/tenants';
-import { listStaff } from '@/lib/api/people';
-import { listServices } from '@/lib/api/catalog';
-import { listAppointments, listReviews, removeReview } from '@/lib/api/bookings';
-import { listTransactions } from '@/lib/api/finance';
-import { listMembershipPlans } from '@/lib/api/memberships';
-import { listGiftCards } from '@/lib/api/giftCards';
+import { removeReview } from '@/lib/api/bookings';
+import { getShopDashboard } from '@/lib/api/shop-dashboard';
 import { brandColor, count, date, dateTime, money, rating, since, shortId } from '@/lib/format';
 import {
   Badge,
@@ -70,18 +61,31 @@ export default function ShopPage() {
   const removeReviewMutation = useMutation(removeReview);
 
   const shop = useApi(() => getTenant(tenantId), [tenantId]);
-  const staff = useApi(() => listStaff(tenantId), [tenantId]);
-  const services = useApi(() => listServices(tenantId), [tenantId]);
-  const bookings = useApi(() => listAppointments(tenantId), [tenantId]);
-  const reviews = useApi(() => listReviews(tenantId), [tenantId]);
-  const payments = useApi(() => listTransactions(tenantId), [tenantId]);
-  const membershipPlans = useApi(() => listMembershipPlans(tenantId), [tenantId]);
-  const giftCards = useApi(() => listGiftCards(tenantId), [tenantId]);
-  const locations = useApi(() => listLocations(tenantId), [tenantId]);
-  const hours = useApi(() => getShopHours(tenantId), [tenantId]);
-  const inventory = useApi(() => listProducts(tenantId), [tenantId]);
-  const clients = useApi(() => listClients(tenantId), [tenantId]);
-  const files = useApi(() => listFiles(tenantId), [tenantId]);
+  const shopDashboard = useApi(() => getShopDashboard(tenantId), [tenantId]);
+
+  const tabState = <T,>(rows: T[] | null | undefined) => ({
+    data: rows ?? null,
+    loading: shopDashboard.loading,
+    error: shopDashboard.error,
+    refresh: shopDashboard.refresh,
+  });
+  const staff = tabState(shopDashboard.data?.staff);
+  const services = tabState(shopDashboard.data?.services);
+  const bookings = tabState(shopDashboard.data?.appointments);
+  const reviews = tabState(shopDashboard.data?.reviews);
+  const payments = tabState(shopDashboard.data?.transactions);
+  const membershipPlans = tabState(shopDashboard.data?.membershipPlans);
+  const giftCards = tabState(shopDashboard.data?.giftCards);
+  const locations = tabState(shopDashboard.data?.locations);
+  const hours = {
+    data: shopDashboard.data?.shopHours ?? null,
+    loading: shopDashboard.loading,
+    error: shopDashboard.error,
+    refresh: shopDashboard.refresh,
+  };
+  const inventory = tabState(shopDashboard.data?.products);
+  const clients = tabState(shopDashboard.data?.clients);
+  const files = tabState(shopDashboard.data?.files);
 
   const tenant = shop.data;
   const colour = brandColor(tenant?.brandColor);
@@ -91,7 +95,7 @@ export default function ShopPage() {
   );
   const settledTotal = settled.reduce((sum, t) => sum + Number(t.amount ?? 0), 0);
 
-  if (shop.loading) {
+  if (shop.loading || shopDashboard.loading) {
     return (
       <Canvas>
         <Loading label="Loading shop" />
@@ -99,11 +103,11 @@ export default function ShopPage() {
     );
   }
 
-  if (shop.error || !tenant) {
+  if (shop.error || shopDashboard.error || !tenant) {
     return (
       <Canvas>
         <Failed
-          message={shop.error ?? 'That shop could not be loaded.'}
+          message={shop.error ?? shopDashboard.error ?? 'That shop could not be loaded.'}
           onRetry={shop.refresh}
         />
         <Link href="/shops" className="text-[13px] text-ink-2 hover:text-ink">
@@ -167,7 +171,10 @@ export default function ShopPage() {
                 <Button
                   onClick={async () => {
                     const result = await unsuspend.mutate(tenant.id);
-                    if (result) shop.setData(result);
+                    if (result) {
+                      shop.setData(result);
+                      await shopDashboard.refresh();
+                    }
                   }}
                   disabled={unsuspend.pending}
                 >
@@ -597,19 +604,19 @@ export default function ShopPage() {
                   <>
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                       <div className="rounded-lg border border-rule bg-ground p-3">
-                        <p className="eyebrow !text-[10px]">Buffer Before</p>
+                        <p className="eyebrow text-[10px]!">Buffer Before</p>
                         <p className="mt-1 font-semibold text-ink">{hours.data.bufferBeforeMin} min</p>
                       </div>
                       <div className="rounded-lg border border-rule bg-ground p-3">
-                        <p className="eyebrow !text-[10px]">Buffer After</p>
+                        <p className="eyebrow text-[10px]!">Buffer After</p>
                         <p className="mt-1 font-semibold text-ink">{hours.data.bufferAfterMin} min</p>
                       </div>
                       <div className="rounded-lg border border-rule bg-ground p-3">
-                        <p className="eyebrow !text-[10px]">Minimum Notice</p>
+                        <p className="eyebrow text-[10px]!">Minimum Notice</p>
                         <p className="mt-1 font-semibold text-ink">{hours.data.minNotice}</p>
                       </div>
                       <div className="rounded-lg border border-rule bg-ground p-3">
-                        <p className="eyebrow !text-[10px]">Booking Window</p>
+                        <p className="eyebrow text-[10px]!">Booking Window</p>
                         <p className="mt-1 font-semibold text-ink">{hours.data.bookingWindow}</p>
                       </div>
                     </div>
@@ -807,6 +814,7 @@ export default function ShopPage() {
           onClose={() => setEditing(false)}
           onSaved={(next) => {
             shop.setData(next);
+            void shopDashboard.refresh();
             setEditing(false);
           }}
         />
@@ -826,6 +834,7 @@ export default function ShopPage() {
           onClose={() => setSuspending(false)}
           onSuspended={(next) => {
             shop.setData(next);
+            void shopDashboard.refresh();
             setSuspending(false);
           }}
         />
@@ -929,7 +938,7 @@ function EditShopDialog({
                 value={colour}
                 onChange={(e) => setColour(e.target.value)}
                 aria-label="Brand colour"
-                className="h-[34px] w-12 cursor-pointer rounded-lg border border-rule bg-surface"
+                className="h-8.5 w-12 cursor-pointer rounded-lg border border-rule bg-surface"
               />
               <input
                 value={colour}
