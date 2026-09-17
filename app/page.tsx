@@ -4,17 +4,17 @@ import React from 'react';
 import Link from 'next/link';
 import { ArrowUpRight, RotateCw, Megaphone, AlertCircle } from 'lucide-react';
 import { usePlatform } from '@/lib/usePlatform';
-import { vitalityOf } from '@/lib/api/platform';
-import { brandColor, count, since } from '@/lib/format';
+import { brandColor, count } from '@/lib/format';
 import { Button, Canvas, Failed, Loading, PageHead, Panel } from '@/components/ui/primitives';
 import { Ranked } from '@/components/chart/Chart';
-import Mark from '@/components/ui/Mark';
-import { VitalityTag } from '@/components/ui/Vitals';
 
 import OverviewHeroCards from '@/components/overview/OverviewHeroCards';
+import FinancialCommandCenter from '@/components/overview/FinancialCommandCenter';
 import PlatformRevenueChart from '@/components/overview/PlatformRevenueChart';
 import TenantGrowthChart from '@/components/overview/TenantGrowthChart';
+import OnboardingFunnelWidget from '@/components/overview/OnboardingFunnelWidget';
 import BookingOutcomesChart from '@/components/overview/BookingOutcomesChart';
+import SupportModerationPulse from '@/components/overview/SupportModerationPulse';
 import ClusterHealthWidget from '@/components/overview/ClusterHealthWidget';
 
 export default function OverviewPage() {
@@ -32,7 +32,7 @@ export default function OverviewPage() {
       <PageHead
         eyebrow="Super Admin Console"
         title="Platform Overview"
-        lede="System-wide aggregate performance, tenant growth trajectory, booking fulfillment, and cluster health across all shops."
+        lede="Executive command tower: SaaS financial performance, tenant onboarding lifecycle, booking fulfillment, and cluster health across all shops."
         actions={
           <div className="flex items-center gap-3">
             {sweepNote && (
@@ -90,7 +90,14 @@ export default function OverviewPage() {
               </div>
             )}
 
-            {/* 2. Primary Graphs Row: Revenue Trajectory & Tenant Growth */}
+            {/* 2. Financial Command Center: GMV vs Net Platform Revenue vs Subscription MRR */}
+            <FinancialCommandCenter
+              totalRevenue={totals.revenue}
+              totalAppointments={totals.appointments}
+              activeSalons={totals.live}
+            />
+
+            {/* 3. Primary Graphs: Revenue Trajectory & Tenant Growth */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <PlatformRevenueChart
                 totalRevenue={totals.revenue}
@@ -99,9 +106,18 @@ export default function OverviewPage() {
               <TenantGrowthChart totals={totals} />
             </div>
 
-            {/* 3. Secondary Row: Booking Outcomes & Busiest Salons Leaderboard */}
+            {/* 4. Tenant Onboarding & Activation Lifecycle Funnel */}
+            <OnboardingFunnelWidget tenants={tenants} vitals={vitals} />
+
+            {/* 5. Marketplace Operations: Booking Outcomes & Support/Moderation Pulse */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <BookingOutcomesChart totals={totals} />
+              <SupportModerationPulse totals={totals} />
+            </div>
+
+            {/* 6. Infrastructure & Leaderboard: Cluster Health & Busiest Salons */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <ClusterHealthWidget />
 
               <Panel
                 title="Busiest Salons Leaderboard"
@@ -138,63 +154,6 @@ export default function OverviewPage() {
                     </p>
                   )}
                 </div>
-              </Panel>
-            </div>
-
-            {/* 4. Operations Row: Cluster Health & Attention Required Queue */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <ClusterHealthWidget />
-
-              <Panel
-                title="Onboarding & Setup Attention Queue"
-                note="Shops registered on the platform that require staff or service setup"
-              >
-                {(() => {
-                  const dormant = tenants
-                    .filter((t) => vitalityOf(vitals[t.id]) === 'dormant')
-                    .slice(0, 5);
-
-                  if (dormant.length === 0) {
-                    return (
-                      <div className="py-8 text-center">
-                        <p className="text-xs font-semibold text-[#10B981]">
-                          {sweeping
-                            ? 'Auditing shop configurations...'
-                            : 'Every shop on the platform has at least a barber or a catalog service configured.'}
-                        </p>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <ul className="divide-y divide-[#F1F5F9]">
-                      {dormant.map((t) => (
-                        <li key={t.id}>
-                          <Link
-                            href={`/shops/${t.id}`}
-                            className="flex items-center gap-3 py-3 hover:bg-[#F8FAFC] px-2 rounded-lg transition-colors group"
-                          >
-                            <Mark
-                              name={t.name}
-                              logoUrl={t.logoUrl}
-                              color={t.brandColor}
-                              size={28}
-                            />
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-[13px] font-bold text-[#1E293B] group-hover:text-[#635BFF]">
-                                {t.name}
-                              </span>
-                              <span className="block text-[11px] font-medium text-[#94A3B8]">
-                                Registered {since(t.createdAt)} · 0 staff · 0 services
-                              </span>
-                            </span>
-                            <VitalityTag vitality="dormant" />
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  );
-                })()}
               </Panel>
             </div>
           </div>
