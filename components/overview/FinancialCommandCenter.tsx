@@ -31,7 +31,7 @@ export default function FinancialCommandCenter({
   // Platform Net Revenue = 5% transaction commission + estimated SaaS subscription MRR
   const gmv = totalRevenue;
   const platformCommission = Math.round(gmv * 0.05 * 100) / 100;
-  const estimatedSaaSMRR = activeSalons * 49; // $49/mo average blended subscription tier
+  const estimatedSaaSMRR = activeSalons * 4900; // ৳ 4,900/mo average blended subscription tier
   const platformNetRevenue = platformCommission + estimatedSaaSMRR;
 
   return (

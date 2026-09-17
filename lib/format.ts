@@ -1,24 +1,7 @@
 /**
  * Display helpers.
  *
- * The money format matches salon-owner-dashboard/src/lib/api/budgeting.ts (en-IE / EUR) so a
- * figure means the same thing in both consoles. Note the backend is not internally consistent
- * about this — service-payment's Wallet.currency defaults to "BDT" — so if the platform's real
- * currency is settled elsewhere, this constant is the one place to change.
- */
-const CURRENCY = new Intl.NumberFormat('en-IE', {
-  style: 'currency',
-  currency: 'EUR',
-  maximumFractionDigits: 2,
-});
-
-const COMPACT = new Intl.NumberFormat('en-IE', { notation: 'compact', maximumFractionDigits: 1 });
-
-/**
- * Prisma serialises `Decimal` columns as JSON strings, not numbers — every money and rating field
- * crossing the wire from service-payment/service-business arrives as `"12.50"`. Coercing at the
- * boundary (rather than at each call site) is what stops `"12.50" + "3.00"` producing `"12.503.00"`
- * somewhere down the line.
+ * All financial figures across the system are rendered in Bangladeshi Taka (BDT / ৳).
  */
 export function toNumber(value: unknown): number {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
@@ -30,11 +13,15 @@ export function toNumber(value: unknown): number {
 }
 
 export function money(value: unknown): string {
-  return CURRENCY.format(toNumber(value));
+  const n = toNumber(value);
+  return `৳ ${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+
+const COMPACT = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+
 export function count(value: unknown): string {
-  return new Intl.NumberFormat('en-IE').format(toNumber(value));
+  return new Intl.NumberFormat('en-US').format(toNumber(value));
 }
 
 export function compact(value: unknown): string {

@@ -178,7 +178,7 @@ export default function PlatformRevenueChart({
         ticks: {
           font: { family: 'Manrope', size: 11, weight: '500' },
           color: '#94A3B8',
-          callback: (value: any) => `$${Number(value).toLocaleString()}`,
+          callback: (value: any) => `৳ ${Number(value).toLocaleString()}`,
         },
       },
     },
