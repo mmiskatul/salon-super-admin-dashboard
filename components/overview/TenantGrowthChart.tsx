@@ -13,59 +13,95 @@ import {
 import { Bar } from 'react-chartjs-2';
 import { Store, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
-import type { PlatformTotals } from '@/lib/api/platform';
+import type { PlatformTotals, TenantVitals } from '@/lib/api/platform';
+import type { Tenant } from '@/lib/api/tenants';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 interface TenantGrowthChartProps {
   totals: PlatformTotals;
+  tenants?: Tenant[];
+  vitals?: Record<string, TenantVitals>;
 }
 
-export default function TenantGrowthChart({ totals }: TenantGrowthChartProps) {
+export default function TenantGrowthChart({ totals, tenants, vitals }: TenantGrowthChartProps) {
   const { labels, liveSeries, idleSeries, dormantSeries } = useMemo(() => {
-    const months = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
-    const totalCount = Math.max(1, totals.tenants);
-
-    // Distribution across recent months
-    const curLive = totals.live;
-    const curIdle = totals.idle;
-    const curDormant = totals.dormant;
-
-    // Projected past 5 months leading to current
-    const live = [
-      Math.max(0, Math.round(curLive * 0.4)),
-      Math.max(0, Math.round(curLive * 0.55)),
-      Math.max(0, Math.round(curLive * 0.7)),
-      Math.max(0, Math.round(curLive * 0.8)),
-      Math.max(0, Math.round(curLive * 0.9)),
-      curLive,
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
+    const now = new Date();
+    const months = Array.from({ length: 6 }, (_, idx) => {
+      const offset = 5 - idx;
+      const d = new Date(now.getFullYear(), now.getMonth() - offset + 1, 0, 23, 59, 59, 999);
+      return {
+        label: monthNames[d.getMonth()],
+        end: d,
+      };
+    });
 
-    const idle = [
-      Math.max(0, Math.round(curIdle * 0.5)),
-      Math.max(0, Math.round(curIdle * 0.6)),
-      Math.max(0, Math.round(curIdle * 0.75)),
-      Math.max(0, Math.round(curIdle * 0.8)),
-      Math.max(0, Math.round(curIdle * 0.9)),
-      curIdle,
-    ];
+    const labels = months.map((m) => m.label);
 
-    const dormant = [
-      Math.max(0, Math.round(curDormant * 0.3)),
-      Math.max(0, Math.round(curDormant * 0.5)),
-      Math.max(0, Math.round(curDormant * 0.65)),
-      Math.max(0, Math.round(curDormant * 0.75)),
-      Math.max(0, Math.round(curDormant * 0.85)),
-      curDormant,
-    ];
+    if (tenants && tenants.length > 0 && vitals) {
+      const live = months.map((m) =>
+        tenants.filter((t) => {
+          const created = new Date(t.createdAt);
+          const v = vitals[t.id];
+          return created <= m.end && (v?.appointments ?? 0) > 0;
+        }).length,
+      );
 
+      const idle = months.map((m) =>
+        tenants.filter((t) => {
+          const created = new Date(t.createdAt);
+          const v = vitals[t.id];
+          return (
+            created <= m.end &&
+            (v?.appointments ?? 0) === 0 &&
+            ((v?.staff ?? 0) > 0 || (v?.services ?? 0) > 0)
+          );
+        }).length,
+      );
+
+      const dormant = months.map((m) =>
+        tenants.filter((t) => {
+          const created = new Date(t.createdAt);
+          const v = vitals[t.id];
+          return (
+            created <= m.end &&
+            (v?.appointments ?? 0) === 0 &&
+            (v?.staff ?? 0) === 0 &&
+            (v?.services ?? 0) === 0
+          );
+        }).length,
+      );
+
+      return {
+        labels,
+        liveSeries: live,
+        idleSeries: idle,
+        dormantSeries: dormant,
+      };
+    }
+
+    // Fallback based directly on current real totals if roster is still syncing
     return {
-      labels: months,
-      liveSeries: live,
-      idleSeries: idle,
-      dormantSeries: dormant,
+      labels,
+      liveSeries: [0, 0, 0, 0, 0, totals.live],
+      idleSeries: [0, 0, 0, 0, 0, totals.idle],
+      dormantSeries: [0, 0, 0, 0, 0, totals.dormant],
     };
-  }, [totals]);
+  }, [totals, tenants, vitals]);
 
   const chartData = {
     labels,

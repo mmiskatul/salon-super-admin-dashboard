@@ -17,12 +17,16 @@ interface FinancialCommandCenterProps {
   totalRevenue: number;
   totalAppointments: number;
   activeSalons: number;
+  platformNetEarnings?: number;
+  subscriptionMrr?: number;
 }
 
 export default function FinancialCommandCenter({
   totalRevenue,
   totalAppointments,
   activeSalons,
+  platformNetEarnings,
+  subscriptionMrr,
 }: FinancialCommandCenterProps) {
   const [metricView, setMetricView] = useState<'net' | 'gmv'>('net');
 
@@ -31,8 +35,8 @@ export default function FinancialCommandCenter({
   // Platform Net Revenue = 5% transaction commission + estimated SaaS subscription MRR
   const gmv = totalRevenue;
   const platformCommission = Math.round(gmv * 0.05 * 100) / 100;
-  const estimatedSaaSMRR = activeSalons * 4900; // ৳ 4,900/mo average blended subscription tier
-  const platformNetRevenue = platformCommission + estimatedSaaSMRR;
+  const estimatedSaaSMRR = subscriptionMrr ?? activeSalons * 4900;
+  const platformNetRevenue = platformNetEarnings ?? (platformCommission + estimatedSaaSMRR);
 
   return (
     <div className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm font-manrope">

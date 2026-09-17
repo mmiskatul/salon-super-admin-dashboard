@@ -19,13 +19,31 @@ import ClusterHealthWidget from '@/components/overview/ClusterHealthWidget';
 
 export default function OverviewPage() {
   const platform = usePlatform();
-  const { tenants, vitals, totals, loading, sweeping, swept, error, reload } = platform;
+  const { overview, tenants, vitals, totals, loading, sweeping, swept, error, reload } = platform;
 
   const sweepNote = tenants
     ? sweeping
       ? `Syncing ${swept} of ${tenants.length} shops...`
       : `${tenants.length} shops synchronized`
     : null;
+
+  const leaderboardRows = overview?.leaderboard?.length
+    ? overview.leaderboard.map((item) => ({
+        key: item.id,
+        label: item.name,
+        value: item.appointments,
+        color: brandColor(item.brandColor),
+      }))
+    : (tenants || [])
+        .map((t) => ({
+          key: t.id,
+          label: t.name,
+          value: vitals[t.id]?.appointments ?? 0,
+          color: brandColor(t.brandColor),
+        }))
+        .filter((r) => r.value > 0)
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 6);
 
   return (
     <>
@@ -95,6 +113,8 @@ export default function OverviewPage() {
               totalRevenue={totals.revenue}
               totalAppointments={totals.appointments}
               activeSalons={totals.live}
+              platformNetEarnings={overview?.summary?.platformNetEarnings}
+              subscriptionMrr={overview?.summary?.subscriptionMrr}
             />
 
             {/* 3. Primary Graphs: Revenue Trajectory & Tenant Growth */}
@@ -103,7 +123,7 @@ export default function OverviewPage() {
                 totalRevenue={totals.revenue}
                 totalAppointments={totals.appointments}
               />
-              <TenantGrowthChart totals={totals} />
+              <TenantGrowthChart totals={totals} tenants={tenants} vitals={vitals} />
             </div>
 
             {/* 4. Tenant Onboarding & Activation Lifecycle Funnel */}
@@ -134,19 +154,10 @@ export default function OverviewPage() {
                 <div className="pt-2">
                   <Ranked
                     format={(v) => `${count(v)} bookings`}
-                    rows={tenants
-                      .map((t) => ({
-                        key: t.id,
-                        label: t.name,
-                        value: vitals[t.id]?.appointments ?? 0,
-                        color: brandColor(t.brandColor),
-                      }))
-                      .filter((r) => r.value > 0)
-                      .sort((a, b) => b.value - a.value)
-                      .slice(0, 6)}
+                    rows={leaderboardRows}
                   />
 
-                  {tenants.every((t) => (vitals[t.id]?.appointments ?? 0) === 0) && (
+                  {leaderboardRows.length === 0 && (
                     <p className="py-8 text-center text-xs font-semibold text-[#94A3B8]">
                       {sweeping
                         ? 'Calculating bookings across salons...'

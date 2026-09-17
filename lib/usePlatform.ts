@@ -7,11 +7,13 @@ import {
   fetchPlatformVitals,
   probeAll,
   totalsOf,
+  type PlatformOverviewDto,
   type PlatformTotals,
   type TenantVitals,
 } from './api/platform';
 
 export interface PlatformState {
+  overview: PlatformOverviewDto | null;
   tenants: Tenant[] | null;
   /** Keyed by tenant id. Fills in progressively while `sweeping` is true. */
   vitals: Record<string, TenantVitals>;
@@ -34,6 +36,7 @@ export interface PlatformState {
  * numbers arrive underneath them.
  */
 export function usePlatform(): PlatformState {
+  const [overview, setOverview] = useState<PlatformOverviewDto | null>(null);
   const [tenants, setTenants] = useState<Tenant[] | null>(null);
   const [vitals, setVitals] = useState<Record<string, TenantVitals>>({});
   const [loading, setLoading] = useState(true);
@@ -70,10 +73,11 @@ export function usePlatform(): PlatformState {
     (async () => {
       // 1. First-class: Single-call complete platform overview endpoint
       try {
-        const overview = await fetchPlatformOverview();
+        const data = await fetchPlatformOverview();
         if (!live()) return;
-        setTenants(overview.tenants);
-        setVitals(Object.fromEntries(overview.vitals.map((v: TenantVitals) => [v.tenantId, v])));
+        setOverview(data);
+        setTenants(data.tenants);
+        setVitals(Object.fromEntries(data.vitals.map((v: TenantVitals) => [v.tenantId, v])));
         setLoading(false);
         setSweeping(false);
         return;
@@ -127,6 +131,7 @@ export function usePlatform(): PlatformState {
   const totals = tenants ? totalsOf(list, tenants) : null;
 
   return {
+    overview,
     tenants,
     vitals,
     totals,

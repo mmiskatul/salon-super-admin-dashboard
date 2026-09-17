@@ -134,7 +134,7 @@ export default function SupportModerationPulse({ totals }: SupportModerationPuls
               </span>
               <div className="flex items-center text-amber-500 gap-1 font-bold text-sm">
                 <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                4.9 / 5.0
+                {totals.reviews > 0 ? `5.0 / 5.0 (${totals.reviews})` : '— / 5.0'}
               </div>
             </div>
 

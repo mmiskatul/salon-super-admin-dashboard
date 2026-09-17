@@ -69,37 +69,25 @@ export default function PlatformRevenueChart({
 
     if (period === 'Weekly') {
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      // Distribute weekly pattern based on totalRevenue
-      const base = totalRevenue > 0 ? totalRevenue / 14 : 120;
-      const cur = [0.8, 0.9, 1.1, 1.0, 1.4, 1.8, 1.5].map((factor) =>
-        Math.round(base * factor),
-      );
-      const prev = [0.7, 0.8, 0.9, 0.95, 1.2, 1.5, 1.3].map((factor) =>
-        Math.round(base * factor),
-      );
-      return { labels: days, currentData: cur, previousData: prev };
+      const todayIndex = (new Date().getDay() + 6) % 7;
+      const cur = days.map((_, i) => (i === todayIndex ? totalRevenue : 0));
+      return { labels: days, currentData: cur, previousData: [0, 0, 0, 0, 0, 0, 0] };
     }
 
     if (period === 'Yearly') {
-      const years = ['2023', '2024', '2025', '2026'];
-      const base = totalRevenue > 0 ? totalRevenue : 5000;
-      const cur = [
-        Math.round(base * 0.2),
-        Math.round(base * 0.45),
-        Math.round(base * 0.75),
-        base,
+      const currentYear = new Date().getFullYear();
+      const years = [
+        String(currentYear - 3),
+        String(currentYear - 2),
+        String(currentYear - 1),
+        String(currentYear),
       ];
-      const prev = [
-        Math.round(base * 0.15),
-        Math.round(base * 0.35),
-        Math.round(base * 0.6),
-        Math.round(base * 0.85),
-      ];
-      return { labels: years, currentData: cur, previousData: prev };
+      const cur = years.map((_, i) => (i === 3 ? totalRevenue : 0));
+      return { labels: years, currentData: cur, previousData: [0, 0, 0, 0] };
     }
 
-    // Default: Monthly (12 months)
-    const months = [
+    // Default: Monthly (last 6 calendar months)
+    const monthNames = [
       'Jan',
       'Feb',
       'Mar',
@@ -113,12 +101,15 @@ export default function PlatformRevenueChart({
       'Nov',
       'Dec',
     ];
-    const base = totalRevenue > 0 ? totalRevenue / 12 : 350;
-    const seasonality = [0.65, 0.7, 0.8, 0.85, 0.9, 0.95, 1.0, 1.1, 1.15, 1.2, 1.25, 1.35];
-    const cur = seasonality.map((factor) => Math.round(base * factor));
-    const prev = seasonality.map((factor) => Math.round(base * factor * 0.82));
-    return { labels: months, currentData: cur, previousData: prev };
-  }, [period, totalRevenue]);
+    const now = new Date();
+    const months = Array.from({ length: 6 }, (_, idx) => {
+      const offset = 5 - idx;
+      const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+      return monthNames[d.getMonth()];
+    });
+    const cur = months.map((_, i) => (i === 5 ? totalRevenue : 0));
+    return { labels: months, currentData: cur, previousData: [0, 0, 0, 0, 0, 0] };
+  }, [period, totalRevenue, liveChart]);
 
   const chartData = {
     labels,
