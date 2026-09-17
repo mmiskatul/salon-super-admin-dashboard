@@ -160,21 +160,38 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   const hasBody = init?.body !== undefined && init?.body !== null;
   const shouldSetJsonHeader = hasBody && !isFormData;
 
-  const send = (token?: string) => {
+  const send = (token?: string, targetBaseUrl: string = baseUrl) => {
     const headers: Record<string, string> = {
       ...(shouldSetJsonHeader ? { 'content-type': 'application/json' } : {}),
       ...authHeader(token),
       ...(init?.headers as Record<string, string> | undefined),
     };
 
-    return fetch(`${baseUrl}${cleanPath}`, {
+    return fetch(`${targetBaseUrl}${cleanPath}`, {
       cache: 'no-store',
       ...init,
       headers,
     });
   };
 
-  let res = await send();
+  let res: Response;
+  try {
+    res = await send();
+  } catch (netErr) {
+    // If local backend connection failed, attempt remote Render backend fallback
+    const isLocal = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1');
+    const remoteFallback = 'https://salunbd-backend-service.onrender.com/api';
+    if (isLocal && baseUrl !== remoteFallback) {
+      try {
+        console.warn(`[api-client] Local backend (${baseUrl}) connection failed. Falling back to remote (${remoteFallback})...`);
+        res = await send(undefined, remoteFallback);
+      } catch {
+        throw netErr;
+      }
+    } else {
+      throw netErr;
+    }
+  }
 
   // The auth mint endpoints mint sessions rather than consuming them; a 401 there is a real answer.
   // Authenticated routes like /auth/users or /auth/me MUST refresh and replay on 401.

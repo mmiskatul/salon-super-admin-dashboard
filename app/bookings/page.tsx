@@ -65,10 +65,10 @@ export default function BookingsPage() {
     let active = true;
     listTenants()
       .then((data) => {
-        if (active) setTenants(data ?? []);
+        if (active && Array.isArray(data)) setTenants(data);
       })
-      .catch((err) => {
-        console.warn('Could not fetch tenants roster:', err);
+      .catch(() => {
+        // Tenants will be seamlessly resolved from appointments if roster query fails
       });
     return () => {
       active = false;
@@ -82,6 +82,28 @@ export default function BookingsPage() {
     }
     return map;
   }, [tenants]);
+
+  const availableTenants = useMemo(() => {
+    const list: { id: string; name: string }[] = [];
+    const seen = new Set<string>();
+    for (const t of tenants) {
+      if (t?.id && !seen.has(t.id)) {
+        seen.add(t.id);
+        list.push({ id: t.id, name: t.name });
+      }
+    }
+    // Also include any salons present on the appointments list
+    for (const a of appointments) {
+      if (a.tenantId && !seen.has(a.tenantId)) {
+        seen.add(a.tenantId);
+        list.push({
+          id: a.tenantId,
+          name: a.tenantName || 'Salon ' + a.tenantId.slice(0, 6),
+        });
+      }
+    }
+    return list;
+  }, [tenants, appointments]);
 
   // Load appointments
   const fetchBookings = useCallback(async () => {
@@ -343,8 +365,8 @@ export default function BookingsPage() {
                 onChange={(e) => setShopFilter(e.target.value)}
                 className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-[13px] font-medium text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#635BFF] transition-all"
               >
-                <option value="ALL">All Salons ({tenants.length})</option>
-                {tenants.map((t) => (
+                <option value="ALL">All Salons ({availableTenants.length})</option>
+                {availableTenants.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
                   </option>
