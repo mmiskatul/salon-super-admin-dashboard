@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
+  Award,
   BadgeEuro,
   Briefcase,
   CalendarRange,
@@ -53,6 +54,7 @@ const GROUPS: { heading: string; items: NavItem[] }[] = [
       { href: '/bookings', label: 'Bookings', icon: CalendarRange },
       { href: '/payments', label: 'Payments', icon: BadgeEuro },
       { href: '/coupons', label: 'Coupons & offers', icon: Tag },
+      { href: '/loyalty', label: 'Loyalty & rewards', icon: Award },
       { href: '/subscriptions', label: 'Subscriptions', icon: CreditCard },
       { href: '/metrics', label: 'Metrics', icon: TrendingUp },
     ],
