@@ -1,7 +1,7 @@
 'use client';
 
 import { useApi } from '@/lib/useApi';
-import { getLoyaltyFor } from '@/lib/api/loyalty';
+import { getLoyaltyFor, type LoyaltyAccount } from '@/lib/api/loyalty';
 import { date } from '@/lib/format';
 import { Badge } from './primitives';
 
@@ -9,7 +9,10 @@ import { Badge } from './primitives';
  *  SUPER_ADMIN-only, added specifically so this console can look this up (previously self-service
  *  only). Not every account has one — a barber or owner who never booked as a customer won't. */
 export default function LoyaltyPanel({ userId }: { userId: string }) {
-  const loyalty = useApi(() => getLoyaltyFor(userId), [userId]);
+  const loyalty = useApi<LoyaltyAccount | null>(
+    () => (userId && userId !== 'undefined' && userId !== 'null' ? getLoyaltyFor(userId) : Promise.resolve(null)),
+    [userId]
+  );
 
   if (loyalty.loading) {
     return (

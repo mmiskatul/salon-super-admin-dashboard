@@ -60,7 +60,9 @@ export function getLoyaltyFor(userId: string): Promise<LoyaltyAccount> {
 }
 
 export function getLoyaltyConfig(): Promise<LoyaltyProgramConfig> {
-  return apiFetch<LoyaltyProgramConfig>('/loyalty/admin/config');
+  return apiFetch<LoyaltyProgramConfig>('/loyalty/admin/config').catch((err) => {
+    return apiFetch<LoyaltyProgramConfig>('/loyalty/config');
+  });
 }
 
 export function updateLoyaltyConfig(data: UpdateLoyaltyConfigInput): Promise<LoyaltyProgramConfig> {
