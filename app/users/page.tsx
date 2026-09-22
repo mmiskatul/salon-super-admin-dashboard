@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { RotateCw, Search, ExternalLink, ShieldAlert, ShieldCheck } from 'lucide-react';
-import { useApi, useMutation } from '@/lib/useApi';
-import { banUser, listUsers, unbanUser, type PlatformUser } from '@/lib/api/users';
+import { RotateCw, Search, ExternalLink } from 'lucide-react';
+import { useApi } from '@/lib/useApi';
+import { listUsers, type PlatformUser } from '@/lib/api/users';
 import { count, date, initials, shortId, since } from '@/lib/format';
 import {
   Badge,
@@ -18,24 +18,34 @@ import {
   Stat,
 } from '@/components/ui/primitives';
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
-import { Field, FormError, Modal, TextInput } from '@/components/ui/Form';
-import WalletPanel from '@/components/ui/WalletPanel';
-import LoyaltyPanel from '@/components/ui/LoyaltyPanel';
 
 const ROLES = ['ALL', 'CUSTOMER', 'BARBER', 'STAFF', 'OWNER', 'SUPER_ADMIN'] as const;
 type RoleFilter = (typeof ROLES)[number];
 
 const PAGE_SIZE = 50;
 
+export function UserRoleBadge({ role }: { role?: string }) {
+  const normalized = (role || '').toUpperCase();
+  switch (normalized) {
+    case 'SUPER_ADMIN':
+      return <Badge tone="signal">Super Admin</Badge>;
+    case 'OWNER':
+      return <Badge tone="live">Owner</Badge>;
+    case 'STAFF':
+      return <Badge>Staff</Badge>;
+    case 'BARBER':
+      return <Badge>Barber</Badge>;
+    case 'CUSTOMER':
+      return <Badge tone="quiet">Customer</Badge>;
+    default:
+      return <Badge tone="quiet">{role || 'Unknown'}</Badge>;
+  }
+}
+
 export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
-  const [selectedUser, setSelectedUser] = useState<PlatformUser | null>(null);
-  const [banning, setBanning] = useState(false);
-  const [banReason, setBanReason] = useState('');
-  const ban = useMutation(banUser);
-  const unban = useMutation(unbanUser);
 
   const users = useApi(
     () =>
@@ -164,9 +174,9 @@ export default function UsersPage() {
                       <tr>
                         <Th>Account</Th>
                         <Th>Role</Th>
-                        <Th>Linked shop</Th>
-                        <Th>Verified</Th>
-                        <Th align="right">Joined</Th>
+                        <Th>Shop / Tenant</Th>
+                        <Th>Status</Th>
+                        <Th align="right">Registered</Th>
                         <Th align="right">Action</Th>
                       </tr>
                     </thead>
@@ -182,9 +192,12 @@ export default function UsersPage() {
                                 {initials(u.email)}
                               </span>
                               <div className="min-w-0">
-                                <span className="block truncate font-medium text-ink">
+                                <Link
+                                  href={`/users/${u.id}`}
+                                  className="block truncate font-medium text-ink hover:underline hover:text-signal transition-colors"
+                                >
                                   {u.email}
-                                </span>
+                                </Link>
                                 <span className="tabular font-mono text-[11px] text-ink-3">
                                   {shortId(u.id)}
                                 </span>
@@ -221,13 +234,13 @@ export default function UsersPage() {
                             <span title={date(u.createdAt)}>{since(u.createdAt)}</span>
                           </Td>
                           <Td align="right">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedUser(u)}
-                              className="text-[12px] font-medium text-ink-2 hover:text-ink"
+                            <Link
+                              href={`/users/${u.id}`}
+                              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[12px] font-medium text-ink-2 hover:bg-surface-alt hover:text-ink transition-colors"
                             >
                               Inspect
-                            </button>
+                              <ExternalLink size={11} className="text-ink-3" />
+                            </Link>
                           </Td>
                         </Tr>
                       ))}
@@ -260,159 +273,6 @@ export default function UsersPage() {
           </>
         )}
       </Canvas>
-
-      {selectedUser && (
-        <Modal
-          title="User Account Details"
-          onClose={() => {
-            setSelectedUser(null);
-            setBanning(false);
-            setBanReason('');
-          }}
-        >
-          <div className="space-y-4 text-[13px]">
-            <div className="flex items-center gap-3 border-b border-rule-soft pb-4">
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-ground font-bold text-ink">
-                {initials(selectedUser.email)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold">{selectedUser.email}</p>
-                <p className="tabular font-mono text-[11px] text-ink-3">{selectedUser.id}</p>
-              </div>
-              {selectedUser.isBanned && <Badge tone="signal">Banned</Badge>}
-            </div>
-
-            {selectedUser.isBanned && selectedUser.bannedReason && (
-              <p className="rounded-lg border border-signal/25 bg-signal-soft px-3 py-2 text-[12px] text-signal">
-                Reason: {selectedUser.bannedReason}
-              </p>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="eyebrow !text-[10px]">Role</p>
-                <div className="mt-1">
-                  <UserRoleBadge role={selectedUser.role} />
-                </div>
-              </div>
-              <div>
-                <p className="eyebrow !text-[10px]">Email Status</p>
-                <p className="mt-1 text-ink-2">
-                  {selectedUser.emailVerified ? 'Verified' : 'Unverified'}
-                </p>
-              </div>
-              <div>
-                <p className="eyebrow !text-[10px]">Linked Tenant</p>
-                <p className="mt-1 font-mono text-[12px]">
-                  {selectedUser.tenantId ? (
-                    <Link
-                      href={`/shops/${selectedUser.tenantId}`}
-                      className="text-ink hover:underline"
-                    >
-                      {selectedUser.tenantId}
-                    </Link>
-                  ) : (
-                    'No shop (Independent / Customer)'
-                  )}
-                </p>
-              </div>
-              <div>
-                <p className="eyebrow !text-[10px]">Created At</p>
-                <p className="mt-1 tabular text-ink-2">{date(selectedUser.createdAt)}</p>
-              </div>
-            </div>
-
-            <WalletPanel userId={selectedUser.id} />
-            <LoyaltyPanel userId={selectedUser.id} />
-
-            {selectedUser.role !== 'SUPER_ADMIN' && (
-              <div className="border-t border-rule-soft pt-4">
-                <FormError message={ban.error ?? unban.error} />
-
-                {banning ? (
-                  <div className="space-y-3">
-                    <Field label="Reason (optional)" hint="Recorded in the admin audit log.">
-                      <TextInput value={banReason} onChange={(e) => setBanReason(e.target.value)} autoFocus />
-                    </Field>
-                    <div className="flex justify-end gap-2">
-                      <Button onClick={() => setBanning(false)}>Cancel</Button>
-                      <Button
-                        variant="danger"
-                        disabled={ban.pending}
-                        onClick={async () => {
-                          const result = await ban.mutate(selectedUser.id, banReason.trim() || undefined);
-                          if (result) {
-                            setSelectedUser(result);
-                            setBanning(false);
-                            setBanReason('');
-                            void users.refresh();
-                          }
-                        }}
-                      >
-                        <ShieldAlert size={12} />
-                        {ban.pending ? 'Banning' : 'Confirm ban'}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex justify-end">
-                    {selectedUser.isBanned ? (
-                      <Button
-                        disabled={unban.pending}
-                        onClick={async () => {
-                          const result = await unban.mutate(selectedUser.id);
-                          if (result) {
-                            setSelectedUser(result);
-                            void users.refresh();
-                          }
-                        }}
-                      >
-                        <ShieldCheck size={12} />
-                        {unban.pending ? 'Unbanning' : 'Unban account'}
-                      </Button>
-                    ) : (
-                      <Button variant="danger" onClick={() => setBanning(true)}>
-                        <ShieldAlert size={12} />
-                        Ban account
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="flex justify-end border-t border-rule-soft pt-4">
-              <Button
-                onClick={() => {
-                  setSelectedUser(null);
-                  setBanning(false);
-                  setBanReason('');
-                }}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
     </>
   );
-}
-
-function UserRoleBadge({ role }: { role?: string }) {
-  const normalized = (role || '').toUpperCase();
-  switch (normalized) {
-    case 'SUPER_ADMIN':
-      return <Badge tone="signal">Super Admin</Badge>;
-    case 'OWNER':
-      return <Badge tone="live">Owner</Badge>;
-    case 'STAFF':
-      return <Badge>Staff</Badge>;
-    case 'BARBER':
-      return <Badge>Barber</Badge>;
-    case 'CUSTOMER':
-      return <Badge tone="quiet">Customer</Badge>;
-    default:
-      return <Badge tone="quiet">{role || 'Unknown'}</Badge>;
-  }
 }

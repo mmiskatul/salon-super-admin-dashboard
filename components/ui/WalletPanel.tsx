@@ -1,7 +1,7 @@
 'use client';
 
 import { useApi } from '@/lib/useApi';
-import { getUserWallet, getUserWalletEntries } from '@/lib/api/users';
+import { getUserWallet, getUserWalletEntries, type UserWallet, type UserWalletEntry } from '@/lib/api/users';
 import { date, money } from '@/lib/format';
 import { Badge } from './primitives';
 
@@ -9,8 +9,8 @@ import { Badge } from './primitives';
  *  to inspect one account's money, whether reached from the Users roster or a barber's own detail
  *  view (a barber is a User, so the same wallet endpoints apply). */
 export default function WalletPanel({ userId }: { userId: string }) {
-  const walletApi = useApi(() => getUserWallet(userId), [userId]);
-  const entriesApi = useApi(() => getUserWalletEntries(userId), [userId]);
+  const walletApi = useApi(() => (userId ? getUserWallet(userId) : Promise.resolve(null)), [userId]);
+  const entriesApi = useApi(() => (userId ? getUserWalletEntries(userId) : Promise.resolve([])), [userId]);
 
   if (walletApi.loading) {
     return (
@@ -20,16 +20,30 @@ export default function WalletPanel({ userId }: { userId: string }) {
     );
   }
 
-  if (walletApi.error) {
+  const rawWallet = walletApi.data;
+  const wallet: UserWallet | null =
+    rawWallet && typeof rawWallet === 'object'
+      ? 'data' in rawWallet && rawWallet.data
+        ? (rawWallet as any).data
+        : (rawWallet as UserWallet)
+      : null;
+
+  const rawEntries = entriesApi.data;
+  const entries: UserWalletEntry[] = Array.isArray(rawEntries)
+    ? rawEntries
+    : Array.isArray((rawEntries as any)?.data)
+    ? (rawEntries as any).data
+    : Array.isArray((rawEntries as any)?.entries)
+    ? (rawEntries as any).entries
+    : [];
+
+  if (walletApi.error || (!wallet && entries.length === 0)) {
     return (
       <div className="rounded-lg border border-rule bg-ground p-3 text-xs text-ink-3">
         No active wallet registered for this user account.
       </div>
     );
   }
-
-  const wallet = walletApi.data;
-  const entries = entriesApi.data ?? [];
 
   return (
     <div className="space-y-3 rounded-lg border border-rule bg-surface p-3">

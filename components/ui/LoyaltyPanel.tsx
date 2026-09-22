@@ -30,27 +30,46 @@ export default function LoyaltyPanel({ userId }: { userId: string }) {
     );
   }
 
-  const account = loyalty.data;
+  const rawAccount = loyalty.data;
+  const account =
+    rawAccount && typeof rawAccount === 'object' && 'data' in rawAccount && (rawAccount as any).data
+      ? (rawAccount as any).data
+      : rawAccount;
+
+  if (loyalty.error || !account) {
+    return (
+      <div className="rounded-lg border border-rule bg-ground p-3 text-xs text-ink-3">
+        No loyalty account for this user.
+      </div>
+    );
+  }
+
+  const rawTx = account.recentTransactions;
+  const recentTransactions: any[] = Array.isArray(rawTx)
+    ? rawTx
+    : Array.isArray((account as any)?.transactions)
+    ? (account as any).transactions
+    : [];
 
   return (
     <div className="space-y-3 rounded-lg border border-rule bg-surface p-3">
       <div className="flex items-center justify-between border-b border-rule-soft pb-2">
         <div>
           <span className="eyebrow !text-[10px]">Loyalty Points</span>
-          <div className="font-mono text-base font-bold text-ink">{account.points}</div>
+          <div className="font-mono text-base font-bold text-ink">{account.points ?? 0}</div>
         </div>
         <Badge tone="live">Active</Badge>
       </div>
 
       <div>
         <span className="eyebrow !text-[10px] mb-1.5 block">
-          Recent Activity ({account.recentTransactions.length})
+          Recent Activity ({recentTransactions.length})
         </span>
-        {account.recentTransactions.length === 0 ? (
+        {recentTransactions.length === 0 ? (
           <p className="text-xs text-ink-3">No points activity recorded yet.</p>
         ) : (
           <div className="max-h-40 space-y-1 overflow-y-auto pr-1">
-            {account.recentTransactions.slice(0, 10).map((tx) => (
+            {recentTransactions.slice(0, 10).map((tx) => (
               <div
                 key={tx.id}
                 className="flex items-center justify-between border-b border-rule-soft py-1.5 text-xs last:border-0"
