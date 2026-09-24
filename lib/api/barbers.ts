@@ -375,3 +375,31 @@ export async function getBarberDashboard(userId: string): Promise<BarberDashboar
     gallery,
   };
 }
+
+/** One stint at a shop in a barber's work history — see BarberEmployment in the backend schema. */
+export interface BarberStint {
+  id: string;
+  tenantId: string | null;
+  shopName: string;
+  title: string | null;
+  startedAt: string;
+  endedAt: string | null;
+  current: boolean;
+  /** LEFT (barber left) | REMOVED (owner removed/terminated them); null while current. */
+  endReason: string | null;
+  completedBookings: number;
+  ratingAvg: number;
+  ratingCount: number;
+}
+
+export interface BarberCareer {
+  currentShop: { tenantId: string; name: string; logoUrl: string | null; staffId: string | null } | null;
+  experience: BarberStint[];
+  stats: { completedBookings: number; ratingAvg: number; ratingCount: number; shopsWorkedAt: number };
+  memberSince: string;
+}
+
+/** The barber's public profile carries their whole career: current shop, every stint, totals. */
+export function getBarberCareer(userId: string): Promise<BarberCareer> {
+  return apiFetch<BarberCareer>(`/profile/${encodeURIComponent(userId)}`);
+}
