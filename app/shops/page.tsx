@@ -17,7 +17,6 @@ import Mark from '@/components/ui/Mark';
 import { ceilingOf, Vitals, VitalityTag } from '@/components/ui/Vitals';
 
 type SortKey = 'name' | 'bookings' | 'revenue' | 'newest';
-type EntityFilter = 'all' | 'shops' | 'individual';
 
 const FILTERS: { key: Vitality | 'all'; label: string }[] = [
   { key: 'all', label: 'All States' },
@@ -33,7 +32,6 @@ export default function ShopsPage() {
   const { tenants, vitals, loading, sweeping, swept, error, reload } = usePlatform();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Vitality | 'all'>('all');
-  const [entityFilter, setEntityFilter] = useState<EntityFilter>('all');
   const [sort, setSort] = useState<SortKey>('newest');
   const [creating, setCreating] = useState(false);
 
@@ -45,8 +43,6 @@ export default function ShopsPage() {
 
     const matched = tenants.filter((t) => {
       if (filter !== 'all' && vitalityOf(vitals[t.id]) !== filter) return false;
-      if (entityFilter === 'shops' && t.isIndividual) return false;
-      if (entityFilter === 'individual' && !t.isIndividual) return false;
       if (!needle) return true;
       return (
         t.name.toLowerCase().includes(needle) ||
@@ -70,7 +66,7 @@ export default function ShopsPage() {
       }
     });
     return sorted;
-  }, [tenants, vitals, query, filter, entityFilter, sort]);
+  }, [tenants, vitals, query, filter, sort]);
 
   return (
     <>
@@ -154,29 +150,14 @@ export default function ShopsPage() {
                 ))}
               </div>
 
-              {/* Entity Type Filter pills */}
-              <div className="flex items-center gap-1.5 bg-white border border-[#E2E8F0] rounded-lg p-1">
-                {(
-                  [
-                    { key: 'all', label: 'All Entities' },
-                    { key: 'shops', label: 'Salons' },
-                    { key: 'individual', label: 'Independent Barbers' },
-                  ] as { key: EntityFilter; label: string }[]
-                ).map((ef) => (
-                  <button
-                    key={ef.key}
-                    type="button"
-                    onClick={() => setEntityFilter(ef.key)}
-                    className={`rounded-md px-2.5 py-1 text-[11px] font-manrope transition-all cursor-pointer ${
-                      entityFilter === ef.key
-                        ? 'bg-ink text-white font-bold shadow-xs'
-                        : 'text-ink-2 hover:text-ink font-medium'
-                    }`}
-                  >
-                    {ef.label}
-                  </button>
-                ))}
-              </div>
+              {/* Independent barbers aren't shops on the platform side, so they're monitored
+                  separately on the Barbers page rather than mixed into this roster. */}
+              <Link
+                href="/barbers"
+                className="text-[12px] font-semibold text-[#635BFF] hover:underline font-manrope"
+              >
+                Independent barbers are under Barbers →
+              </Link>
             </div>
 
             {rows.length === 0 ? (
@@ -234,11 +215,6 @@ export default function ShopsPage() {
                               <span className="min-w-0">
                                 <span className="block truncate font-medium">{tenant.name}</span>
                                 <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                                  {tenant.isIndividual && (
-                                    <span className="rounded bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-bold">
-                                      Independent Barber
-                                    </span>
-                                  )}
                                   {tenant.isOwnerStudio && (
                                     <span className="rounded bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 text-[10px] font-bold">
                                       Owner Studio
