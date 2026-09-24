@@ -27,7 +27,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useApi, useMutation } from '@/lib/useApi';
-import { getBarberDashboard, type BarberDashboardDetail } from '@/lib/api/barbers';
+import { getBarberCareer, getBarberDashboard, type BarberDashboardDetail } from '@/lib/api/barbers';
 import { banUser, unbanUser } from '@/lib/api/users';
 import { removeReview } from '@/lib/api/bookings';
 import { brandColor, count, date, dateTime, money, shortId, rating } from '@/lib/format';
@@ -55,6 +55,7 @@ const TABS = [
   'Services & Pricing',
   'Wallet & Financials',
   'Customer Reviews',
+  'Work History',
   'Portfolio Gallery',
   'Account & Controls',
 ] as const;
@@ -76,6 +77,7 @@ export default function BarberDetailPage() {
   const deleteReviewMut = useMutation(removeReview);
 
   const { data, loading, error, refresh } = useApi(() => getBarberDashboard(id), [id]);
+  const career = useApi(() => getBarberCareer(id), [id], 'barber-career');
 
   if (loading && !data) {
     return (
@@ -733,6 +735,80 @@ export default function BarberDetailPage() {
                   </div>
                 ))}
               </div>
+            )}
+          </Panel>
+        )}
+
+        {/* Work history: every shop this barber has worked at, from BarberEmployment. Ratings and
+            bookings are keyed by the barber, not the shop, so they carry across every move. */}
+        {activeTab === 'Work History' && (
+          <Panel
+            title="Work History"
+            note={
+              career.data
+                ? `${count(career.data.stats.completedBookings)} completed bookings, ${rating(career.data.stats.ratingAvg)} from ${count(career.data.stats.ratingCount)} reviews across their whole career.`
+                : 'Every shop this barber has worked at, and what they earned there.'
+            }
+          >
+            {career.error ? (
+              <Failed message={career.error} onRetry={career.refresh} />
+            ) : !career.data ? (
+              <Loading label="Loading work history" />
+            ) : career.data.experience.length === 0 ? (
+              <div className="p-8">
+                <Empty
+                  title="No shop history"
+                  hint="This barber has only worked independently so far. Joining a shop with its join code starts a new entry here."
+                />
+              </div>
+            ) : (
+              <Scroll>
+                <Table>
+                  <thead>
+                    <tr>
+                      <Th>Shop</Th>
+                      <Th>Period</Th>
+                      <Th>Status</Th>
+                      <Th align="right">Completed bookings</Th>
+                      <Th align="right">Rating</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {career.data.experience.map((stint) => (
+                      <Tr key={stint.id}>
+                        <Td>
+                          {stint.tenantId ? (
+                            <Link href={`/shops/${stint.tenantId}`} className="font-medium hover:underline">
+                              {stint.shopName}
+                            </Link>
+                          ) : (
+                            <span className="font-medium">{stint.shopName}</span>
+                          )}
+                          {stint.title && <span className="block text-[11px] text-ink-3">{stint.title}</span>}
+                        </Td>
+                        <Td mono muted>
+                          {date(stint.startedAt)} – {stint.endedAt ? date(stint.endedAt) : 'present'}
+                        </Td>
+                        <Td>
+                          {stint.current ? (
+                            <Badge tone="live">Current</Badge>
+                          ) : stint.endReason === 'LEFT' ? (
+                            <Badge tone="quiet">Left</Badge>
+                          ) : (
+                            <Badge tone="warning">Removed by shop</Badge>
+                          )}
+                        </Td>
+                        <Td align="right" mono>
+                          {count(stint.completedBookings)}
+                        </Td>
+                        <Td align="right" mono muted>
+                          {stint.ratingCount > 0 ? `${rating(stint.ratingAvg)} (${stint.ratingCount})` : '—'}
+                        </Td>
+                      </Tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </Scroll>
             )}
           </Panel>
         )}
