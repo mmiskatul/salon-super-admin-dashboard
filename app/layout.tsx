@@ -1,23 +1,8 @@
 import type { Metadata } from 'next';
-import { Manrope, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import AppShell from '@/components/shell/AppShell';
 import StoreProvider from '@/lib/redux/StoreProvider';
 import QueryProvider from '@/lib/query/QueryProvider';
-
-const manrope = Manrope({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700', '800'],
-  variable: '--font-manrope',
-  display: 'swap',
-});
-
-const data = JetBrains_Mono({
-  variable: '--font-jetbrains',
-  subsets: ['latin'],
-  weight: ['400', '500', '700'],
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   title: 'Platform Console — SalunBD',
@@ -31,7 +16,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${manrope.variable} ${data.variable}`}>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body suppressHydrationWarning className="font-manrope bg-[#F3F4F7] text-[#1E293B] antialiased">
         <a
           href="#console"

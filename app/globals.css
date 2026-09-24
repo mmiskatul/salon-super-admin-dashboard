@@ -1,4 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
+
+:root {
+  --font-manrope: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-jetbrains: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
 
 /*
  * The switchboard palette.
@@ -11,10 +17,10 @@
  * all take a colour prop rather than reading these tokens, so a shop's row still stands out.
  */
 @theme {
-  --font-manrope: "Manrope", sans-serif;
-  --font-display: var(--font-manrope), sans-serif;
-  --font-body: var(--font-manrope), sans-serif;
-  --font-data: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-manrope: var(--font-manrope);
+  --font-display: var(--font-manrope);
+  --font-body: var(--font-manrope);
+  --font-data: var(--font-jetbrains);
 
   --color-ink: #1e293b;
   --color-ink-2: #64748b;
