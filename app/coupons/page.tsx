@@ -61,11 +61,11 @@ export default function CouponsPage() {
   const filtered = allCoupons.filter((c) => {
     if (filterShop !== 'ALL' && c.tenantId !== filterShop) return false;
     if (!needle) return true;
-    const shopName = (c.shopName || tenantsMap.get(c.tenantId) || '').toLowerCase();
+    const shopName = (c.shopName || (c.tenantId && tenantsMap.get(c.tenantId)) || '').toLowerCase();
     return (
       c.code.toLowerCase().includes(needle) ||
       (c.title && c.title.toLowerCase().includes(needle)) ||
-      c.tenantId.toLowerCase().includes(needle) ||
+      (c.tenantId ?? c.ownerUserId ?? '').toLowerCase().includes(needle) ||
       shopName.includes(needle)
     );
   });
@@ -211,7 +211,11 @@ export default function CouponsPage() {
                         const isExpired = c.expiresAt && new Date(c.expiresAt) < new Date();
                         const isExhausted = c.usageLimit != null && c.usageCount >= c.usageLimit;
                         const isLive = c.active && !isExpired && !isExhausted;
-                        const shopName = c.shopName || tenantsMap.get(c.tenantId) || c.tenantId;
+                        // An independent barber's coupon has no shop; it belongs to the barber.
+                        const ownerId = c.tenantId ?? c.ownerUserId ?? null;
+                        const shopName =
+                          c.shopName || (c.tenantId && tenantsMap.get(c.tenantId)) || (c.tenantId ? c.tenantId : 'Independent barber');
+                        const ownerHref = c.tenantId ? `/shops/${c.tenantId}` : c.ownerUserId ? `/barbers/${c.ownerUserId}` : null;
                         const isBusy = busyId === c.id;
 
                         return (
@@ -231,15 +235,19 @@ export default function CouponsPage() {
                             </Td>
                             <Td>
                               <div className="flex flex-col gap-0.5">
-                                <Link
-                                  href={`/shops/${c.tenantId}`}
-                                  className="inline-flex items-center gap-1 font-medium text-[12px] text-ink hover:text-accent"
-                                >
-                                  <span>{shopName}</span>
-                                  <ExternalLink size={10} className="text-ink-3" />
-                                </Link>
+                                {ownerHref ? (
+                                  <Link
+                                    href={ownerHref}
+                                    className="inline-flex items-center gap-1 font-medium text-[12px] text-ink hover:text-accent"
+                                  >
+                                    <span>{shopName}</span>
+                                    <ExternalLink size={10} className="text-ink-3" />
+                                  </Link>
+                                ) : (
+                                  <span className="font-medium text-[12px] text-ink">{shopName}</span>
+                                )}
                                 <span className="font-mono text-[10px] text-ink-3">
-                                  {shortId(c.tenantId)}
+                                  {c.tenantId ? shortId(ownerId) : `Barber · ${shortId(ownerId)}`}
                                 </span>
                               </div>
                             </Td>

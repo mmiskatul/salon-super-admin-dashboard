@@ -2,7 +2,9 @@ import { apiFetch } from '../api-client';
 
 export interface Coupon {
   id: string;
-  tenantId: string;
+  /** null for an independent barber's own coupon; ownerUserId is the barber then. */
+  tenantId: string | null;
+  ownerUserId?: string | null;
   code: string;
   discountPercent: string | number | null;
   discountAmount: string | number | null;

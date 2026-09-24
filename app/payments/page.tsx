@@ -101,7 +101,7 @@ export default function PaymentsPage() {
     return [...transactions]
       .filter((tx) => {
         if (!q) return true;
-        const tenant = tenantMap.get(tx.tenantId);
+        const tenant = tx.tenantId ? tenantMap.get(tx.tenantId) : undefined;
         const tenantName = tx.tenantName || tenant?.name || '';
         const custName = tx.customerName || '';
         const custPhone = tx.customerPhone || '';
@@ -132,6 +132,7 @@ export default function PaymentsPage() {
     let refunded = 0;
     let refundedCount = 0;
     const byShop = new Map<string, number>();
+    const soloNames = new Map<string, string>();
 
     for (const tx of transactions) {
       const amount = toNumber(tx.amount);
@@ -143,13 +144,16 @@ export default function PaymentsPage() {
       } else if (SETTLED_STATUSES.includes(status)) {
         settled += amount;
         settledCount += 1;
-        byShop.set(tx.tenantId, (byShop.get(tx.tenantId) ?? 0) + amount);
+        // An independent barber's takings rank as their own "shop of one".
+        const key = tx.tenantId ?? `barber:${tx.ownerUserId ?? 'unknown'}`;
+        byShop.set(key, (byShop.get(key) ?? 0) + amount);
+        if (!tx.tenantId && tx.tenantName) soloNames.set(key, tx.tenantName);
       } else {
         pending += amount;
         pendingCount += 1;
       }
     }
-    return { settled, settledCount, pending, pendingCount, refunded, refundedCount, byShop };
+    return { settled, settledCount, pending, pendingCount, refunded, refundedCount, byShop, soloNames };
   }, [transactions]);
 
   // Available status types in current dataset
@@ -226,7 +230,7 @@ export default function PaymentsPage() {
                       const tenant = tenantMap.get(id);
                       return {
                         key: id,
-                        label: tenant?.name ?? (id ? shortId(id) : 'Unknown Shop'),
+                        label: tenant?.name ?? stats.soloNames.get(id) ?? (id.startsWith('barber:') ? 'Independent barber' : shortId(id)),
                         value,
                         color: brandColor(tenant?.brandColor),
                       };
@@ -353,8 +357,10 @@ export default function PaymentsPage() {
                     </thead>
                     <tbody>
                       {visible.slice(0, 250).map((row) => {
-                        const tenant = tenantMap.get(row.tenantId);
-                        const tenantName = row.tenantName || tenant?.name || 'Salon';
+                        const tenant = row.tenantId ? tenantMap.get(row.tenantId) : undefined;
+                        const tenantName = row.tenantName || tenant?.name || (row.tenantId ? 'Salon' : 'Independent barber');
+                        // A shop's payment opens the shop; an independent barber's opens the barber.
+                        const ownerHref = row.tenantId ? `/shops/${row.tenantId}` : row.ownerUserId ? `/barbers/${row.ownerUserId}` : null;
                         const tenantColor = row.tenantBrandColor || tenant?.brandColor;
                         const tenantLogo = row.tenantLogoUrl || tenant?.logoUrl;
                         const status = String(row.status).toUpperCase();
@@ -369,18 +375,17 @@ export default function PaymentsPage() {
                             </Td>
 
                             <Td nowrap={false}>
-                              <Link
-                                href={`/shops/${row.tenantId}`}
-                                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-                              >
-                                <Mark
-                                  name={tenantName}
-                                  logoUrl={tenantLogo}
-                                  color={tenantColor}
-                                  size={22}
-                                />
-                                <span className="truncate font-medium text-ink-1">{tenantName}</span>
-                              </Link>
+                              {ownerHref ? (
+                                <Link href={ownerHref} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                                  <Mark name={tenantName} logoUrl={tenantLogo} color={tenantColor} size={22} />
+                                  <span className="truncate font-medium text-ink-1">{tenantName}</span>
+                                </Link>
+                              ) : (
+                                <span className="flex items-center gap-2">
+                                  <Mark name={tenantName} logoUrl={tenantLogo} color={tenantColor} size={22} />
+                                  <span className="truncate font-medium text-ink-1">{tenantName}</span>
+                                </span>
+                              )}
                             </Td>
 
                             <Td>

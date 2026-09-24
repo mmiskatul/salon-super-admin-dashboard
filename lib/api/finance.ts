@@ -3,7 +3,9 @@ import { apiFetch } from '../api-client';
 /** Mirrors service-payment `model Transaction` — the shop's books, tenant-scoped per appointment. */
 export interface Transaction {
   id: string;
-  tenantId: string;
+  /** null for an independent barber's own payment; ownerUserId is the barber then. */
+  tenantId: string | null;
+  ownerUserId?: string | null;
   appointmentId: string | null;
   type: string;
   amount: string | number;
