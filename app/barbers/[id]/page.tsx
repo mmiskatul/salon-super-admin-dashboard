@@ -220,7 +220,8 @@ export default function BarberDetailPage() {
                   {staffRecord?.title ? (
                     <span className="font-medium text-ink">{staffRecord.title} • </span>
                   ) : null}
-                  {barber.businessName ? (
+                  {/* A studio name only means something while they trade on their own. */}
+                  {barber.businessName && barber.type === 'SOLO' ? (
                     <span className="text-ink-2">Trading as {barber.businessName} • </span>
                   ) : null}
                   Joined platform on {date(barber.createdAt)}
