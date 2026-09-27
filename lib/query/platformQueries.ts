@@ -1,9 +1,8 @@
-import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   fetchPlatformCharts,
   fetchPlatformOverview,
   fetchPlatformVitals,
-  probeAll,
   type PlatformChartsDto,
   type PlatformOverviewDto,
   type PlatformPeriod,
@@ -21,16 +20,12 @@ export const platformOverviewKey = (period: PlatformPeriod) => ['platform-overvi
 export const platformChartsKey = (period: PlatformPeriod) => ['platform-charts', period] as const;
 
 /**
- * Same fallback chain the old `loadPlatformOverview` thunk ran: try the real cross-tenant endpoint
- * first, and only fall back to fanning out over the roster if a deployment predates it. The one
- * behavioural addition is `queryClient.setQueryData` inside the sweep loop — TanStack Query treats
- * that exactly like a server push, so every component subscribed to this query key re-renders with
- * each tenant's numbers as they land, instead of waiting for the slowest shop on the platform.
+ * The overview in one call. If that fails, the roster plus the vitals endpoint; if the vitals fail
+ * too, the roster alone, with every shop's numbers unknown (`vitalityOf` shows them as such).
+ * It no longer falls back to asking every shop for its own lists from the browser: that was five
+ * requests per shop, sent exactly when the backend was already struggling.
  */
-async function loadPlatformOverview(
-  period: PlatformPeriod,
-  queryClient: QueryClient,
-): Promise<PlatformOverviewResult> {
+async function loadPlatformOverview(period: PlatformPeriod): Promise<PlatformOverviewResult> {
   try {
     const overview = await fetchPlatformOverview(period);
     return {
@@ -39,7 +34,7 @@ async function loadPlatformOverview(
       vitals: Object.fromEntries(overview.vitals.map((v) => [v.tenantId, v])),
     };
   } catch {
-    // Fall back to roster + vitals query
+    // Fall back to roster + vitals below.
   }
 
   const roster = await listTenants();
@@ -47,25 +42,8 @@ async function loadPlatformOverview(
   try {
     vitalsList = await fetchPlatformVitals(period);
   } catch {
-    // Empty vitals fallback
+    // Roster alone: every shop shows as "unknown".
   }
-
-  if (vitalsList.length === 0 && roster.length > 0) {
-    const partial: Record<string, TenantVitals> = {};
-    try {
-      vitalsList = await probeAll(roster.map((t) => t.id), (v) => {
-        partial[v.tenantId] = v;
-        queryClient.setQueryData<PlatformOverviewResult>(platformOverviewKey(period), {
-          overview: null,
-          tenants: roster,
-          vitals: { ...partial },
-        });
-      });
-    } catch {
-      // Keep whatever landed before the failure
-    }
-  }
-
   return { overview: null, tenants: roster, vitals: Object.fromEntries(vitalsList.map((v) => [v.tenantId, v])) };
 }
 
@@ -73,10 +51,9 @@ async function loadPlatformOverview(
  *  component that calls it for the same period — Query dedupes concurrent calls into one request
  *  and serves cached data instantly (revalidating in the background) inside `staleTime`. */
 export function usePlatformOverview(period: PlatformPeriod) {
-  const queryClient = useQueryClient();
   return useQuery({
     queryKey: platformOverviewKey(period),
-    queryFn: () => loadPlatformOverview(period, queryClient),
+    queryFn: () => loadPlatformOverview(period),
     // Keep the previous period's data on screen while the new one loads instead of flashing empty.
     placeholderData: (prev) => prev,
   });
