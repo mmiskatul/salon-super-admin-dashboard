@@ -36,6 +36,8 @@ export interface Review {
   id: string;
   tenantId: string | null;
   customerId: string;
+  /** The reviewer's name (their profile), or "Customer". */
+  customerName: string;
   staffId: string | null;
   serviceId: string | null;
   appointmentId: string | null;
@@ -112,8 +114,40 @@ export function cancelAppointment(id: string, reason?: string): Promise<Appointm
   });
 }
 
-export function listReviews(tenantId: string): Promise<Review[]> {
-  return apiFetch<Review[]>(`/reviews?tenantId=${encodeURIComponent(tenantId)}`);
+interface ShopReviewItem {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  replyText: string | null;
+  replyAt: string | null;
+  customer: { id: string; name: string };
+  staff: { id: string; name: string } | null;
+  appointmentId: string | null;
+}
+
+/**
+ * A shop's latest 100 reviews with who wrote them. Uses the owner/admin route: the public
+ * GET /reviews doesn't say who wrote a review.
+ */
+export async function listReviews(tenantId: string): Promise<Review[]> {
+  const page = await apiFetch<{ items: ShopReviewItem[] }>(
+    `/reviews/shop?tenantId=${encodeURIComponent(tenantId)}&pageSize=100`,
+  );
+  return page.items.map((r) => ({
+    id: r.id,
+    tenantId,
+    customerId: r.customer.id,
+    customerName: r.customer.name,
+    staffId: r.staff?.id ?? null,
+    serviceId: null,
+    appointmentId: r.appointmentId,
+    rating: r.rating,
+    comment: r.comment,
+    replyText: r.replyText,
+    replyAt: r.replyAt,
+    createdAt: r.createdAt,
+  }));
 }
 
 /** Platform moderation — removes a review outright. SUPER_ADMIN only; no self-service equivalent
