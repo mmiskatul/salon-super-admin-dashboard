@@ -709,7 +709,7 @@ export default function BarberDetailPage() {
                             {r.rating}.0
                           </span>
                           <span className="text-[11px] text-ink-3">
-                            by Customer {shortId(r.customerId)} on {date(r.createdAt)}
+                            by {r.customerName || `Customer ${shortId(r.customerId)}`} on {date(r.createdAt)}
                           </span>
                         </div>
                         {r.comment && (
