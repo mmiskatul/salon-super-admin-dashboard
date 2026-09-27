@@ -122,27 +122,6 @@ export function getShopHours(tenantId: string): Promise<ShopHours> {
   return apiFetch<ShopHours>(`/shop-hours/${encodeURIComponent(tenantId)}`);
 }
 
-export interface Product {
-  id: string;
-  tenantId: string;
-  name: string;
-  sku: string | null;
-  barcode: string | null;
-  brand: string | null;
-  categoryId: string | null;
-  quantity: number;
-  reorderLevel: number;
-  unit: string | null;
-  unitCost: string | number;
-  salePrice: string | number | null;
-  onSale: boolean;
-  category?: { id: string; name: string } | null;
-}
-
-export function listProducts(tenantId: string): Promise<Product[]> {
-  return apiFetch<Product[]>(`/inventory/products?tenantId=${encodeURIComponent(tenantId)}`);
-}
-
 export interface ClientAllergy {
   id: string;
   name: string;
@@ -181,19 +160,3 @@ export async function listClients(tenantId: string): Promise<Client[]> {
   const page = await apiFetch<ClientPage>(`/clients?tenantId=${encodeURIComponent(tenantId)}&pageSize=100`);
   return page.items;
 }
-
-export interface StoredFile {
-  id: string;
-  tenantId: string;
-  name: string;
-  url: string;
-  kind: string;
-  sizeBytes: number;
-  createdAt: string;
-}
-
-export function listFiles(tenantId: string): Promise<StoredFile[]> {
-  return apiFetch<StoredFile[]>(`/files?tenantId=${encodeURIComponent(tenantId)}`);
-}
-
-
