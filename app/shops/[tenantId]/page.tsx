@@ -38,13 +38,10 @@ const TABS = [
   'Bookings',
   'Reviews',
   'Payments',
-  'Memberships',
   'Gift Cards',
   'Locations',
   'Hours',
-  'Inventory',
   'Clients',
-  'Documents',
 ] as const;
 type Tab = (typeof TABS)[number];
 
@@ -77,7 +74,6 @@ export default function ShopPage() {
   const bookings = tabState(shopDashboard.data?.appointments);
   const reviews = tabState(shopDashboard.data?.reviews);
   const payments = tabState(shopDashboard.data?.transactions);
-  const membershipPlans = tabState(shopDashboard.data?.membershipPlans);
   const giftCards = tabState(shopDashboard.data?.giftCards);
   const locations = tabState(shopDashboard.data?.locations);
   const hours = {
@@ -86,9 +82,7 @@ export default function ShopPage() {
     error: shopDashboard.error,
     refresh: shopDashboard.refresh,
   };
-  const inventory = tabState(shopDashboard.data?.products);
   const clients = tabState(shopDashboard.data?.clients);
-  const files = tabState(shopDashboard.data?.files);
 
   const tenant = shop.data;
   const colour = brandColor(tenant?.brandColor);
@@ -525,49 +519,6 @@ export default function ShopPage() {
               </Section>
             )}
 
-            {tab === 'Memberships' && (
-              <Section
-                state={membershipPlans}
-                empty="This shop has no membership plans."
-                emptyHint="Membership tiers a customer can subscribe to for recurring benefits — none set up yet."
-              >
-                {(rows) => (
-                  <Scroll>
-                    <Table>
-                      <thead>
-                        <tr>
-                          <Th>Plan</Th>
-                          <Th align="right">Price</Th>
-                          <Th align="right">Billing</Th>
-                          <Th align="right">Included bookings</Th>
-                          <Th align="right">Discount</Th>
-                          <Th align="right">Active</Th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((p) => (
-                          <Tr key={p.id}>
-                            <Td nowrap={false}>{p.name}</Td>
-                            <Td align="right" mono>{money(p.price)}</Td>
-                            <Td align="right" mono muted>
-                              every {p.billingPeriodMonths} mo
-                            </Td>
-                            <Td align="right" mono muted>{p.includedBookings ?? '—'}</Td>
-                            <Td align="right" mono muted>
-                              {p.discountPercent ? `${p.discountPercent}%` : '—'}
-                            </Td>
-                            <Td align="right">
-                              {p.active ? <Badge tone="live">Yes</Badge> : <Badge tone="signal">No</Badge>}
-                            </Td>
-                          </Tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </Scroll>
-                )}
-              </Section>
-            )}
-
             {tab === 'Gift Cards' && (
               <Section
                 state={giftCards}
@@ -687,57 +638,6 @@ export default function ShopPage() {
               </div>
             )}
 
-            {tab === 'Inventory' && (
-              <Section state={inventory} empty="No inventory products recorded for this shop.">
-                {(rows) => (
-                  <Scroll>
-                    <Table>
-                      <thead>
-                        <tr>
-                          <Th>Product</Th>
-                          <Th>SKU / Barcode</Th>
-                          <Th align="right">Stock qty</Th>
-                          <Th align="right">Reorder level</Th>
-                          <Th align="right">Cost price</Th>
-                          <Th align="right">Sale price</Th>
-                          <Th align="right">Status</Th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((p) => {
-                          const isLowStock = p.quantity <= p.reorderLevel;
-                          return (
-                            <Tr key={p.id}>
-                              <Td>
-                                <span className="font-medium text-ink">{p.name}</span>
-                                {p.brand && <span className="ml-1 text-[11px] text-ink-3">({p.brand})</span>}
-                              </Td>
-                              <Td mono muted>{p.sku || p.barcode || '—'}</Td>
-                              <Td align="right" mono>
-                                <span className={isLowStock ? 'font-bold text-signal' : ''}>
-                                  {p.quantity} {p.unit ?? ''}
-                                </span>
-                              </Td>
-                              <Td align="right" mono muted>{p.reorderLevel}</Td>
-                              <Td align="right" mono>{money(p.unitCost)}</Td>
-                              <Td align="right" mono>{p.salePrice != null ? money(p.salePrice) : '—'}</Td>
-                              <Td align="right">
-                                {isLowStock ? (
-                                  <Badge tone="signal">Low stock</Badge>
-                                ) : (
-                                  <Badge tone="live">In stock</Badge>
-                                )}
-                              </Td>
-                            </Tr>
-                          );
-                        })}
-                      </tbody>
-                    </Table>
-                  </Scroll>
-                )}
-              </Section>
-            )}
-
             {tab === 'Clients' && (
               <Section state={clients} empty="No client CRM records registered for this shop.">
                 {(rows) => (
@@ -780,55 +680,6 @@ export default function ShopPage() {
                             </Td>
                             <Td align="right" mono muted>
                               {date(c.createdAt)}
-                            </Td>
-                          </Tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </Scroll>
-                )}
-              </Section>
-            )}
-
-            {tab === 'Documents' && (
-              <Section state={files} empty="No stored documents or assets found for this shop.">
-                {(rows) => (
-                  <Scroll>
-                    <Table>
-                      <thead>
-                        <tr>
-                          <Th>Document name</Th>
-                          <Th>Category / Kind</Th>
-                          <Th align="right">File size</Th>
-                          <Th align="right">Uploaded</Th>
-                          <Th align="right">Link</Th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((f) => (
-                          <Tr key={f.id}>
-                            <Td>
-                              <span className="font-medium text-ink">{f.name}</span>
-                            </Td>
-                            <Td>
-                              <Badge tone="plain">{f.kind}</Badge>
-                            </Td>
-                            <Td align="right" mono muted>
-                              {Math.round(f.sizeBytes / 1024)} KB
-                            </Td>
-                            <Td align="right" mono muted>
-                              {date(f.createdAt)}
-                            </Td>
-                            <Td align="right">
-                              <a
-                                href={f.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
-                              >
-                                <span>View file</span>
-                                <ExternalLink size={10} />
-                              </a>
                             </Td>
                           </Tr>
                         ))}
