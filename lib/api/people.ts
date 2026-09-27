@@ -1,6 +1,10 @@
 import { apiFetch } from '../api-client';
 
-/** Mirrors service-business `model Staff`. */
+/**
+ * A shop's barber as the public GET /staff?tenantId= returns them. The Staff row itself is only
+ * their employment at the shop; name, bio, specialties and rating come from their own profile
+ * (the same values their barber profile shows), so they match everywhere.
+ */
 export interface Staff {
   id: string;
   tenantId: string;
