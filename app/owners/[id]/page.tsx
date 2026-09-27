@@ -56,7 +56,6 @@ const TABS = [
   'Bookings & Agenda',
   'Services & Catalog',
   'Revenue & Transactions',
-  'Inventory & Stock',
   'Locations & Hours',
   'Salon Controls',
 ] as const;
@@ -115,7 +114,7 @@ export default function OwnerDashboardDetailPage() {
     );
   }
 
-  const { owner, tenant, metrics, barbers, clients, appointments, services, transactions, locations, shopHours, products } = data;
+  const { owner, tenant, metrics, barbers, clients, appointments, services, transactions, locations, shopHours } = data;
   const color = brandColor(tenant.brandColor);
 
   return (
@@ -311,14 +310,13 @@ export default function OwnerDashboardDetailPage() {
 
       <Canvas>
         {/* Executive 8-Metric Connected Breakdown Bar */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
           <Stat label="Barbers & Staff" value={count(metrics.barbersCount)} tone="plain" />
           <Stat label="Connected Clients" value={count(metrics.clientsCount)} tone="plain" />
           <Stat label="Total Bookings" value={count(metrics.appointmentsCount)} tone="plain" />
           <Stat label="Upcoming Appts" value={count(metrics.upcomingAppointments)} tone="live" />
           <Stat label="Gross Revenue" value={money(metrics.revenueTotal)} tone="live" />
           <Stat label="Active Services" value={count(metrics.servicesCount)} tone="plain" />
-          <Stat label="Inventory Items" value={count(metrics.productsCount)} tone="plain" />
           <Stat label="Locations" value={count(metrics.locationsCount)} tone="plain" />
         </div>
 
@@ -590,49 +588,7 @@ export default function OwnerDashboardDetailPage() {
           </Panel>
         )}
 
-        {/* TAB 6: Inventory & Stock */}
-        {activeTab === 'Inventory & Stock' && (
-          <Panel flush title={`${products.length} Products Tracked in Inventory`}>
-            {products.length === 0 ? (
-              <Empty title="No inventory products recorded" />
-            ) : (
-              <Scroll>
-                <Table>
-                  <thead>
-                    <Tr>
-                      <Th>Product Name</Th>
-                      <Th>SKU / Barcode</Th>
-                      <Th>Quantity on Hand</Th>
-                      <Th>Reorder Level</Th>
-                      <Th>Unit Cost</Th>
-                      <Th>Sale Price</Th>
-                    </Tr>
-                  </thead>
-                  <tbody>
-                    {products.map((p) => (
-                      <Tr key={p.id}>
-                        <Td className="font-semibold text-ink text-[13px]">{p.name}</Td>
-                        <Td className="font-mono text-ink-3 text-[11px]">{p.sku || p.barcode || '—'}</Td>
-                        <Td className="text-ink text-[13px] font-bold">
-                          <span className={p.quantity <= p.reorderLevel ? 'text-signal' : 'text-ink'}>
-                            {p.quantity} {p.unit || 'units'}
-                          </span>
-                        </Td>
-                        <Td className="text-ink-3 text-[12px]">{p.reorderLevel}</Td>
-                        <Td className="text-ink-2 text-[12px] tabular">{money(p.unitCost)}</Td>
-                        <Td className="font-semibold text-ink text-[12px] tabular">
-                          {p.salePrice ? money(p.salePrice) : 'Back-bar'}
-                        </Td>
-                      </Tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </Scroll>
-            )}
-          </Panel>
-        )}
-
-        {/* TAB 7: Locations & Hours */}
+        {/* TAB 6: Locations & Hours */}
         {activeTab === 'Locations & Hours' && (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Panel title="Salon Locations">
@@ -673,7 +629,7 @@ export default function OwnerDashboardDetailPage() {
           </div>
         )}
 
-        {/* TAB 8: Salon Controls */}
+        {/* TAB 7: Salon Controls */}
         {activeTab === 'Salon Controls' && (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Panel title="Shop Operational Status">
