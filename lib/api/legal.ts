@@ -1,8 +1,9 @@
 import { apiFetch, API_BASE_URL } from '../api-client';
 
 /**
- * The public legal pages (backend LegalController): the super admin edits and publishes them here,
- * the API serves them at /legal/<slug>, and the website, both apps and the store listings link there.
+ * The public legal pages (backend LegalController): the super admin edits and publishes them here;
+ * the API serves them at /legal/<slug> (opened by both apps), and salunbd.com renders the same text
+ * from the API into its own pages (salunbd-website), which the store listings link to.
  */
 
 export type LegalSlug = 'privacy-policy' | 'terms-of-service' | 'delete-account';
