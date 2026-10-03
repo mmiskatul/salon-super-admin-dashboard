@@ -160,7 +160,7 @@ export default function OverviewPage() {
               <SupportModerationPulse totals={totals} period={selectedPeriod} trustPulse={trustPulse} />
             </div>
 
-            {/* 6. Infrastructure & Leaderboard: Cluster Health & Busiest Salons */}
+            {/* 6. Infrastructure & Leaderboard: Backend Health & Busiest Salons */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <ClusterHealthWidget />
 

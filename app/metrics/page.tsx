@@ -83,8 +83,8 @@ export default function MetricsPage() {
         setQueried({ tenantId, metric: effectiveMetric || 'daily_revenue' });
       }
       await metricNamesApi.refresh();
-    } catch (err: any) {
-      setGenerateError(err?.message || 'Generation failed. Please try again.');
+    } catch (err) {
+      setGenerateError(err instanceof Error && err.message ? err.message : 'Generation failed. Please try again.');
     } finally {
       setGenerating(false);
     }
@@ -205,7 +205,7 @@ export default function MetricsPage() {
                   action={
                     <Button onClick={handleAutoGenerate} disabled={generating} variant="secondary">
                       <Sparkles size={12} />
-                      Generate sample live metrics
+                      Compute live metrics now
                     </Button>
                   }
                 />
