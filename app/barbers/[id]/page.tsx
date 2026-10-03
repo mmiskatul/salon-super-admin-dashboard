@@ -637,7 +637,7 @@ export default function BarberDetailPage() {
         {/* Tab 5: Wallet & Financials */}
         {activeTab === 'Wallet & Financials' && (
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            <Panel title="Digital Wallet & Payouts" note="Current ledger balance and account payouts.">
+            <Panel title="Wallet" note="Rewards and refunds. Spending and payouts open with online payment (available soon).">
               <WalletPanel userId={barber.id} />
             </Panel>
 
@@ -674,7 +674,7 @@ export default function BarberDetailPage() {
                 </div>
 
                 <p className="text-[11px] text-ink-3">
-                  Note: Payouts and wallet balances are synchronized with the central payment ledger.
+                  Customers pay at the shop; online payment and payouts are available soon.
                 </p>
               </div>
             </Panel>
