@@ -25,7 +25,7 @@ import {
   updateAppointmentStatus,
   type Appointment,
 } from '@/lib/api/bookings';
-import { brandColor, count, dateTime, isoDay, money, time } from '@/lib/format';
+import { brandColor, count, dateTime, isoDay, money, bookingDateTime, bookingTime } from '@/lib/format';
 import { useApi } from '@/lib/useApi';
 import {
   Badge,
@@ -456,12 +456,12 @@ export default function BookingsPage() {
                         >
                           <Td mono>
                             <div className="font-semibold text-[#1E293B]">
-                              {time(row.startAt)}
-                              <span className="text-[#94A3B8] font-normal"> – {time(row.endAt)}</span>
+                              {bookingTime(row.startAt)}
+                              <span className="text-[#94A3B8] font-normal"> – {bookingTime(row.endAt)}</span>
                             </div>
                             {!useDateFilter && (
                               <div className="text-[11px] text-[#64748B]">
-                                {isoDay(new Date(row.startAt))}
+                                {row.startAt.slice(0, 10)}
                               </div>
                             )}
                           </Td>
@@ -685,7 +685,7 @@ function BookingDetailModal({
             label="Booked via"
             value={row.isWalkIn ? 'Walk-in (Reception Desk)' : 'Customer Online App'}
           />
-          <DetailRow label="Start Time" value={dateTime(row.startAt)} />
+          <DetailRow label="Start Time" value={bookingDateTime(row.startAt)} />
           <DetailRow label="End Time" value={dateTime(row.endAt)} />
           {row.durationMinutes != null && (
             <DetailRow label="Duration" value={`${row.durationMinutes} min`} />

@@ -30,7 +30,7 @@ import { useApi, useMutation } from '@/lib/useApi';
 import { getBarberCareer, getBarberDashboard, type BarberDashboardDetail } from '@/lib/api/barbers';
 import { banUser, unbanUser } from '@/lib/api/users';
 import { removeReview } from '@/lib/api/bookings';
-import { brandColor, count, date, dateTime, money, shortId, rating } from '@/lib/format';
+import { brandColor, count, date, money, shortId, rating, bookingDateTime } from '@/lib/format';
 import {
   Badge,
   Button,
@@ -358,7 +358,7 @@ export default function BarberDetailPage() {
                         <Tr key={a.id}>
                           <Td nowrap={false}>
                             <span className="font-mono text-[12px] font-medium text-ink">
-                              {dateTime(a.startAt)}
+                              {bookingDateTime(a.startAt)}
                             </span>
                             <span className="tabular block text-[10px] text-ink-3">
                               ID: {shortId(a.id)}

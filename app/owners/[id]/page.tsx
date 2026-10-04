@@ -33,7 +33,7 @@ import { useApi, useMutation } from '@/lib/useApi';
 import { getOwnerDashboard, type OwnerDashboardDetail } from '@/lib/api/owners';
 import { suspendTenant, unsuspendTenant, updateTenant } from '@/lib/api/tenants';
 import { banUser, unbanUser } from '@/lib/api/users';
-import { brandColor, count, date, dateTime, money, shortId, since } from '@/lib/format';
+import { brandColor, count, dateTime, money, shortId, since, bookingDate, bookingTime } from '@/lib/format';
 import {
   Badge,
   Button,
@@ -480,11 +480,11 @@ export default function OwnerDashboardDetailPage() {
                       <Tr key={a.id}>
                         <Td>
                           <div className="font-semibold text-ink text-[12px]">
-                            {new Date(a.startAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {bookingDate(a.startAt)}
                           </div>
                           <div className="text-[11px] text-ink-3 font-mono">
-                            {new Date(a.startAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -{' '}
-                            {new Date(a.endAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {bookingTime(a.startAt)} -{' '}
+                            {bookingTime(a.endAt)}
                           </div>
                         </Td>
                         <Td className="text-ink text-[12px] font-medium">{a.guestName || a.customerId || 'Customer'}</Td>

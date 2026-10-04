@@ -16,7 +16,7 @@ import {
 } from '@/lib/api/tenants';
 import { removeReview } from '@/lib/api/bookings';
 import { getShopDashboard } from '@/lib/api/shop-dashboard';
-import { brandColor, count, date, dateTime, money, rating, since, shortId } from '@/lib/format';
+import { brandColor, count, date, dateTime, money, rating, since, shortId, bookingDateTime } from '@/lib/format';
 import {
   Badge,
   Button,
@@ -384,7 +384,7 @@ export default function ShopPage() {
                         <tbody>
                           {recent.slice(0, 100).map((a) => (
                             <Tr key={a.id}>
-                              <Td mono>{dateTime(a.startAt)}</Td>
+                              <Td mono>{bookingDateTime(a.startAt)}</Td>
                               <Td muted>{a.serviceName ?? '—'}</Td>
                               <Td muted>
                                 {a.guestName ?? (a.customerId ? shortId(a.customerId) : '—')}

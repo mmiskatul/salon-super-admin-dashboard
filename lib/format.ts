@@ -54,6 +54,30 @@ export function dateTime(value: string | Date | null | undefined): string {
   return `${date(d)} ${time(d)}`;
 }
 
+/*
+ * Booking times (appointment startAt/endAt) are the shop's wall clock labelled as UTC: a 2:00 PM
+ * booking is stored as T14:00Z. date()/time() above read real instants in the viewer's time zone,
+ * which added Bangladesh's +6h to every booking (a 3:30 PM visit showed as 21:30). These read the
+ * stored wall-clock time as-is.
+ */
+export function bookingDate(value: string | null | undefined): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
+
+export function bookingTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+}
+
+export function bookingDateTime(value: string | null | undefined): string {
+  return value ? `${bookingDate(value)} ${bookingTime(value)}` : '—';
+}
+
 /** "3d ago" / "in 2h" — for freshness, where the exact stamp matters less than the distance. */
 export function since(value: string | Date | null | undefined): string {
   if (!value) return '—';
