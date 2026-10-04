@@ -176,6 +176,9 @@ export default function OwnerDashboardsPage() {
               <Stat label="Platform Revenue" value={money(totals.totalRevenue)} tone="live" />
             </div>
 
+            {/* Unsuspend / Unban run straight from the row, so their failures show here. */}
+            {(unsuspend.error || unban.error) && <FormError message={(unsuspend.error || unban.error)!} />}
+
             {/* Filter and Control Bar */}
             <Panel flush>
               <div className="flex flex-col gap-3 border-b border-[#E2E8F0] p-4 sm:flex-row sm:items-center sm:justify-between bg-[#F8FAFC]/50 font-manrope">
@@ -403,10 +406,10 @@ export default function OwnerDashboardsPage() {
                               {isShopSuspended ? (
                                 <button
                                   onClick={async () => {
-                                    await unsuspend.mutate(row.tenantId);
-                                    refresh();
+                                    if (await unsuspend.mutate(row.tenantId)) refresh();
                                   }}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border border-rule bg-surface text-live hover:bg-live-soft transition-colors"
+                                  disabled={unsuspend.pending}
+                                  className="disabled:opacity-50 inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border border-rule bg-surface text-live hover:bg-live-soft transition-colors"
                                   title="Unsuspend shop"
                                 >
                                   <Unlock size={11} />
@@ -430,10 +433,10 @@ export default function OwnerDashboardsPage() {
                               {isOwnerBanned ? (
                                 <button
                                   onClick={async () => {
-                                    await unban.mutate(row.ownerId);
-                                    refresh();
+                                    if (await unban.mutate(row.ownerId)) refresh();
                                   }}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border border-rule bg-surface text-live hover:bg-live-soft transition-colors"
+                                  disabled={unban.pending}
+                                  className="disabled:opacity-50 inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border border-rule bg-surface text-live hover:bg-live-soft transition-colors"
                                   title="Unban owner account"
                                 >
                                   <ShieldCheck size={11} />
