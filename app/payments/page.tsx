@@ -364,7 +364,8 @@ export default function PaymentsPage() {
                         const tenantColor = row.tenantBrandColor || tenant?.brandColor;
                         const tenantLogo = row.tenantLogoUrl || tenant?.logoUrl;
                         const status = String(row.status).toUpperCase();
-                        const canRefund = row.type === REFUNDABLE_TYPE && status !== 'REFUNDED';
+                        // Only money actually taken: an unpaid or cancelled payment has nothing to give back.
+                        const canRefund = row.type === REFUNDABLE_TYPE && (status === 'COMPLETED' || status === 'PAID');
                         const method = (row.paymentMethod || 'CASH').toUpperCase();
 
                         return (

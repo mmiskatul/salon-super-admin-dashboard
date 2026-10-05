@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { RotateCw, Search, ExternalLink } from 'lucide-react';
 import { useApi } from '@/lib/useApi';
-import { listUsers, type PlatformUser } from '@/lib/api/users';
+import { listUsers } from '@/lib/api/users';
 import { listTenants } from '@/lib/api/tenants';
 import { count, date, initials, shortId, since } from '@/lib/format';
 import {
@@ -43,19 +44,50 @@ export function UserRoleBadge({ role }: { role?: string }) {
   }
 }
 
+// useSearchParams needs a Suspense boundary to build.
 export default function UsersPage() {
+  return (
+    <Suspense>
+      <UsersPageInner />
+    </Suspense>
+  );
+}
+
+function UsersPageInner() {
+  // ?q= comes from the header's search box.
+  const urlQuery = useSearchParams().get('q') ?? '';
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(urlQuery);
+  const [search, setSearch] = useState(urlQuery.trim());
   const [page, setPage] = useState(1);
+
+  // A new header search while already on this page.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setQuery(urlQuery);
+    setSearch(urlQuery.trim());
+    setPage(1);
+  }, [urlQuery]);
+
+  // Searched on the server, across every account. It used to filter only the 50 rows already on
+  // screen, so anyone past the first page could not be found.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(query.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [query]);
 
   const users = useApi(
     () =>
       listUsers({
+        search: search || undefined,
         role: roleFilter === 'ALL' ? undefined : roleFilter,
         page,
         limit: PAGE_SIZE,
       }),
-    [roleFilter, page],
+    [roleFilter, page, search],
   );
 
   function selectRole(r: RoleFilter) {
@@ -73,16 +105,7 @@ export default function UsersPage() {
   const shopName = new Map((tenants.data ?? []).map((t) => [t.id, t.name]));
   const personName = (id: string) => rows.find((u) => u.id === id)?.name || null;
 
-  const needle = query.trim().toLowerCase();
-  const visible = rows.filter((u) => {
-    if (!needle) return true;
-    const email = (u?.email || '').toLowerCase();
-    const id = (u?.id || '').toLowerCase();
-    const tenantId = (u?.tenantId || '').toLowerCase();
-    const name = (personName(u.id) || '').toLowerCase();
-    const shop = (u?.tenantId ? shopName.get(u.tenantId) || '' : '').toLowerCase();
-    return email.includes(needle) || id.includes(needle) || tenantId.includes(needle) || name.includes(needle) || shop.includes(needle);
-  });
+  const visible = rows;
 
   const total = Array.isArray(users.data)
     ? users.data.length
@@ -160,7 +183,7 @@ export default function UsersPage() {
                     <input
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search email or ID..."
+                      placeholder="Name, email or account ID"
                       aria-label="Search users"
                       className="w-[200px] rounded-lg border border-[#E2E8F0] bg-white py-1.5 pr-3 pl-8 text-[13px] text-[#1E293B] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent font-manrope transition-all"
                     />

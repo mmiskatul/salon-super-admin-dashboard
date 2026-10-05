@@ -960,9 +960,10 @@ function DeleteShopDialog({
     <Modal title={`Delete ${tenant.name}`} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <p className="max-w-[56ch] text-[13px] leading-relaxed">
-          This removes the shop record from the platform. Its bookings, transactions, reviews and
-          staff records live in other services and are <strong>not</strong> deleted with it — they
-          will be left pointing at a shop that no longer exists.
+          Deleting removes the shop <strong>and everything recorded under it</strong>: bookings,
+          payments, reviews, clients and gift cards. So only a shop with no bookings, payments,
+          team or gift cards can be deleted (one created by mistake, for example). To stop a real
+          shop, suspend it or hide it from customers instead.
         </p>
 
         <FormError message={error} />

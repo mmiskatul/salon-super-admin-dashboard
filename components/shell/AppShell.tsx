@@ -36,9 +36,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (!checked || !session) return null;
 
   return (
-    <div className="flex h-[100dvh] bg-[#F3F4F7] font-manrope overflow-hidden">
+    // Column on phones (the Rail renders its top bar there), row with the sidebar from lg up. It was
+    // always a row, so on a phone the top bar became a 215px-wide left column and every page was
+    // squeezed into the remaining ~175px.
+    <div className="flex flex-col lg:flex-row h-[100dvh] bg-[#F3F4F7] font-manrope overflow-hidden">
       <Rail session={session} />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         <Header session={session} />
         <main id="console" className="flex-1 overflow-y-auto custom-scrollbar">
           {children}

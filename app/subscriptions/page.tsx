@@ -118,11 +118,11 @@ export default function SubscriptionsPage() {
       }
       await subsApi.refresh();
       setConfirmState((prev) => ({ ...prev, open: false, pending: false }));
-    } catch (err: any) {
+    } catch (err) {
       setConfirmState((prev) => ({
         ...prev,
         pending: false,
-        error: err?.message || 'Operation failed. Please try again.',
+        error: (err instanceof Error && err.message) || 'Operation failed. Please try again.',
       }));
     }
   }
@@ -303,7 +303,9 @@ export default function SubscriptionsPage() {
                                 >
                                   Edit plan
                                 </Button>
-                                {sub.status === 'ACTIVE' || sub.status === 'TRIALING' ? (
+                                {/* A scheduled cancellation is still ACTIVE/TRIALING, so it used to offer
+                                    "Cancel" again and no way to undo it. */}
+                                {(sub.status === 'ACTIVE' || sub.status === 'TRIALING') && !isCanceling ? (
                                   <Button
                                     variant="outline"
                                     onClick={() => promptCancel(sub.tenantId, shopName)}
@@ -321,7 +323,7 @@ export default function SubscriptionsPage() {
                                     className="text-[#10B981] hover:bg-[#D1FAE5]"
                                   >
                                     <CheckCircle2 size={12} />
-                                    Reactivate
+                                    {isCanceling ? 'Undo cancel' : 'Reactivate'}
                                   </Button>
                                 )}
                               </div>
@@ -369,6 +371,7 @@ export default function SubscriptionsPage() {
           )
         }
         confirmLabel={confirmState.type === 'cancel' ? 'Confirm Cancellation' : 'Confirm Reactivation'}
+        cancelLabel={confirmState.type === 'cancel' ? 'Keep subscription' : 'Cancel'}
         variant={confirmState.type === 'cancel' ? 'danger' : 'primary'}
         pending={confirmState.pending}
         error={confirmState.error}

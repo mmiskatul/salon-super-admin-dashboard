@@ -14,7 +14,8 @@ export function toNumber(value: unknown): number {
 
 export function money(value: unknown): string {
   const n = toNumber(value);
-  return `৳ ${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  // A no-break space: in a narrow card the sign used to wrap onto its own line above the number.
+  return `৳ ${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 
@@ -76,6 +77,16 @@ export function bookingTime(value: string | null | undefined): string {
 
 export function bookingDateTime(value: string | null | undefined): string {
   return value ? `${bookingDate(value)} ${bookingTime(value)}` : '—';
+}
+
+/** A working-hours break as "1:00 PM–2:00 PM", or null when there is none. The Partner app saves
+ *  "no break" as the literal string "None", which was shown as "(break None–None)". */
+export function breakLabel(start?: string | null, end?: string | null): string | null {
+  const real = (v?: string | null) => (v && v.trim() && v.trim().toLowerCase() !== 'none' ? v.trim() : null);
+  const s = real(start);
+  if (!s) return null;
+  const e = real(end);
+  return e ? `${s}–${e}` : s;
 }
 
 /** "3d ago" / "in 2h" — for freshness, where the exact stamp matters less than the distance. */

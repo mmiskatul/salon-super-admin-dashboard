@@ -115,11 +115,11 @@ export default function CouponsPage() {
       }
       await coupons.refresh();
       setConfirmAction((prev) => ({ ...prev, open: false, pending: false }));
-    } catch (err: any) {
+    } catch (err) {
       setConfirmAction((prev) => ({
         ...prev,
         pending: false,
-        error: err?.message || 'Operation failed. Please try again.',
+        error: (err instanceof Error && err.message) || 'Operation failed. Please try again.',
       }));
     }
   }
@@ -462,10 +462,10 @@ function CreateCouponDialog({
               onChange={(e) => setDiscountType(e.target.value as 'percent' | 'amount')}
             >
               <option value="percent">Percentage discount (%)</option>
-              <option value="amount">Fixed price discount ($)</option>
+              <option value="amount">Fixed amount off (৳)</option>
             </Select>
           </Field>
-          <Field label={discountType === 'percent' ? 'Percentage off (%)' : 'Amount off ($)'}>
+          <Field label={discountType === 'percent' ? 'Percentage off (%)' : 'Amount off (৳)'}>
             <TextInput
               type="number"
               min="1"
@@ -488,7 +488,7 @@ function CreateCouponDialog({
               placeholder="e.g. 100"
             />
           </Field>
-          <Field label="Minimum cart order ($)" hint="Minimum required booking total">
+          <Field label="Minimum booking total (৳)" hint="Minimum required booking total">
             <TextInput
               type="number"
               min="0"

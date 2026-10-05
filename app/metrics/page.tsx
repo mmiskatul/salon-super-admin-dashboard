@@ -161,11 +161,10 @@ export default function MetricsPage() {
                       {(metricNamesApi.data && metricNamesApi.data.length > 0
                         ? metricNamesApi.data
                         : [
-                            { id: 'daily_revenue', name: 'Daily Gross Revenue (USD)' },
-                            { id: 'monthly_revenue', name: 'Monthly Revenue Run-Rate (USD)' },
+                            { id: 'daily_revenue', name: 'Daily Gross Revenue (BDT)' },
+                            { id: 'monthly_revenue', name: 'Monthly Revenue Run-Rate (BDT)' },
                             { id: 'completed_appointments', name: 'Completed Appointments' },
                             { id: 'active_customers', name: 'Active Unique Clients' },
-                            { id: 'platform_health_score', name: 'Platform Health Score (%)' },
                           ]
                       ).map((m) => (
                         <option key={m.id} value={m.id}>
@@ -336,7 +335,7 @@ export default function MetricsPage() {
         title="Generate telemetry signals"
         description={
           <p>
-            Auto-compute and snapshot 7-day metric telemetry curves (gross revenue, completed appointments, active clients, and health score) based on live ledger appointments and storefront activity?
+            Compute every metric in the list (the last 7 days of takings, this month&apos;s revenue and average ticket, bookings, cancellations, active clients and subscription income) from each shop&apos;s real bookings and payments, and save today&apos;s values?
           </p>
         }
         confirmLabel="Generate Signals"
@@ -402,7 +401,7 @@ function RecordSnapshotDialog({
           </Select>
         </Field>
 
-        <Field label="Metric name" hint="Standard identifier, e.g. daily_revenue or platform_health_score">
+        <Field label="Metric name" hint="Standard identifier, e.g. daily_revenue or active_customers">
           <TextInput
             value={metricName}
             onChange={(e) => setMetricName(e.target.value)}

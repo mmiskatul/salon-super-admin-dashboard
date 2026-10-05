@@ -5,7 +5,7 @@ import { useApi } from '@/lib/useApi';
 import { listGallery } from '@/lib/api/profiles';
 import { getScheduleRange, type ScheduleDay } from '@/lib/api/schedule';
 import { getWorkingHoursFor } from '@/lib/api/workingHours';
-import { date as formatDate } from '@/lib/format';
+import { breakLabel, date as formatDate } from '@/lib/format';
 import { Badge, Loading } from './primitives';
 import { Modal } from './Form';
 import WalletPanel from './WalletPanel';
@@ -121,8 +121,8 @@ export default function BarberDetailModal({
                   {day.isOpen ? (
                     <span className="tabular text-ink-2">
                       {day.startTime} – {day.endTime}
-                      {day.breakTime && (
-                        <span className="text-ink-3"> (break {day.breakTime}{day.breakEndTime ? `–${day.breakEndTime}` : ''})</span>
+                      {breakLabel(day.breakTime, day.breakEndTime) && (
+                        <span className="text-ink-3"> (break {breakLabel(day.breakTime, day.breakEndTime)})</span>
                       )}
                     </span>
                   ) : (

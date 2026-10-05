@@ -520,9 +520,18 @@ export default function BookingsPage() {
                             )}
                           </Td>
                           <Td align="right">
-                            <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md border border-[#E2E8F0] bg-white text-[#635BFF] shadow-2xs hover:bg-[#635BFF] hover:text-white transition-all">
+                            {/* A real button, so the booking can be opened from the keyboard too (the
+                                row click alone was mouse-only). */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelected({ row, tenant });
+                              }}
+                              className="inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md border border-[#E2E8F0] bg-white text-[#635BFF] shadow-2xs hover:bg-[#635BFF] hover:text-white focus-visible:outline-2 focus-visible:outline-[#635BFF] transition-all"
+                            >
                               Manage
-                            </span>
+                            </button>
                           </Td>
                         </Tr>
                       );
@@ -594,7 +603,12 @@ function BookingDetailModal({
   const [updating, setUpdating] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [showCancelPrompt, setShowCancelPrompt] = useState(false);
-  const [cancelReason, setCancelReason] = useState('Customer requested via support');
+  // Must equal one of the <option> values below: it used to be a string no option had, so an admin
+  // who left the select as shown saved a reason that was never on screen.
+  const [cancelReason, setCancelReason] = useState('Customer requested cancellation via support');
+  // Completing settles the booking's payment and awards loyalty points; a no-show counts against the
+  // customer. Both used to happen on a single click.
+  const [confirming, setConfirming] = useState<'COMPLETED' | 'NO_SHOW' | null>(null);
 
   const customerName =
     row.customerName ??
@@ -686,7 +700,7 @@ function BookingDetailModal({
             value={row.isWalkIn ? 'Walk-in (Reception Desk)' : 'Customer Online App'}
           />
           <DetailRow label="Start Time" value={bookingDateTime(row.startAt)} />
-          <DetailRow label="End Time" value={dateTime(row.endAt)} />
+          <DetailRow label="End Time" value={bookingDateTime(row.endAt)} />
           {row.durationMinutes != null && (
             <DetailRow label="Duration" value={`${row.durationMinutes} min`} />
           )}
@@ -709,7 +723,36 @@ function BookingDetailModal({
               Super Admin Overrides
             </h4>
 
-            {showCancelPrompt ? (
+            {confirming ? (
+              <div className="space-y-2.5 rounded-lg border border-[#E2E8F0] bg-white p-3.5">
+                <p className="text-xs font-bold text-[#1E293B]">
+                  {confirming === 'COMPLETED' ? 'Mark this booking completed?' : 'Mark this booking a no-show?'}
+                </p>
+                <p className="text-xs text-[#64748B]">
+                  {confirming === 'COMPLETED'
+                    ? `This records ${money(row.price)} as paid at ${salonName} and gives ${customerName} their loyalty points.`
+                    : `This records that ${customerName} did not turn up. It counts against them, and the booking cannot be reopened.`}
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    disabled={updating}
+                    onClick={() => handleStatusChange(confirming)}
+                    className="px-3 py-1.5 text-xs font-bold text-white bg-[#1E293B] hover:bg-black rounded-md transition-colors disabled:opacity-50"
+                  >
+                    {updating ? 'Saving...' : confirming === 'COMPLETED' ? 'Mark Completed' : 'Mark No-Show'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updating}
+                    onClick={() => setConfirming(null)}
+                    className="px-3 py-1.5 text-xs font-medium text-[#64748B] hover:text-[#1E293B] rounded-md transition-colors"
+                  >
+                    Go Back
+                  </button>
+                </div>
+              </div>
+            ) : showCancelPrompt ? (
               <div className="space-y-2.5 rounded-lg border border-red-200 bg-red-50/50 p-3.5">
                 <p className="text-xs font-bold text-red-900">Confirm Cancellation Reason:</p>
                 <select
@@ -767,7 +810,7 @@ function BookingDetailModal({
                   <button
                     type="button"
                     disabled={updating}
-                    onClick={() => handleStatusChange('COMPLETED')}
+                    onClick={() => setConfirming('COMPLETED')}
                     className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-md transition-colors shadow-2xs disabled:opacity-50"
                   >
                     Mark Completed
@@ -777,7 +820,7 @@ function BookingDetailModal({
                 <button
                   type="button"
                   disabled={updating}
-                  onClick={() => handleStatusChange('NO_SHOW')}
+                  onClick={() => setConfirming('NO_SHOW')}
                   className="px-3 py-1.5 text-xs font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 rounded-md transition-colors disabled:opacity-50"
                 >
                   Mark No-Show

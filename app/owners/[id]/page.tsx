@@ -487,7 +487,7 @@ export default function OwnerDashboardDetailPage() {
                             {bookingTime(a.endAt)}
                           </div>
                         </Td>
-                        <Td className="text-ink text-[12px] font-medium">{a.guestName || a.customerId || 'Customer'}</Td>
+                        <Td className="text-ink text-[12px] font-medium">{a.guestName || a.customerName || (a.customerId ? 'Customer' : 'Walk-in')}</Td>
                         <Td className="text-ink-2 text-[12px]">{a.serviceName || 'Hair Service'}</Td>
                         <Td className="text-ink-3 text-[12px]">{a.durationMinutes ? `${a.durationMinutes} min` : '—'}</Td>
                         <Td className="font-semibold text-ink text-[12px] tabular">{money(a.price)}</Td>
@@ -623,7 +623,10 @@ export default function OwnerDashboardDetailPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-[12px] text-ink-3">Standard hours not configured.</p>
+                <p className="text-[12px] text-ink-3">
+                  This shop hasn&apos;t saved its opening hours yet. Each barber&apos;s own working hours still decide when
+                  customers can book.
+                </p>
               )}
             </Panel>
           </div>

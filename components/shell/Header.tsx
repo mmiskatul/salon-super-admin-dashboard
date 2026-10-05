@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Bell, Menu, Search, ShieldCheck } from 'lucide-react';
 import type { Session } from '@/lib/api-client';
 
@@ -11,6 +12,9 @@ interface HeaderProps {
 }
 
 export default function Header({ session, onOpenMobileNav }: HeaderProps) {
+  const router = useRouter();
+  const [term, setTerm] = useState('');
+
   return (
     <header className="h-[70px] md:h-[80px] bg-white border-b border-[#E2E8F0] flex items-center justify-between px-4 md:px-8 shrink-0 gap-4 sticky top-0 z-20 font-manrope">
       {/* Left: Mobile toggle & Global Search */}
@@ -25,14 +29,26 @@ export default function Header({ session, onOpenMobileNav }: HeaderProps) {
             <Menu className="w-5 h-5" />
           </button>
         )}
-        <div className="w-full relative">
+        {/* Finds an account by name, email or id. It was an input with nothing behind it. */}
+        <form
+          role="search"
+          className="w-full relative"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const q = term.trim();
+            router.push(q ? `/users?q=${encodeURIComponent(q)}` : '/users');
+          }}
+        >
           <Search className="w-4 h-4 md:w-5 md:h-5 text-[#94A3B8] absolute left-3.5 md:left-4 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search platform..."
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+            placeholder="Find a person by name or email"
+            aria-label="Find a person by name, email or account ID"
             className="w-full pl-9 md:pl-11 pr-4 py-2 md:py-2.5 rounded-full border border-[#E2E8F0] bg-white text-[13px] md:text-sm focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:border-transparent font-manrope transition-all placeholder:text-[#94A3B8]"
           />
-        </div>
+        </form>
       </div>
 
       {/* Right: Role indicator, notifications & operator profile */}

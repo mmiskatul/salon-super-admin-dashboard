@@ -30,7 +30,7 @@ import { useApi, useMutation } from '@/lib/useApi';
 import { getBarberCareer, getBarberDashboard, type BarberDashboardDetail } from '@/lib/api/barbers';
 import { banUser, unbanUser } from '@/lib/api/users';
 import { removeReview } from '@/lib/api/bookings';
-import { brandColor, count, date, money, shortId, rating, bookingDateTime } from '@/lib/format';
+import { brandColor, breakLabel, count, date, money, shortId, rating, bookingDateTime } from '@/lib/format';
 import {
   Badge,
   Button,
@@ -317,6 +317,8 @@ export default function BarberDetailPage() {
               {tab === 'Services & Pricing' && `💇 Services (${services.length})`}
               {tab === 'Wallet & Financials' && `💳 Digital Wallet`}
               {tab === 'Customer Reviews' && `⭐ Reviews (${reviews.length})`}
+              {/* This tab had no label, so it showed as an empty button nobody could tell apart. */}
+              {tab === 'Work History' && `🏢 Work History`}
               {tab === 'Portfolio Gallery' && `🖼️ Portfolio (${gallery.length})`}
               {tab === 'Account & Controls' && `⚙️ Admin Controls`}
             </button>
@@ -494,11 +496,10 @@ export default function BarberDetailPage() {
                       {day.isOpen ? (
                         <span className="tabular font-medium text-ink-2">
                           {day.startTime} – {day.endTime}
-                          {day.breakTime && (
+                          {breakLabel(day.breakTime, day.breakEndTime) && (
                             <span className="text-ink-3 font-normal">
                               {' '}
-                              (Break: {day.breakTime}
-                              {day.breakEndTime ? `–${day.breakEndTime}` : ''})
+                              (Break: {breakLabel(day.breakTime, day.breakEndTime)})
                             </span>
                           )}
                         </span>
