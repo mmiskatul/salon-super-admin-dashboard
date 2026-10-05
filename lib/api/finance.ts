@@ -43,8 +43,3 @@ export function listTransactions(arg1?: string | ListTransactionsParams): Promis
   return apiFetch<Transaction[]>(`/transactions${qs ? `?${qs}` : ''}`);
 }
 
-/** SUPER_ADMIN may refund any tenant's transaction — see transaction.controller.ts's `refund`. */
-export function refundTransaction(id: string): Promise<Transaction> {
-  return apiFetch<Transaction>(`/transactions/${encodeURIComponent(id)}/refund`, { method: 'PATCH' });
-}
-

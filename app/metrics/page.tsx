@@ -336,7 +336,7 @@ export default function MetricsPage() {
         title="Generate telemetry signals"
         description={
           <p>
-            Compute every metric in the list (the last 7 days of takings, this month&apos;s revenue and average ticket, bookings, cancellations, active clients and subscription income) from each shop&apos;s real bookings and payments, and save today&apos;s values?
+            Compute every metric in the list (the last 7 days of takings, this month&apos;s revenue and average ticket, bookings, cancellations, and active clients) from each shop&apos;s real bookings and payments, and save today&apos;s values?
           </p>
         }
         confirmLabel="Generate Signals"

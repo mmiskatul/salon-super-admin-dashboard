@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   RotateCw,
-  Undo2,
   Search,
   Building2,
   CreditCard,
@@ -18,8 +17,8 @@ import {
   Filter,
 } from 'lucide-react';
 import { listTenants, type Tenant } from '@/lib/api/tenants';
-import { listTransactions, refundTransaction, type Transaction } from '@/lib/api/finance';
-import { useApi, useMutation } from '@/lib/useApi';
+import { listTransactions, type Transaction } from '@/lib/api/finance';
+import { useApi } from '@/lib/useApi';
 import { brandColor, count, dateTime, money, shortId, toNumber } from '@/lib/format';
 import {
   Badge,
@@ -32,12 +31,10 @@ import {
   Panel,
   Stat,
 } from '@/components/ui/primitives';
-import { FormError, Modal } from '@/components/ui/Form';
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Ranked } from '@/components/chart/Chart';
 import Mark from '@/components/ui/Mark';
 
-const REFUNDABLE_TYPE = 'PAYMENT';
 const SETTLED_STATUSES = ['COMPLETED', 'PAID', 'SUCCEEDED', 'CAPTURED'];
 
 export default function PaymentsPage() {
@@ -46,9 +43,6 @@ export default function PaymentsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Refund modal state
-  const [refunding, setRefunding] = useState<{ row: Transaction; tenantName: string; brandColor?: string } | null>(null);
 
   // Load tenants roster for shop filter dropdown & fallback lookup with TanStack caching
   const tenantsApi = useApi(() => listTenants(), [], 'tenants');
@@ -130,8 +124,8 @@ export default function PaymentsPage() {
     let settledCount = 0;
     let pending = 0;
     let pendingCount = 0;
-    let refunded = 0;
-    let refundedCount = 0;
+    let cancelled = 0;
+    let cancelledCount = 0;
     const byShop = new Map<string, number>();
     const soloNames = new Map<string, string>();
 
@@ -139,9 +133,11 @@ export default function PaymentsPage() {
       const amount = toNumber(tx.amount);
       const status = String(tx.status).toUpperCase();
 
-      if (status === 'REFUNDED') {
-        refunded += amount;
-        refundedCount += 1;
+      if (status === 'CANCELLED' || status === 'FAILED' || status === 'REFUNDED') {
+        // Nothing to collect. Cancelled payments used to fall through into "pending", so the page
+        // claimed more was owed at the counter than the Overview did.
+        cancelled += amount;
+        cancelledCount += 1;
       } else if (SETTLED_STATUSES.includes(status)) {
         settled += amount;
         settledCount += 1;
@@ -149,17 +145,17 @@ export default function PaymentsPage() {
         const key = tx.tenantId ?? `barber:${tx.ownerUserId ?? 'unknown'}`;
         byShop.set(key, (byShop.get(key) ?? 0) + amount);
         if (!tx.tenantId && tx.tenantName) soloNames.set(key, tx.tenantName);
-      } else {
+      } else if (status === 'PENDING') {
         pending += amount;
         pendingCount += 1;
       }
     }
-    return { settled, settledCount, pending, pendingCount, refunded, refundedCount, byShop, soloNames };
+    return { settled, settledCount, pending, pendingCount, cancelled, cancelledCount, byShop, soloNames };
   }, [transactions]);
 
   // Available status types in current dataset
   const availableStatuses = useMemo(() => {
-    const set = new Set(['ALL', 'COMPLETED', 'PENDING', 'REFUNDED']);
+    const set = new Set(['ALL', 'COMPLETED', 'PENDING', 'CANCELLED']);
     for (const tx of transactions) {
       if (tx.status) set.add(tx.status.toUpperCase());
     }
@@ -167,7 +163,7 @@ export default function PaymentsPage() {
   }, [transactions]);
 
   const availableTypes = useMemo(() => {
-    const set = new Set(['ALL', 'PAYMENT', 'REFUND']);
+    const set = new Set(['ALL', 'PAYMENT', 'SALE']);
     for (const tx of transactions) {
       if (tx.type) set.add(tx.type.toUpperCase());
     }
@@ -179,7 +175,7 @@ export default function PaymentsPage() {
       <PageHead
         eyebrow="Finance & Activity"
         title="Payments"
-        lede="Every transaction recorded across platform shops, newest first. Real-time settled volumes, refunds, and live booking payments."
+        lede="Every transaction recorded across platform shops, newest first. Customers pay the shop in cash; SalunBD records what was paid and what is still owed at the counter."
         actions={
           <Button onClick={loadData} disabled={loading}>
             <RotateCw size={13} className={loading ? 'animate-spin' : ''} />
@@ -209,10 +205,10 @@ export default function PaymentsPage() {
                 sub={`${count(stats.pendingCount)} pending collection`}
               />
               <Stat
-                label="Refunded"
-                value={money(stats.refunded)}
-                tone={stats.refunded > 0 ? 'signal' : 'plain'}
-                sub={`${count(stats.refundedCount)} refunded`}
+                label="Cancelled"
+                value={money(stats.cancelled)}
+                tone="plain"
+                sub={`${count(stats.cancelledCount)} booking${stats.cancelledCount === 1 ? '' : 's'} cancelled before paying`}
               />
               <Stat
                 label="Shops Earning"
@@ -353,7 +349,6 @@ export default function PaymentsPage() {
                         <Th>Booking Details</Th>
                         <Th>Customer</Th>
                         <Th align="right">Amount</Th>
-                        <Th align="right">Actions</Th>
                       </tr>
                     </thead>
                     <tbody>
@@ -366,7 +361,6 @@ export default function PaymentsPage() {
                         const tenantLogo = row.tenantLogoUrl || tenant?.logoUrl;
                         const status = String(row.status).toUpperCase();
                         // Only money actually taken: an unpaid or cancelled payment has nothing to give back.
-                        const canRefund = row.type === REFUNDABLE_TYPE && (status === 'COMPLETED' || status === 'PAID');
                         const method = (row.paymentMethod || 'CASH').toUpperCase();
 
                         return (
@@ -467,24 +461,6 @@ export default function PaymentsPage() {
                               </span>
                             </Td>
 
-                            <Td align="right">
-                              {canRefund && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setRefunding({
-                                      row,
-                                      tenantName,
-                                      brandColor: tenantColor ?? undefined,
-                                    })
-                                  }
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-medium text-ink-2 hover:text-signal hover:bg-signal-soft/40 transition-colors"
-                                >
-                                  <Undo2 size={12} />
-                                  Refund
-                                </button>
-                              )}
-                            </Td>
                           </Tr>
                         );
                       })}
@@ -502,73 +478,6 @@ export default function PaymentsPage() {
         )}
       </Canvas>
 
-      {refunding && (
-        <RefundDialog
-          row={refunding.row}
-          tenantName={refunding.tenantName}
-          onClose={() => setRefunding(null)}
-          onRefunded={() => {
-            setRefunding(null);
-            loadData();
-          }}
-        />
-      )}
     </>
-  );
-}
-
-/**
- * Refunding a transaction.
- */
-function RefundDialog({
-  row,
-  tenantName,
-  onClose,
-  onRefunded,
-}: {
-  row: Transaction;
-  tenantName: string;
-  onClose: () => void;
-  onRefunded: () => void;
-}) {
-  const { mutate, pending, error } = useMutation(refundTransaction);
-
-  async function confirm() {
-    const result = await mutate(row.id);
-    if (result !== null) onRefunded();
-  }
-
-  return (
-    <Modal title="Refund transaction" onClose={onClose}>
-      <div className="space-y-4 font-manrope">
-        <p className="max-w-[56ch] text-[13px] leading-relaxed text-ink-2">
-          Refund <strong className="text-ink-1 font-semibold">{money(row.amount)}</strong> from{' '}
-          <strong className="text-ink-1 font-semibold">{tenantName}</strong>&apos;s ledger, recorded{' '}
-          {dateTime(row.createdAt)}
-          {row.serviceName && (
-            <>
-              {' '}for <strong className="text-ink-1">{row.serviceName}</strong>
-            </>
-          )}
-          {row.customerName && (
-            <>
-              {' '}booked by <strong className="text-ink-1">{row.customerName}</strong>
-            </>
-          )}
-          ? If this payment was funded from a customer wallet, the balance is credited back. This cannot be undone.
-        </p>
-
-        <FormError message={error} />
-
-        <div className="flex justify-end gap-2 border-t border-rule-soft pt-4">
-          <Button onClick={onClose} disabled={pending}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={confirm} disabled={pending}>
-            {pending ? 'Refunding...' : 'Confirm Refund'}
-          </Button>
-        </div>
-      </div>
-    </Modal>
   );
 }

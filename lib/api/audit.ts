@@ -1,10 +1,8 @@
 import { apiFetch } from '../api-client';
 
 /** Mirrors `model AdminAction` — every mutating action a platform operator has taken, recorded by
- *  AdminAuditService on the backend. Not all admin routes write here yet (see the backend commit
- *  that introduced this): tenant delete/suspend/unsuspend, user ban/unban, review removal, and a
- *  SUPER_ADMIN-initiated transaction refund are covered; subscription/broadcast/ticket-status
- *  changes are not yet. */
+ *  AdminAuditService on the backend: shops, users, reviews, coupons, loyalty, wallets, bookings,
+ *  reports and broadcasts. */
 export interface AdminAction {
   id: string;
   actorId: string;

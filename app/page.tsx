@@ -125,12 +125,9 @@ export default function OverviewPage() {
               </div>
             )}
 
-            {/* 2. Financial Command Center: GMV vs Net Platform Revenue vs Subscription MRR */}
+            {/* 2. Money: paid at shops, and still to be paid at the counter */}
             <FinancialCommandCenter
               totalRevenue={totals.revenue}
-              platformNetEarnings={overview?.summary?.platformNetEarnings}
-              subscriptionMrr={overview?.summary?.subscriptionMrr}
-              activeSubscriptions={overview?.summary?.activeSubscriptions}
               pendingPaymentsAmount={overview?.summary?.pendingPaymentsAmount}
               pendingPaymentsCount={overview?.summary?.pendingPaymentsCount}
               period={selectedPeriod}

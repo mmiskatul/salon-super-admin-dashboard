@@ -35,10 +35,6 @@ export interface PlatformSummaryDto {
   idleTenants: number;
   dormantTenants: number;
   totalRevenue: number;
-  /** The platform's own income: shop subscriptions (bookings carry no platform fee). */
-  platformNetEarnings: number;
-  subscriptionMrr: number;
-  activeSubscriptions?: number;
   /** Bookings still to be paid at the counter, across all shops. */
   pendingPaymentsAmount?: number;
   pendingPaymentsCount?: number;

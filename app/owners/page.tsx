@@ -173,7 +173,7 @@ export default function OwnerDashboardsPage() {
               <Stat label="Connected Barbers" value={count(totals.totalBarbers)} tone="plain" />
               <Stat label="Connected Clients" value={count(totals.totalClients)} tone="plain" />
               <Stat label="Total Bookings" value={count(totals.totalBookings)} tone="plain" />
-              <Stat label="Platform Revenue" value={money(totals.totalRevenue)} tone="live" />
+              <Stat label="Paid at shops" value={money(totals.totalRevenue)} tone="live" />
             </div>
 
             {/* Unsuspend / Unban run straight from the row, so their failures show here. */}

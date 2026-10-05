@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Banknote, Clock, Layers, ArrowUpRight, Wallet } from 'lucide-react';
+import { Banknote, Clock, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { count, money } from '@/lib/format';
 import type { PlatformPeriod } from '@/lib/api/platform';
@@ -9,33 +9,23 @@ import type { PlatformPeriod } from '@/lib/api/platform';
 interface FinancialCommandCenterProps {
   /** Completed payments at every shop. */
   totalRevenue: number;
-  /** What the platform itself earns: its subscriptions (it takes no cut of bookings). */
-  platformNetEarnings?: number;
-  subscriptionMrr?: number;
-  activeSubscriptions?: number;
   pendingPaymentsAmount?: number;
   pendingPaymentsCount?: number;
   period?: PlatformPeriod;
 }
 
 /**
- * The money picture, from the server's own figures. It used to invent most of it: a 5% "take-rate"
- * on every shop's takings (customers pay the shop in cash; there is no platform fee), ৳4,900 of
- * subscription income per busy shop when the server sent none, and "100% Settled / 0 pending
- * chargebacks" and "SaaS Ledger Verified" whatever the data said.
+ * The money picture, from the server's own figures: what customers paid at the shops, and what is
+ * still to be paid at the counter. SalunBD itself earns nothing yet (no subscription, no cut of the
+ * cash); a fee per transaction comes with online payment. It used to invent a 5% "take-rate",
+ * subscription income and "100% Settled" whatever the data said.
  */
 export default function FinancialCommandCenter({
   totalRevenue,
-  platformNetEarnings,
-  subscriptionMrr,
-  activeSubscriptions,
   pendingPaymentsAmount,
   pendingPaymentsCount,
   period = 'Monthly',
 }: FinancialCommandCenterProps) {
-  const income = platformNetEarnings ?? subscriptionMrr ?? 0;
-  const mrr = subscriptionMrr ?? 0;
-  const subs = activeSubscriptions ?? 0;
   const pendingCount = pendingPaymentsCount ?? 0;
 
   return (
@@ -49,7 +39,7 @@ export default function FinancialCommandCenter({
             </span>
           </div>
           <p className="text-[12px] font-medium text-[#94A3B8] mt-0.5">
-            What shops took, what the platform earns, and what is still to be paid at the counter
+            What customers paid at the shops, and what is still to be paid at the counter
           </p>
         </div>
 
@@ -60,36 +50,16 @@ export default function FinancialCommandCenter({
           >
             Payments <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
-          <Link
-            href="/subscriptions"
-            className="text-xs font-bold text-[#10B981] hover:text-[#059669] inline-flex items-center gap-1 hover:underline ml-2"
-          >
-            Subscriptions <ArrowUpRight className="w-3.5 h-3.5" />
-          </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
-        <Card
-          label="Platform income"
-          tone="indigo"
-          icon={<Wallet className="w-4 h-4 text-[#635BFF]" />}
-          value={money(income)}
-          sub="Shop subscriptions. Bookings carry no platform fee."
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
         <Card
           label="Paid at shops"
           tone="green"
           icon={<Banknote className="w-4 h-4 text-[#10B981]" />}
           value={money(totalRevenue)}
           sub="Completed payments across all shops, kept by the shops"
-        />
-        <Card
-          label="Subscriptions"
-          tone="amber"
-          icon={<Layers className="w-4 h-4 text-[#D97706]" />}
-          value={<>{money(mrr)}<span className="text-xs text-[#94A3B8] font-normal">/mo</span></>}
-          sub={subs === 0 ? 'No shop is on a paid plan yet' : `${count(subs)} active subscription${subs === 1 ? '' : 's'}`}
         />
         <Card
           label="To be paid at the counter"
@@ -99,6 +69,10 @@ export default function FinancialCommandCenter({
           sub={pendingCount === 0 ? 'Nothing outstanding' : `${count(pendingCount)} booking${pendingCount === 1 ? '' : 's'} not paid yet`}
         />
       </div>
+      <p className="pt-3 text-[11px] font-medium text-[#94A3B8]">
+        SalunBD is free for shops and barbers: no subscription, and no cut of the cash. A fee per transaction comes
+        with online payment.
+      </p>
     </div>
   );
 }

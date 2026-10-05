@@ -214,7 +214,7 @@ export default function PlatformRevenueChart({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#F1F5F9]">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-[16px] font-bold text-[#1E293B]">Platform Revenue Trajectory</h2>
+            <h2 className="text-[16px] font-bold text-[#1E293B]">Takings at shops</h2>
             {change && (
               <span
                 className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${
@@ -226,7 +226,7 @@ export default function PlatformRevenueChart({
             )}
           </div>
           <p className="text-[12px] font-medium text-[#94A3B8] mt-0.5">
-            Gross booking volume and settled tenant transactions across the network
+            What customers paid at all shops over time. SalunBD takes none of it.
           </p>
         </div>
 
