@@ -11,7 +11,8 @@ import { Badge } from './primitives';
 export default function LoyaltyPanel({ userId }: { userId: string }) {
   const loyalty = useApi<LoyaltyAccount | null>(
     () => (userId && userId !== 'undefined' && userId !== 'null' ? getLoyaltyFor(userId) : Promise.resolve(null)),
-    [userId]
+    [userId],
+    'loyalty-account',
   );
 
   if (loyalty.loading) {

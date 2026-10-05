@@ -58,7 +58,7 @@ export default function BarbersDirectoryPage() {
   const ban = useMutation(banUser);
   const unban = useMutation(unbanUser);
 
-  const { data: barbers, loading, error, refresh } = useApi(() => listAllBarbers(), []);
+  const { data: barbers, loading, error, refresh } = useApi(() => listAllBarbers(), [], 'barbers');
   const rows = barbers ?? [];
 
   // Summary Metrics across all barbers

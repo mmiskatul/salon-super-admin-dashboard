@@ -63,7 +63,7 @@ export default function OwnerDashboardsPage() {
   const ban = useMutation(banUser);
   const unban = useMutation(unbanUser);
 
-  const { data: dashboards, loading, error, refresh } = useApi(() => listOwnerDashboards(), []);
+  const { data: dashboards, loading, error, refresh } = useApi(() => listOwnerDashboards(), [], 'owner-dashboards');
 
   function copyText(txt: string) {
     navigator.clipboard.writeText(txt);

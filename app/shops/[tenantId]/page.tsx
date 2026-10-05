@@ -60,8 +60,8 @@ export default function ShopPage() {
   const [confirmingReviewRemoval, setConfirmingReviewRemoval] = useState<string | null>(null);
   const removeReviewMutation = useMutation(removeReview);
 
-  const shop = useApi(() => getTenant(tenantId), [tenantId]);
-  const shopDashboard = useApi(() => getShopDashboard(tenantId), [tenantId]);
+  const shop = useApi(() => getTenant(tenantId), [tenantId], 'tenant');
+  const shopDashboard = useApi(() => getShopDashboard(tenantId), [tenantId], 'shop-dashboard');
 
   const tabState = <T,>(rows: T[] | null | undefined) => ({
     data: rows ?? null,

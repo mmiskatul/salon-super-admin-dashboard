@@ -5,19 +5,21 @@ import { useApi } from '@/lib/useApi';
 import { listGallery } from '@/lib/api/profiles';
 import { getScheduleRange, type ScheduleDay } from '@/lib/api/schedule';
 import { getWorkingHoursFor } from '@/lib/api/workingHours';
-import { breakLabel, date as formatDate } from '@/lib/format';
+import { breakLabel, date as formatDate, isoDay } from '@/lib/format';
 import { Badge, Loading } from './primitives';
 import { Modal } from './Form';
 import WalletPanel from './WalletPanel';
 
+// The local calendar day (the console is used in Bangladesh). These were UTC days, so between
+// midnight and 6 am the "next 7 days" started yesterday.
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return isoDay();
 }
 
 function inDaysIso(days: number): string {
   const d = new Date();
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
+  d.setDate(d.getDate() + days);
+  return isoDay(d);
 }
 
 /**
@@ -36,9 +38,9 @@ export default function BarberDetailModal({
   name: string;
   onClose: () => void;
 }) {
-  const gallery = useApi(() => listGallery(userId), [userId]);
-  const schedule = useApi(() => getScheduleRange(userId, todayIso(), inDaysIso(6)), [userId]);
-  const workingHours = useApi(() => getWorkingHoursFor(userId), [userId]);
+  const gallery = useApi(() => listGallery(userId), [userId], 'gallery');
+  const schedule = useApi(() => getScheduleRange(userId, todayIso(), inDaysIso(6)), [userId], 'schedule-week');
+  const workingHours = useApi(() => getWorkingHoursFor(userId), [userId], 'working-hours');
 
   return (
     <Modal title={name} note="Portfolio, upcoming schedule, and wallet." onClose={onClose} wide>

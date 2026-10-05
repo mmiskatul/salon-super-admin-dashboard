@@ -65,7 +65,7 @@ export default function UserDetailPage() {
 
   const userApi = useApi(
     () => (id ? getUser(id) : Promise.reject(new Error('Missing user ID'))),
-    [id]
+    [id], 'user'
   );
 
   const user = userApi.data;
@@ -96,11 +96,11 @@ export default function UserDetailPage() {
       {user && (
         <>
           <PageHead
-            eyebrow={`User Details &middot; ${user.role}`}
+            eyebrow={`User Details · ${user.role}`}
             title={user.email}
             lede={
               user.name
-                ? `${user.name} &bull; Account created ${since(user.createdAt)} (${date(user.createdAt)})`
+                ? `${user.name} · Account created ${since(user.createdAt)} (${date(user.createdAt)})`
                 : `Account created ${since(user.createdAt)} (${date(user.createdAt)})`
             }
             actions={

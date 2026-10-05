@@ -30,8 +30,8 @@ export default function BroadcastsPage() {
   const [deletePending, setDeletePending] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const broadcastsApi = useApi(() => listRecentBroadcasts(), []);
-  const tenantsApi = useApi(() => listTenants(), []);
+  const broadcastsApi = useApi(() => listRecentBroadcasts(), [], 'broadcasts');
+  const tenantsApi = useApi(() => listTenants(), [], 'tenants');
 
   const tenantsMap = useMemo(() => {
     const map = new Map<string, string>();

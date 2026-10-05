@@ -43,6 +43,7 @@ export default function AuditLogPage() {
   const actions = useApi(
     () => listAdminActions({ targetType: targetType === 'ALL' ? undefined : targetType, page, limit: PAGE_SIZE }),
     [targetType, page],
+    'admin-actions',
   );
 
   const rows = actions.data?.data ?? [];

@@ -45,8 +45,8 @@ export default function CouponsPage() {
     error: null,
   });
 
-  const coupons = useApi(() => listCoupons(), []);
-  const tenants = useApi(() => listTenants(), []);
+  const coupons = useApi(() => listCoupons(), [], 'coupons');
+  const tenants = useApi(() => listTenants(), [], 'tenants');
 
   const tenantsMap = useMemo(() => {
     const map = new Map<string, string>();

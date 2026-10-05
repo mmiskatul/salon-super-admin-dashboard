@@ -1,4 +1,5 @@
 import { apiFetch } from '../api-client';
+import { isoDay } from '../format';
 import { listUsers, getUserWallet, getUserWalletEntries, type PlatformUser, type UserWallet, type UserWalletEntry } from './users';
 import { listTenants, type Tenant } from './tenants';
 import { listStaff, listSoloBarbers, type Staff, type SoloBarber } from './people';
@@ -82,14 +83,16 @@ export interface BarberDashboardDetail {
   gallery: GalleryPhoto[];
 }
 
+// The local calendar day (the console is used in Bangladesh). These were UTC days, so between
+// midnight and 6 am the "next 7 days" started yesterday.
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return isoDay();
 }
 
 function inDaysIso(days: number): string {
   const d = new Date();
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
+  d.setDate(d.getDate() + days);
+  return isoDay(d);
 }
 
 /**

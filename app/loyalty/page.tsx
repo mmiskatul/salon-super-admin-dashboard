@@ -50,7 +50,7 @@ const ICON_OPTIONS = [
 ];
 
 export default function LoyaltyPage() {
-  const loyaltyConfig = useApi(() => getLoyaltyConfig(), []);
+  const loyaltyConfig = useApi(() => getLoyaltyConfig(), [], 'loyalty-config');
 
   // Program Rules Modal State
   const [rulesOpen, setRulesOpen] = useState(false);

@@ -57,7 +57,7 @@ export default function BookingsPage() {
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   // Load salon roster for dropdown and tenant metadata lookup with TanStack caching
-  const tenantsApi = useApi(() => listTenants(), []);
+  const tenantsApi = useApi(() => listTenants(), [], 'tenants');
   const tenants = tenantsApi.data ?? [];
 
   // Load appointments with TanStack caching
@@ -88,6 +88,7 @@ export default function BookingsPage() {
       }
     },
     [shopFilter, useDateFilter, day, statusFilter, tenants],
+    'bookings',
   );
 
   const appointments = bookingsApi.data ?? [];

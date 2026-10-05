@@ -87,7 +87,7 @@ export default function OwnerDashboardDetailPage() {
   const unban = useMutation(unbanUser);
   const update = useMutation(updateTenant);
 
-  const { data, loading, error, refresh } = useApi(() => getOwnerDashboard(id), [id]);
+  const { data, loading, error, refresh } = useApi(() => getOwnerDashboard(id), [id], 'owner-dashboard');
 
   function copyText(txt: string) {
     navigator.clipboard.writeText(txt);

@@ -29,7 +29,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Line } from '@/components/chart/Chart';
 
 export default function MetricsPage() {
-  const tenants = useApi(() => listTenants(), []);
+  const tenants = useApi(() => listTenants(), [], 'tenants');
   const [tenantId, setTenantId] = useState('');
   const [metric, setMetric] = useState('daily_revenue');
   const [customMetric, setCustomMetric] = useState('');
@@ -46,9 +46,10 @@ export default function MetricsPage() {
       return metricSeries(queried.tenantId, queried.metric);
     },
     [queried],
+    'metric-series',
   );
 
-  const metricNamesApi = useApi(() => listMetricNames(tenantId || undefined), [tenantId]);
+  const metricNamesApi = useApi(() => listMetricNames(tenantId || undefined), [tenantId], 'metric-names');
 
   const tenant = tenants.data?.find((t) => t.id === (queried?.tenantId ?? tenantId));
   const colour = brandColor(tenant?.brandColor);

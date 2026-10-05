@@ -27,6 +27,7 @@ export default function SupportPage() {
   const tickets = useApi(
     () => listTickets({ status: statusFilter === 'ALL' ? undefined : statusFilter }),
     [statusFilter],
+    'tickets',
   );
 
   const activeTicketId =
@@ -35,6 +36,7 @@ export default function SupportPage() {
   const detailState = useApi(
     () => (activeTicketId ? getTicket(activeTicketId) : Promise.resolve(null)),
     [activeTicketId],
+    'ticket',
   );
   const ticketDetail = detailState.data;
 

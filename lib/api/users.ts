@@ -85,6 +85,15 @@ export async function getUserWallet(ownerId: string): Promise<UserWallet | null>
   }
 }
 
+/** Credit (positive) or debit (negative) someone's wallet by hand, with the reason they will see
+ *  on their ledger. SUPER_ADMIN; recorded in the audit log. A debit can't go below zero. */
+export function adjustWallet(ownerId: string, delta: number, reason: string): Promise<UserWallet> {
+  return apiFetch<UserWallet>('/wallets/adjust', {
+    method: 'POST',
+    body: JSON.stringify({ ownerId, delta, reason }),
+  });
+}
+
 export async function getUserWalletEntries(ownerId: string): Promise<UserWalletEntry[]> {
   try {
     const res = await apiFetch<any>(`/wallets/${encodeURIComponent(ownerId)}/entries`);

@@ -88,6 +88,7 @@ function UsersPageInner() {
         limit: PAGE_SIZE,
       }),
     [roleFilter, page, search],
+    'users',
   );
 
   function selectRole(r: RoleFilter) {
@@ -101,7 +102,7 @@ function UsersPageInner() {
     : (users.data?.data ?? []);
 
   // Names for the people and shops on this page: the table showed only emails and shop ids.
-  const tenants = useApi(() => listTenants(), []);
+  const tenants = useApi(() => listTenants(), [], 'tenants');
   const shopName = new Map((tenants.data ?? []).map((t) => [t.id, t.name]));
   const personName = (id: string) => rows.find((u) => u.id === id)?.name || null;
 

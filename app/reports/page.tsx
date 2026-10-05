@@ -32,7 +32,7 @@ function Person({ person, fallback }: { person: ReportPerson | null; fallback: s
 
 export default function ReportsPage() {
   const [status, setStatus] = useState<ReportStatus>('OPEN');
-  const reports = useApi(() => listReports(status), [status]);
+  const reports = useApi(() => listReports(status), [status], 'reports');
   const resolve = useMutation(resolveReport);
   const ban = useMutation(banUser);
   const list = reports.data ?? [];

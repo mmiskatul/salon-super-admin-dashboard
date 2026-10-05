@@ -30,8 +30,13 @@ function messageOf(err: unknown): string {
  */
 export function useApi<T>(
   loader: () => Promise<T>,
-  deps: unknown[] = [],
-  customKey?: string,
+  deps: unknown[],
+  /** Names this data in the cache, with `deps`. Must differ for different loaders and match for
+   *  the same one (e.g. 'tenants' for listTenants() on every page, so they share it). It used to
+   *  default to the first 120 characters of the loader's compiled source, and two loaders calling
+   *  different functions of one API file look identical that far (the long import prefix), so the
+   *  wallet panel's entries list was handed the wallet object and showed "0 transactions". */
+  key: string,
 ): AsyncState<T> {
   const queryClient = useQueryClient();
   const loaderRef = useRef(loader);
@@ -39,13 +44,11 @@ export function useApi<T>(
     loaderRef.current = loader;
   });
 
-  const queryKey = useMemo(() => {
-    if (customKey) return ['useApi', customKey, ...deps];
-    // Clean string representation of the loader to create a stable, deterministic key
-    const fnStr = loader.toString().replace(/\s+/g, ' ').slice(0, 120);
-    return ['useApi', fnStr, ...deps];
+  const queryKey = useMemo(
+    () => ['useApi', key, ...deps],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customKey, ...deps]);
+    [key, ...deps],
+  );
 
   const query = useQuery<T, Error>({
     queryKey,

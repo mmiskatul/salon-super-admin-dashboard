@@ -76,7 +76,7 @@ export default function BarberDetailPage() {
   const unban = useMutation(unbanUser);
   const deleteReviewMut = useMutation(removeReview);
 
-  const { data, loading, error, refresh } = useApi(() => getBarberDashboard(id), [id]);
+  const { data, loading, error, refresh } = useApi(() => getBarberDashboard(id), [id], 'barber-dashboard');
   const career = useApi(() => getBarberCareer(id), [id], 'barber-career');
 
   if (loading && !data) {

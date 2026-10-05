@@ -51,7 +51,7 @@ export default function PaymentsPage() {
   const [refunding, setRefunding] = useState<{ row: Transaction; tenantName: string; brandColor?: string } | null>(null);
 
   // Load tenants roster for shop filter dropdown & fallback lookup with TanStack caching
-  const tenantsApi = useApi(() => listTenants(), []);
+  const tenantsApi = useApi(() => listTenants(), [], 'tenants');
   const tenants = tenantsApi.data ?? [];
 
   // Primary fetch: directly query transactions from backend with TanStack caching
@@ -80,6 +80,7 @@ export default function PaymentsPage() {
       }
     },
     [shopFilter, statusFilter, typeFilter, tenants],
+    'transactions',
   );
 
   const transactions = transactionsApi.data ?? [];

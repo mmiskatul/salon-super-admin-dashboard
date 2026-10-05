@@ -23,8 +23,8 @@ const PREVIEW =
 
 export default function LegalPagesPage() {
   const [slug, setSlug] = useState<LegalSlug>('privacy-policy');
-  const summaries = useApi(() => listLegalDocuments(), []);
-  const detail = useApi(() => getLegalDocument(slug), [slug]);
+  const summaries = useApi(() => listLegalDocuments(), [], 'legal-documents');
+  const detail = useApi(() => getLegalDocument(slug), [slug], 'legal-document');
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');

@@ -52,8 +52,8 @@ export default function SubscriptionsPage() {
     error: null,
   });
 
-  const subsApi = useApi(() => listSubscriptions(), []);
-  const tenantsApi = useApi(() => listTenants(), []);
+  const subsApi = useApi(() => listSubscriptions(), [], 'subscriptions');
+  const tenantsApi = useApi(() => listTenants(), [], 'tenants');
 
   const tenantsMap = useMemo(() => {
     const map = new Map<string, string>();
