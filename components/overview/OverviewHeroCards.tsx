@@ -6,6 +6,8 @@ import { Stat } from '@/components/ui/primitives';
 import { count, compact, money } from '@/lib/format';
 import type { PlatformTotals } from '@/lib/api/platform';
 import { useAppSelector } from '@/lib/redux/hooks';
+import { usePlatformCharts } from '@/lib/query/platformQueries';
+import { periodChange } from '@/lib/trend';
 
 interface OverviewHeroCardsProps {
   totals: PlatformTotals;
@@ -19,12 +21,9 @@ export default function OverviewHeroCards({ totals, sweeping, swept }: OverviewH
   const completionRate =
     totals.appointments > 0 ? Math.round((totals.completed / totals.appointments) * 100) : 0;
 
-  const periodRevChange = {
-    Daily: '+8.4% Today',
-    Weekly: '+11.6% WoW',
-    Monthly: '+14.2% MoM',
-    Yearly: '+22.8% YoY',
-  }[selectedPeriod] || '+14.2% MoM';
+  // Real change against the previous period (these used to be fixed made-up figures).
+  const charts = usePlatformCharts(selectedPeriod);
+  const periodRevChange = periodChange(charts.data?.revenueTrend, selectedPeriod)?.label;
 
   const periodRevSub = {
     Daily: "Today's settled transactions",

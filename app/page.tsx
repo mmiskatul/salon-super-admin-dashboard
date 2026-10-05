@@ -65,7 +65,7 @@ export default function OverviewPage() {
       <PageHead
         eyebrow="Super Admin Console"
         title="Platform Overview"
-        lede="Executive command tower: SaaS financial performance, tenant onboarding lifecycle, booking fulfillment, and cluster health across all shops."
+        lede="Every shop on the platform: who is taking bookings, what they took, and whether the system is healthy."
         actions={
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <PeriodFilterBar showLabel={true} />
@@ -128,10 +128,11 @@ export default function OverviewPage() {
             {/* 2. Financial Command Center: GMV vs Net Platform Revenue vs Subscription MRR */}
             <FinancialCommandCenter
               totalRevenue={totals.revenue}
-              totalAppointments={totals.appointments}
-              activeSalons={totals.live}
               platformNetEarnings={overview?.summary?.platformNetEarnings}
               subscriptionMrr={overview?.summary?.subscriptionMrr}
+              activeSubscriptions={overview?.summary?.activeSubscriptions}
+              pendingPaymentsAmount={overview?.summary?.pendingPaymentsAmount}
+              pendingPaymentsCount={overview?.summary?.pendingPaymentsCount}
               period={selectedPeriod}
             />
 

@@ -16,6 +16,7 @@ import { Line } from 'react-chartjs-2';
 import { TrendingUp } from 'lucide-react';
 import { money } from '@/lib/format';
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
+import { periodChange } from '@/lib/trend';
 import { setSelectedPeriod } from '@/lib/redux/slices/platformSlice';
 import { usePlatformCharts } from '@/lib/query/platformQueries';
 import type { PlatformChartsDto } from '@/lib/api/platform';
@@ -204,6 +205,8 @@ export default function PlatformRevenueChart({
   };
 
   const avgTicket = totalAppointments > 0 ? totalRevenue / totalAppointments : 0;
+  // Against the previous period, from the same trend the chart draws (was a fixed "+14.8%").
+  const change = liveChart?.period?.toLowerCase() === period.toLowerCase() ? periodChange(liveChart.revenueTrend, period) : null;
 
   return (
     <div className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm font-manrope">
@@ -212,10 +215,15 @@ export default function PlatformRevenueChart({
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-[16px] font-bold text-[#1E293B]">Platform Revenue Trajectory</h2>
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#ECFDF5] px-2 py-0.5 text-[11px] font-bold text-[#10B981]">
-              <TrendingUp className="w-3 h-3" />
-              +14.8%
-            </span>
+            {change && (
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                  change.pct >= 0 ? 'bg-[#ECFDF5] text-[#10B981]' : 'bg-[#FEF2F2] text-[#DC2626]'
+                }`}>
+                <TrendingUp className="w-3 h-3" />
+                {change.label}
+              </span>
+            )}
           </div>
           <p className="text-[12px] font-medium text-[#94A3B8] mt-0.5">
             Gross booking volume and settled tenant transactions across the network
