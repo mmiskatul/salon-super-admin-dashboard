@@ -387,7 +387,7 @@ export default function ShopPage() {
                               <Td mono>{bookingDateTime(a.startAt)}</Td>
                               <Td muted>{a.serviceName ?? '—'}</Td>
                               <Td muted>
-                                {a.guestName ?? (a.customerId ? shortId(a.customerId) : '—')}
+                                {a.guestName ?? a.customerName ?? (a.customerId ? shortId(a.customerId) : '—')}
                                 {a.isWalkIn && <span className="text-ink-3"> · walk-in</span>}
                               </Td>
                               <Td>
@@ -585,6 +585,12 @@ export default function ShopPage() {
               <div className="space-y-6">
                 {hours.loading && <Loading label="Loading shop hours and policies" />}
                 {hours.error && <Failed message={hours.error} onRetry={hours.refresh} />}
+                {!hours.loading && !hours.error && !hours.data && (
+                  <Empty
+                    title="No shop hours set"
+                    hint="This shop hasn't saved its opening hours yet. Each barber's own working hours still decide when customers can book."
+                  />
+                )}
                 {hours.data && (
                   <>
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -625,8 +631,8 @@ export default function ShopPage() {
                                 <Td>
                                   {d.isOpen ? <Badge tone="live">Open</Badge> : <Badge tone="quiet">Closed</Badge>}
                                 </Td>
-                                <Td align="right" mono muted>{d.isOpen ? d.openTime ?? '—' : '—'}</Td>
-                                <Td align="right" mono muted>{d.isOpen ? d.closeTime ?? '—' : '—'}</Td>
+                                <Td align="right" mono muted>{d.isOpen ? d.startTime ?? d.openTime ?? '—' : '—'}</Td>
+                                <Td align="right" mono muted>{d.isOpen ? d.endTime ?? d.closeTime ?? '—' : '—'}</Td>
                               </Tr>
                             ))}
                           </tbody>

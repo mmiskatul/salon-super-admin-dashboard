@@ -617,7 +617,7 @@ export default function OwnerDashboardDetailPage() {
                     <div key={h.day} className="flex items-center justify-between text-[12px] py-1 border-b border-rule-soft last:border-0">
                       <span className="font-medium text-ink capitalize">{h.day}</span>
                       <span className={h.isOpen ? 'text-ink font-mono' : 'text-ink-3 italic'}>
-                        {h.isOpen ? `${h.openTime} - ${h.closeTime}` : 'Closed'}
+                        {h.isOpen ? `${h.startTime ?? h.openTime ?? '—'} - ${h.endTime ?? h.closeTime ?? '—'}` : 'Closed'}
                       </span>
                     </div>
                   ))}

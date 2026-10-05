@@ -12,6 +12,8 @@ export interface TicketMessage {
 export interface Ticket {
   id: string;
   userId: string;
+  /** Who raised it (their profile name), for the inbox. */
+  userName?: string | null;
   tenantId: string | null;
   subject: string;
   category?: string;

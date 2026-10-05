@@ -104,6 +104,10 @@ export function listLocations(tenantId: string): Promise<Location[]> {
 export interface DaySchedule {
   day: string;
   isOpen: boolean;
+  /** What the owner's Hours screen saves (same shape as a barber's Working Hours). */
+  startTime?: string;
+  endTime?: string;
+  /** Older name for the same fields. */
   openTime?: string;
   closeTime?: string;
 }

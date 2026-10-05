@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { RotateCw, Search, ExternalLink } from 'lucide-react';
 import { useApi } from '@/lib/useApi';
 import { listUsers, type PlatformUser } from '@/lib/api/users';
+import { listTenants } from '@/lib/api/tenants';
 import { count, date, initials, shortId, since } from '@/lib/format';
 import {
   Badge,
@@ -67,13 +68,20 @@ export default function UsersPage() {
     ? users.data
     : (users.data?.data ?? []);
 
+  // Names for the people and shops on this page: the table showed only emails and shop ids.
+  const tenants = useApi(() => listTenants(), []);
+  const shopName = new Map((tenants.data ?? []).map((t) => [t.id, t.name]));
+  const personName = (id: string) => rows.find((u) => u.id === id)?.name || null;
+
   const needle = query.trim().toLowerCase();
   const visible = rows.filter((u) => {
     if (!needle) return true;
     const email = (u?.email || '').toLowerCase();
     const id = (u?.id || '').toLowerCase();
     const tenantId = (u?.tenantId || '').toLowerCase();
-    return email.includes(needle) || id.includes(needle) || tenantId.includes(needle);
+    const name = (personName(u.id) || '').toLowerCase();
+    const shop = (u?.tenantId ? shopName.get(u.tenantId) || '' : '').toLowerCase();
+    return email.includes(needle) || id.includes(needle) || tenantId.includes(needle) || name.includes(needle) || shop.includes(needle);
   });
 
   const total = Array.isArray(users.data)
@@ -196,10 +204,10 @@ export default function UsersPage() {
                                   href={`/users/${u.id}`}
                                   className="block truncate font-medium text-ink hover:underline hover:text-signal transition-colors"
                                 >
-                                  {u.email}
+                                  {personName(u.id) || u.email}
                                 </Link>
-                                <span className="tabular font-mono text-[11px] text-ink-3">
-                                  {shortId(u.id)}
+                                <span className="block truncate text-[11px] text-ink-3">
+                                  {personName(u.id) ? u.email : shortId(u.id)}
                                 </span>
                               </div>
                             </div>
@@ -211,13 +219,15 @@ export default function UsersPage() {
                             {u.tenantId ? (
                               <Link
                                 href={`/shops/${u.tenantId}`}
-                                className="inline-flex items-center gap-1 font-mono text-[12px] text-ink hover:underline"
+                                className="inline-flex items-center gap-1 text-[12px] text-ink hover:underline"
                               >
-                                {shortId(u.tenantId)}
+                                {shopName.get(u.tenantId) || shortId(u.tenantId)}
                                 <ExternalLink size={10} className="text-ink-3" />
                               </Link>
                             ) : (
-                              <span className="text-[12px] text-ink-3">None / Solo</span>
+                              <span className="text-[12px] text-ink-3">
+                                {u.role === 'BARBER' ? 'Independent' : u.role === 'OWNER' ? 'No shop yet' : '—'}
+                              </span>
                             )}
                           </Td>
                           <Td>

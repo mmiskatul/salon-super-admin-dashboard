@@ -11,6 +11,8 @@ export interface PlatformUser {
   bannedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** The person's name (their profile), when they have set one. */
+  name?: string | null;
 }
 
 export interface PlatformUserPage {

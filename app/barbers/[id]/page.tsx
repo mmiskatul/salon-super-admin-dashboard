@@ -353,7 +353,7 @@ export default function BarberDetailPage() {
                   <tbody>
                     {appointments.map((a) => {
                       const isWalkIn = a.isWalkIn;
-                      const customerLabel = a.guestName || (a.customerId ? shortId(a.customerId) : 'Guest');
+                      const customerLabel = a.guestName || a.customerName || (a.customerId ? shortId(a.customerId) : 'Guest');
                       return (
                         <Tr key={a.id}>
                           <Td nowrap={false}>

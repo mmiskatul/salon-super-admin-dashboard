@@ -192,6 +192,8 @@ export async function listAllBarbers(): Promise<BarberSummary[]> {
 /**
  * Deep inspection and operations fetcher for an individual barber.
  */
+type RawReview = Omit<Review, 'customerName'>;
+
 export async function getBarberDashboard(userId: string): Promise<BarberDashboardDetail> {
   // Fetch user record and profile in parallel
   const [userRes, profileRes, soloBarbers, allTenants, gallery, schedule, workingHours, wallet, walletEntries] =
@@ -209,7 +211,6 @@ export async function getBarberDashboard(userId: string): Promise<BarberDashboar
 
   const user = userRes.data.find((u) => u.id === userId);
   const profile = profileRes[userId];
-  const isSolo = soloBarbers.some((s) => s.id === userId) || (!user?.tenantId);
 
   // Determine tenant and staff record if any
   let matchedTenant: Tenant | null = null;
@@ -235,6 +236,11 @@ export async function getBarberDashboard(userId: string): Promise<BarberDashboar
     matchedStaff = staffList.find((s) => s.userId === userId) || null;
   }
 
+  // Independent = not on any shop's team. It used to be decided by `user?.tenantId`, but `user` comes
+  // from a name/email search run with the id, which never matches, so every shop barber showed as
+  // "Independent Solo" (Rakib Hasan of Gulshan Grooming Lounge included).
+  const isSolo = !matchedTenant && (soloBarbers.some((s) => s.id === userId) || !user?.tenantId);
+
   // Fetch services: either from shop or solo owner services
   let services: ServiceItem[] = [];
   if (matchedTenant) {
@@ -255,15 +261,10 @@ export async function getBarberDashboard(userId: string): Promise<BarberDashboar
     }));
   }
 
-  // Fetch appointments for this barber
-  let appointments: Appointment[] = [];
-  if (matchedTenant) {
-    const tenantAppts = await listAppointments(matchedTenant.id).catch(() => []);
-    // Filter to appointments where staffId matches staffRecord.id or userId
-    appointments = tenantAppts.filter(
-      (a) => a.staffId === userId || (matchedStaff && a.staffId === matchedStaff.id),
-    );
-  }
+  // This barber's bookings across the platform, with customer names (GET /appointments?staffId=,
+  // which a SUPER_ADMIN may ask cross-shop). Only a shop's bookings used to be fetched, so an
+  // independent barber's page had none, and customers showed as ids.
+  const appointments: Appointment[] = await listAppointments({ staffId: userId }).catch(() => []);
 
   // Fetch reviews for this barber
   let reviews: Review[] = [];
@@ -272,6 +273,13 @@ export async function getBarberDashboard(userId: string): Promise<BarberDashboar
     reviews = tenantReviews.filter(
       (r) => r.staffId === userId || (matchedStaff && r.staffId === matchedStaff.id),
     );
+  } else {
+    // An independent barber has no shop review list: their own (GET /reviews?staffId=).
+    const own = await apiFetch<RawReview[]>(`/reviews?staffId=${encodeURIComponent(userId)}`).catch(() => [] as RawReview[]);
+    const names = await profilesByIds([...new Set(own.map((r) => r.customerId).filter(Boolean))]).catch(
+      () => ({}) as Record<string, UserProfile>,
+    );
+    reviews = own.map((r) => ({ ...r, customerName: names[r.customerId]?.name || 'Customer' }));
   }
 
   // Group appointments into connected clients
@@ -296,7 +304,7 @@ export async function getBarberDashboard(userId: string): Promise<BarberDashboar
     }
 
     const key = a.customerId ? `user:${a.customerId}` : `guest:${a.guestPhone || a.guestName || a.id}`;
-    const name = a.guestName || (a.customerId ? `Customer ${a.customerId.slice(0, 6)}` : 'Walk-in Guest');
+    const name = a.guestName || a.customerName || (a.customerId ? `Customer ${a.customerId.slice(0, 6)}` : 'Walk-in Guest');
     const phone = a.guestPhone || null;
 
     const existing = clientMap.get(key);

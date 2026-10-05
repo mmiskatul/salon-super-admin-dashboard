@@ -72,6 +72,10 @@ export default function SupportPage() {
   const pendingCount = allTickets.filter((t) => t.status === 'IN_PROGRESS').length;
   const resolvedCount = allTickets.filter((t) => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
 
+  // Who raised each ticket, by name (the queue showed account ids).
+  const raiserName = (id: string) =>
+    allTickets.find((t) => t.userId === id)?.userName || (ticketDetail?.userId === id ? ticketDetail.userName : null) || shortId(id);
+
   const needle = searchQuery.trim().toLowerCase();
   const visible = allTickets.filter((t) => {
     if (!needle) return true;
@@ -80,7 +84,8 @@ export default function SupportPage() {
       t.subject.toLowerCase().includes(needle) ||
       (t.category && t.category.toLowerCase().includes(needle)) ||
       (t.tenantId && t.tenantId.toLowerCase().includes(needle)) ||
-      t.userId.toLowerCase().includes(needle)
+      t.userId.toLowerCase().includes(needle) ||
+      raiserName(t.userId).toLowerCase().includes(needle)
     );
   });
 
@@ -205,7 +210,7 @@ export default function SupportPage() {
                           {t.category || 'General'}
                         </span>
                         <span>·</span>
-                        <span>{shortId(t.userId)}</span>
+                        <span>{raiserName(t.userId)}</span>
                         <span>·</span>
                         <span className="tabular">{since(t.createdAt)}</span>
                       </div>
@@ -248,7 +253,7 @@ export default function SupportPage() {
               <>
                 <Panel
                   title={ticketDetail.subject || 'Untitled ticket'}
-                  note={`Ticket #${shortId(ticketDetail.id)} · Raised by ${ticketDetail.userId}`}
+                  note={`Ticket #${shortId(ticketDetail.id)} · Raised by ${raiserName(ticketDetail.userId)}`}
                   actions={
                     <div className="flex items-center gap-2">
                       <select
