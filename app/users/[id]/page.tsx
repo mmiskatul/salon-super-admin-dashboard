@@ -32,6 +32,7 @@ import {
 import { Field, FormError, TextInput } from '@/components/ui/Form';
 import WalletPanel from '@/components/ui/WalletPanel';
 import LoyaltyPanel from '@/components/ui/LoyaltyPanel';
+import CustomerInsights from '@/components/insights/CustomerInsights';
 
 export function UserRoleBadge({ role }: { role?: string }) {
   const normalized = (role || '').toUpperCase();
@@ -356,6 +357,12 @@ export default function UserDetailPage() {
                 )}
               </div>
             </div>
+            {user.role === 'CUSTOMER' && (
+              <section className="space-y-3">
+                <h2 className="text-[17px] font-extrabold text-[#1E293B]">Customer activity</h2>
+                <CustomerInsights userId={id} />
+              </section>
+            )}
           </Canvas>
         </>
       )}

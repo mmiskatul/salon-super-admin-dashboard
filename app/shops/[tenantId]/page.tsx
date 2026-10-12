@@ -31,6 +31,7 @@ import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Field, FormError, Modal, TextInput } from '@/components/ui/Form';
 import Mark from '@/components/ui/Mark';
 import BarberDetailModal from '@/components/ui/BarberDetailModal';
+import ShopInsights from '@/components/insights/ShopInsights';
 
 const TABS = [
   'Barbers',
@@ -156,9 +157,9 @@ export default function ShopPage() {
                   )}
                   {tenant.isSuspended && <Badge tone="signal">Suspended</Badge>}
                   {tenant.isListed ? (
-                    <Badge tone="live">Visible to customers</Badge>
+                    <Badge tone="live">Listed (not unlisted by support)</Badge>
                   ) : (
-                    <Badge tone="signal">Hidden from customers</Badge>
+                    <Badge tone="signal">Unlisted by support</Badge>
                   )}
                   {tenant.joinCode && <Badge>Join code {tenant.joinCode}</Badge>}
                   <Badge tone="quiet">{shortId(tenant.id)}</Badge>
@@ -697,6 +698,10 @@ export default function ShopPage() {
             )}
           </div>
         </Panel>
+        <section className="space-y-3">
+          <h2 className="text-[17px] font-extrabold text-[#1E293B]">Shop insights</h2>
+          <ShopInsights tenantId={tenantId} />
+        </section>
       </Canvas>
 
       {editing && (
@@ -850,7 +855,7 @@ function EditShopDialog({
         </div>
 
         <label
-          aria-label="Visible to customers"
+          aria-label="Listed"
           className="flex items-start gap-2.5 border border-rule bg-ground px-3 py-2.5"
         >
           <input
@@ -860,10 +865,11 @@ function EditShopDialog({
             className="mt-0.5"
           />
           <span>
-            <span className="block text-[13px] font-medium">Visible to customers</span>
+            <span className="block text-[13px] font-medium">Listed</span>
             <span className="mt-0.5 block max-w-[52ch] text-[12px] leading-relaxed text-ink-2">
               Turn this off to take the shop out of customer search and discovery without deleting
-              anything. Its existing bookings are unaffected.
+              anything. Its existing bookings are unaffected. Even when listed, customers only see it
+              once its service, hours, map pin and photo are all set (see Shop insights below).
             </span>
           </span>
         </label>
