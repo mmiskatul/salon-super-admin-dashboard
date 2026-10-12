@@ -24,9 +24,8 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 export default function CouponsPage() {
   const [query, setQuery] = useState('');
-  const [filterShop, setFilterShop] = useState('ALL');
+  const [filterShop] = useState('ALL');
   const [creating, setCreating] = useState(false);
-  const [busyId, setBusyId] = useState<string | null>(null);
 
   const [confirmAction, setConfirmAction] = useState<{
     open: boolean;
@@ -216,7 +215,6 @@ export default function CouponsPage() {
                         const shopName =
                           c.shopName || (c.tenantId && tenantsMap.get(c.tenantId)) || (c.tenantId ? c.tenantId : 'Independent barber');
                         const ownerHref = c.tenantId ? `/shops/${c.tenantId}` : c.ownerUserId ? `/barbers/${c.ownerUserId}` : null;
-                        const isBusy = busyId === c.id;
 
                         return (
                           <Tr key={c.id}>

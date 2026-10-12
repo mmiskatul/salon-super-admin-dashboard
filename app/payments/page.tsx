@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   RotateCw,
@@ -13,7 +13,6 @@ import {
   Clock,
   RefreshCw,
   XCircle,
-  ArrowDownRight,
   Filter,
 } from 'lucide-react';
 import { listTenants, type Tenant } from '@/lib/api/tenants';
@@ -46,7 +45,7 @@ export default function PaymentsPage() {
 
   // Load tenants roster for shop filter dropdown & fallback lookup with TanStack caching
   const tenantsApi = useApi(() => listTenants(), [], 'tenants');
-  const tenants = tenantsApi.data ?? [];
+  const tenants = useMemo(() => tenantsApi.data ?? [], [tenantsApi.data]);
 
   // Primary fetch: directly query transactions from backend with TanStack caching
   const transactionsApi = useApi(
@@ -77,7 +76,7 @@ export default function PaymentsPage() {
     'transactions',
   );
 
-  const transactions = transactionsApi.data ?? [];
+  const transactions = useMemo(() => transactionsApi.data ?? [], [transactionsApi.data]);
   const loading = transactionsApi.loading;
   const error = transactionsApi.error;
   const loadData = transactionsApi.refresh;

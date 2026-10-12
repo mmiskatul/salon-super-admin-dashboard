@@ -49,10 +49,7 @@ export default function LegalPagesPage() {
 
   // The preview is rendered by the API, exactly as the public page will be.
   useEffect(() => {
-    if (!content.trim()) {
-      setPreviewHtml('');
-      return;
-    }
+    if (!content.trim()) return;
     let current = true;
     const timer = setTimeout(() => {
       previewLegalDocument(content)
@@ -187,7 +184,7 @@ export default function LegalPagesPage() {
               <Panel title="Preview" note="Exactly as the public page will show it">
                 <h1 className="font-manrope text-[24px] font-extrabold text-[#1E293B]">{title || 'Untitled'}</h1>
                 {/* Rendered and escaped by the API (legal-markdown.ts): only a fixed set of tags. */}
-                <div className={PREVIEW} dangerouslySetInnerHTML={{ __html: previewHtml }} />
+                <div className={PREVIEW} dangerouslySetInnerHTML={{ __html: content.trim() ? previewHtml : '' }} />
               </Panel>
 
               <Panel title="Published versions" note={doc.versions.length ? undefined : 'Nothing published yet: the built-in text is live.'}>

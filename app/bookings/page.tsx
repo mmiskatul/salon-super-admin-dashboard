@@ -1,10 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertCircle,
-  Calendar,
   CheckCircle,
   ChevronLeft,
   ChevronRight,
@@ -12,10 +11,8 @@ import {
   Filter,
   Phone,
   RotateCw,
-  Scissors,
   Search,
   Store,
-  User,
   X,
 } from 'lucide-react';
 import { listTenants, type Tenant } from '@/lib/api/tenants';
@@ -58,7 +55,7 @@ export default function BookingsPage() {
 
   // Load salon roster for dropdown and tenant metadata lookup with TanStack caching
   const tenantsApi = useApi(() => listTenants(), [], 'tenants');
-  const tenants = tenantsApi.data ?? [];
+  const tenants = useMemo(() => tenantsApi.data ?? [], [tenantsApi.data]);
 
   // Load appointments with TanStack caching
   const bookingsApi = useApi(
@@ -91,7 +88,7 @@ export default function BookingsPage() {
     'bookings',
   );
 
-  const appointments = bookingsApi.data ?? [];
+  const appointments = useMemo(() => bookingsApi.data ?? [], [bookingsApi.data]);
   const loading = bookingsApi.loading;
   const error = bookingsApi.error;
   const fetchBookings = bookingsApi.refresh;

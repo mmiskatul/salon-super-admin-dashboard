@@ -2,29 +2,22 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   RotateCw,
   Search,
-  ExternalLink,
   ShieldAlert,
-  ShieldCheck,
   Scissors,
-  Users,
-  Calendar,
-  DollarSign,
   Store,
   Eye,
   Star,
   Lock,
   Unlock,
-  Building2,
   Sparkles,
 } from 'lucide-react';
 import { useApi, useMutation } from '@/lib/useApi';
 import { listAllBarbers, type BarberSummary } from '@/lib/api/barbers';
 import { banUser, unbanUser } from '@/lib/api/users';
-import { count, date, initials, money, rating, shortId, brandColor } from '@/lib/format';
+import { count, date, initials, rating, shortId, brandColor } from '@/lib/format';
 import {
   Badge,
   Button,
@@ -45,7 +38,6 @@ type TypeFilter = 'ALL' | 'SHOP_STAFF' | 'SOLO';
 type StatusFilter = 'ALL' | 'ACTIVE' | 'BANNED';
 
 export default function BarbersDirectoryPage() {
-  const router = useRouter();
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('ALL');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
@@ -59,7 +51,7 @@ export default function BarbersDirectoryPage() {
   const unban = useMutation(unbanUser);
 
   const { data: barbers, loading, error, refresh } = useApi(() => listAllBarbers(), [], 'barbers');
-  const rows = barbers ?? [];
+  const rows = useMemo(() => barbers ?? [], [barbers]);
 
   // Summary Metrics across all barbers
   const totals = useMemo(() => {

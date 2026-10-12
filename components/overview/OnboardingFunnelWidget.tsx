@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle2, ChevronRight, AlertTriangle, ArrowRight, Store } from 'lucide-react';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import type { Tenant } from '@/lib/api/tenants';
 import type { TenantVitals } from '@/lib/api/platform';
@@ -85,7 +85,7 @@ export default function OnboardingFunnelWidget({
 
       {/* Visual Funnel Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 pt-4">
-        {stages.map((st, idx) => (
+        {stages.map((st) => (
           <div key={st.name} className="relative p-3 rounded-lg bg-[#F8FAFC] border border-[#F1F5F9]">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-[#64748B]">{st.name}</span>

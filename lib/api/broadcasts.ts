@@ -24,15 +24,15 @@ export function listRecentBroadcasts(): Promise<BroadcastNotification[]> {
   return apiFetch<BroadcastNotification[]>('/notifications/recent');
 }
 
-export function sendBroadcast(input: SendBroadcastInput): Promise<{ count: number; notification?: any }> {
-  return apiFetch<{ count: number; notification?: any }>('/notifications/broadcast', {
+export function sendBroadcast(input: SendBroadcastInput): Promise<{ count: number; notification?: BroadcastNotification }> {
+  return apiFetch<{ count: number; notification?: BroadcastNotification }>('/notifications/broadcast', {
     method: 'POST',
     body: JSON.stringify(input),
   });
 }
 
-export function deleteBroadcast(id: string): Promise<any> {
-  return apiFetch<any>(`/notifications/broadcast/${encodeURIComponent(id)}`, {
+export function deleteBroadcast(id: string): Promise<unknown> {
+  return apiFetch<unknown>(`/notifications/broadcast/${encodeURIComponent(id)}`, {
     method: 'DELETE',
   });
 }

@@ -2,16 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import {
   ArrowLeft,
   ShieldAlert,
-  Scissors,
-  Users,
-  Calendar,
-  DollarSign,
   Star,
-  Clock,
   Lock,
   Unlock,
   Building2,
@@ -20,14 +15,11 @@ import {
   RotateCw,
   ImageOff,
   Trash2,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
   MapPin,
   Sparkles,
 } from 'lucide-react';
 import { useApi, useMutation } from '@/lib/useApi';
-import { getBarberCareer, getBarberDashboard, type BarberDashboardDetail } from '@/lib/api/barbers';
+import { getBarberCareer, getBarberDashboard } from '@/lib/api/barbers';
 import { banUser, unbanUser } from '@/lib/api/users';
 import { removeReview } from '@/lib/api/bookings';
 import { brandColor, breakLabel, count, date, money, shortId, rating, bookingDateTime } from '@/lib/format';
@@ -64,7 +56,6 @@ type Tab = (typeof TABS)[number];
 export default function BarberDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
-  const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<Tab>('Appointments & Bookings');
   const [banning, setBanning] = useState(false);

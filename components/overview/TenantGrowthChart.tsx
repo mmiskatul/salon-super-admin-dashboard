@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import type { ChartOptions } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { Store, ArrowUpRight, Calendar } from 'lucide-react';
 import type { PlatformTotals, TenantVitals } from '@/lib/api/platform';
@@ -154,7 +155,7 @@ export default function TenantGrowthChart({ totals, tenants, vitals, period = 'M
         ],
   };
 
-  const chartOptions: any = {
+  const chartOptions: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -166,14 +167,14 @@ export default function TenantGrowthChart({ totals, tenants, vitals, period = 'M
           boxWidth: 10,
           boxHeight: 10,
           usePointStyle: true,
-          font: { family: 'Manrope', size: 11, weight: '600' },
+          font: { family: 'Manrope', size: 11, weight: 600 },
           color: '#64748B',
         },
       },
       tooltip: {
         backgroundColor: '#1E293B',
-        titleFont: { family: 'Manrope', size: 12, weight: '700' },
-        bodyFont: { family: 'Manrope', size: 11, weight: '600' },
+        titleFont: { family: 'Manrope', size: 12, weight: 700 },
+        bodyFont: { family: 'Manrope', size: 11, weight: 600 },
         padding: 10,
         cornerRadius: 8,
       },
@@ -182,18 +183,16 @@ export default function TenantGrowthChart({ totals, tenants, vitals, period = 'M
       x: {
         grid: { display: false },
         ticks: {
-          font: { family: 'Manrope', size: 11, weight: '600' },
+          font: { family: 'Manrope', size: 11, weight: 600 },
           color: '#94A3B8',
         },
       },
       y: {
         stacked: true,
-        grid: {
-          color: '#F1F5F9',
-          drawBorder: false,
-        },
+        grid: { color: '#F1F5F9' },
+        border: { display: false },
         ticks: {
-          font: { family: 'Manrope', size: 11, weight: '500' },
+          font: { family: 'Manrope', size: 11, weight: 500 },
           color: '#94A3B8',
           stepSize: 1,
         },

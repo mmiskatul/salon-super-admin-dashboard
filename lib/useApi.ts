@@ -44,10 +44,12 @@ export function useApi<T>(
     loaderRef.current = loader;
   });
 
+  // One stable key per (key, deps) value; deps are plain values (ids, filters, page numbers).
+  const keyHash = JSON.stringify([key, ...deps]);
   const queryKey = useMemo(
     () => ['useApi', key, ...deps],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [key, ...deps],
+    [keyHash],
   );
 
   const query = useQuery<T, Error>({

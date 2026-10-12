@@ -1,5 +1,4 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { Tenant } from '@/lib/api/tenants';
 
 export interface TenantsSliceState {
   searchQuery: string;

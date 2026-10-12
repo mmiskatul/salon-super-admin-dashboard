@@ -48,9 +48,9 @@ export function generateMetrics(tenantId?: string): Promise<{ message: string; c
   });
 }
 
-export function getMetricSummary(tenantId?: string): Promise<any> {
+export function getMetricSummary(tenantId?: string): Promise<Record<string, unknown>> {
   const query = tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : '';
-  return apiFetch<any>(`/metrics/summary${query}`);
+  return apiFetch<Record<string, unknown>>(`/metrics/summary${query}`);
 }
 
 export function listMetricSnapshots(params?: {

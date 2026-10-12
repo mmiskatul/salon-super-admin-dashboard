@@ -60,8 +60,9 @@ export async function getUser(id: string): Promise<PlatformUser & { name?: strin
     return await apiFetch<PlatformUser & { name?: string; phone?: string; avatarUrl?: string }>(
       `/auth/users/${encodeURIComponent(id)}`
     );
-  } catch (err: any) {
-    if (err?.status === 404 || err?.statusCode === 404) {
+  } catch (err) {
+    const status = (err as { status?: number; statusCode?: number } | null) ?? {};
+    if (status.status === 404 || status.statusCode === 404) {
       // Fallback for backends where /auth/users/:id is pending deploy
       const res = await listUsers({ search: id, limit: 10 });
       const list = Array.isArray(res) ? res : (res?.data ?? []);
@@ -74,9 +75,9 @@ export async function getUser(id: string): Promise<PlatformUser & { name?: strin
 
 export async function getUserWallet(ownerId: string): Promise<UserWallet | null> {
   try {
-    const res = await apiFetch<any>(`/wallets/${encodeURIComponent(ownerId)}`);
+    const res = await apiFetch<UserWallet | { data?: UserWallet }>(`/wallets/${encodeURIComponent(ownerId)}`);
     if (res && typeof res === 'object') {
-      if ('data' in res && res.data) return res.data as UserWallet;
+      if ('data' in res && res.data) return res.data;
       return res as UserWallet;
     }
     return null;
@@ -96,7 +97,7 @@ export function adjustWallet(ownerId: string, delta: number, reason: string): Pr
 
 export async function getUserWalletEntries(ownerId: string): Promise<UserWalletEntry[]> {
   try {
-    const res = await apiFetch<any>(`/wallets/${encodeURIComponent(ownerId)}/entries`);
+    const res = await apiFetch<UserWalletEntry[] | { data?: UserWalletEntry[]; entries?: UserWalletEntry[] }>(`/wallets/${encodeURIComponent(ownerId)}/entries`);
     if (Array.isArray(res)) return res;
     if (Array.isArray(res?.data)) return res.data;
     if (Array.isArray(res?.entries)) return res.entries;

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import type { ChartOptions, TooltipItem } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { CalendarCheck, CheckCircle2, Clock, XCircle, Calendar } from 'lucide-react';
 import type { PlatformTotals } from '@/lib/api/platform';
@@ -38,7 +39,7 @@ export default function BookingOutcomesChart({ totals, period = 'Monthly' }: Boo
     ],
   };
 
-  const chartOptions: any = {
+  const chartOptions: ChartOptions<'doughnut'> = {
     responsive: true,
     maintainAspectRatio: false,
     cutout: '76%',
@@ -46,12 +47,12 @@ export default function BookingOutcomesChart({ totals, period = 'Monthly' }: Boo
       legend: { display: false },
       tooltip: {
         backgroundColor: '#1E293B',
-        titleFont: { family: 'Manrope', size: 12, weight: '700' },
-        bodyFont: { family: 'Manrope', size: 11, weight: '600' },
+        titleFont: { family: 'Manrope', size: 12, weight: 700 },
+        bodyFont: { family: 'Manrope', size: 11, weight: 600 },
         padding: 10,
         cornerRadius: 8,
         callbacks: {
-          label: (ctx: any) => ` ${ctx.label}: ${ctx.raw} (${Math.round((ctx.raw / total) * 100)}%)`,
+          label: (ctx: TooltipItem<'doughnut'>) => ` ${ctx.label}: ${ctx.raw} (${Math.round((Number(ctx.raw) / total) * 100)}%)`,
         },
       },
     },

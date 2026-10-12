@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,6 +12,7 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
+import type { ChartOptions, ScriptableContext, TooltipItem } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { TrendingUp } from 'lucide-react';
 import { money } from '@/lib/format';
@@ -49,7 +50,9 @@ export default function PlatformRevenueChart({
   const chartsQuery = usePlatformCharts(period);
   const liveChart = chart ?? chartsQuery.data ?? null;
 
-  const { labels, currentData, previousData } = useMemo(() => {
+  // Cheap to work out on every render; a manual useMemo here kept the React Compiler from
+  // optimising this component at all.
+  const { labels, currentData, previousData } = (() => {
     if (
       liveChart &&
       liveChart.period?.toLowerCase() === period.toLowerCase() &&
@@ -110,7 +113,7 @@ export default function PlatformRevenueChart({
     });
     const cur = months.map((_, i) => (i === 5 ? totalRevenue : 0));
     return { labels: months, currentData: cur, previousData: [0, 0, 0, 0, 0, 0] };
-  }, [period, totalRevenue, liveChart]);
+  })();
 
   const chartData = {
     labels,
@@ -119,7 +122,7 @@ export default function PlatformRevenueChart({
         label: 'Current Period',
         data: currentData,
         borderColor: '#635BFF',
-        backgroundColor: (context: any) => {
+        backgroundColor: (context: ScriptableContext<'line'>) => {
           const ctx = context.chart.ctx;
           const gradient = ctx.createLinearGradient(0, 0, 0, 300);
           gradient.addColorStop(0, 'rgba(99, 91, 255, 0.22)');
@@ -150,7 +153,7 @@ export default function PlatformRevenueChart({
     ],
   };
 
-  const chartOptions: any = {
+  const chartOptions: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
@@ -166,19 +169,19 @@ export default function PlatformRevenueChart({
           boxWidth: 12,
           boxHeight: 12,
           usePointStyle: true,
-          font: { family: 'Manrope', size: 11, weight: '600' },
+          font: { family: 'Manrope', size: 11, weight: 600 },
           color: '#64748B',
         },
       },
       tooltip: {
         backgroundColor: '#1E293B',
-        titleFont: { family: 'Manrope', size: 12, weight: '700' },
-        bodyFont: { family: 'Manrope', size: 11, weight: '600' },
+        titleFont: { family: 'Manrope', size: 12, weight: 700 },
+        bodyFont: { family: 'Manrope', size: 11, weight: 600 },
         padding: 10,
         cornerRadius: 8,
         displayColors: true,
         callbacks: {
-          label: (context: any) => ` ${context.dataset.label}: ${money(context.parsed.y)}`,
+          label: (context: TooltipItem<'line'>) => ` ${context.dataset.label}: ${money(context.parsed.y)}`,
         },
       },
     },
@@ -186,19 +189,17 @@ export default function PlatformRevenueChart({
       x: {
         grid: { display: false },
         ticks: {
-          font: { family: 'Manrope', size: 11, weight: '500' },
+          font: { family: 'Manrope', size: 11, weight: 500 },
           color: '#94A3B8',
         },
       },
       y: {
-        grid: {
-          color: '#F1F5F9',
-          drawBorder: false,
-        },
+        grid: { color: '#F1F5F9' },
+        border: { display: false },
         ticks: {
-          font: { family: 'Manrope', size: 11, weight: '500' },
+          font: { family: 'Manrope', size: 11, weight: 500 },
           color: '#94A3B8',
-          callback: (value: any) => `৳ ${Number(value).toLocaleString()}`,
+          callback: (value: string | number) => `৳ ${Number(value).toLocaleString()}`,
         },
       },
     },

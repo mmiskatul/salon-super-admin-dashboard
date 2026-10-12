@@ -9,28 +9,18 @@ import {
   Pencil,
   ShieldAlert,
   ShieldCheck,
-  Building2,
-  Users,
-  Calendar,
-  DollarSign,
-  Scissors,
   Copy,
   Check,
   Store,
-  Clock,
-  MapPin,
-  Package,
   Star,
-  FileText,
   Lock,
   Unlock,
-  AlertTriangle,
   Mail,
   Phone,
   RotateCw,
 } from 'lucide-react';
 import { useApi, useMutation } from '@/lib/useApi';
-import { getOwnerDashboard, type OwnerDashboardDetail } from '@/lib/api/owners';
+import { getOwnerDashboard } from '@/lib/api/owners';
 import { suspendTenant, unsuspendTenant, updateTenant } from '@/lib/api/tenants';
 import { banUser, unbanUser } from '@/lib/api/users';
 import { brandColor, count, dateTime, money, shortId, since, bookingDate, bookingTime } from '@/lib/format';
@@ -41,13 +31,11 @@ import {
   Empty,
   Failed,
   Loading,
-  PageHead,
   Panel,
   Stat,
 } from '@/components/ui/primitives';
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Field, FormError, Modal, TextInput } from '@/components/ui/Form';
-import Mark from '@/components/ui/Mark';
 import BarberDetailModal from '@/components/ui/BarberDetailModal';
 
 const TABS = [

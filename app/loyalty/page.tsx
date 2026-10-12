@@ -2,11 +2,7 @@
 
 import React, { useState } from 'react';
 import {
-  Award,
-  Coins,
   Edit2,
-  Gift,
-  HelpCircle,
   Plus,
   RotateCw,
   Sliders,
@@ -19,7 +15,6 @@ import {
   addLoyaltyReward,
   deleteLoyaltyReward,
   getLoyaltyConfig,
-  type LoyaltyProgramConfig,
   type LoyaltyRewardItem,
   updateLoyaltyConfig,
   updateLoyaltyReward,
@@ -117,8 +112,8 @@ export default function LoyaltyPage() {
       });
       await loyaltyConfig.refresh();
       setRulesOpen(false);
-    } catch (err: any) {
-      setRulesError(err?.message || 'Failed to update program rules');
+    } catch (err) {
+      setRulesError((err instanceof Error && err.message) || 'Failed to update program rules');
     } finally {
       setRulesPending(false);
     }
@@ -180,8 +175,8 @@ export default function LoyaltyPage() {
       }
       await loyaltyConfig.refresh();
       setRewardOpen(false);
-    } catch (err: any) {
-      setRewardError(err?.message || 'Failed to save reward tier');
+    } catch (err) {
+      setRewardError((err instanceof Error && err.message) || 'Failed to save reward tier');
     } finally {
       setRewardPending(false);
     }
@@ -205,11 +200,11 @@ export default function LoyaltyPage() {
       await deleteLoyaltyReward(deleteConfirm.reward.id);
       await loyaltyConfig.refresh();
       setDeleteConfirm((prev) => ({ ...prev, open: false, pending: false }));
-    } catch (err: any) {
+    } catch (err) {
       setDeleteConfirm((prev) => ({
         ...prev,
         pending: false,
-        error: err?.message || 'Failed to delete reward tier',
+        error: (err instanceof Error && err.message) || 'Failed to delete reward tier',
       }));
     }
   }

@@ -25,17 +25,19 @@ export default function WalletPanel({ userId }: { userId: string }) {
   const wallet: UserWallet | null =
     rawWallet && typeof rawWallet === 'object'
       ? 'data' in rawWallet && rawWallet.data
-        ? (rawWallet as any).data
+        ? (rawWallet as { data: UserWallet }).data
         : (rawWallet as UserWallet)
       : null;
 
   const rawEntries = entriesApi.data;
+  // Older servers wrapped the list as { data } or { entries }.
+  const wrapped = rawEntries as unknown as { data?: UserWalletEntry[]; entries?: UserWalletEntry[] } | null;
   const entries: UserWalletEntry[] = Array.isArray(rawEntries)
     ? rawEntries
-    : Array.isArray((rawEntries as any)?.data)
-    ? (rawEntries as any).data
-    : Array.isArray((rawEntries as any)?.entries)
-    ? (rawEntries as any).entries
+    : Array.isArray(wrapped?.data)
+    ? wrapped.data
+    : Array.isArray(wrapped?.entries)
+    ? wrapped.entries
     : [];
 
   const refresh = () => {

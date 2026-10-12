@@ -56,8 +56,8 @@ export function updateCoupon(
   });
 }
 
-export function deleteCoupon(id: string): Promise<any> {
-  return apiFetch<any>(`/coupons/${encodeURIComponent(id)}`, {
+export function deleteCoupon(id: string): Promise<unknown> {
+  return apiFetch<unknown>(`/coupons/${encodeURIComponent(id)}`, {
     method: 'DELETE',
   });
 }

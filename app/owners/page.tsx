@@ -2,23 +2,18 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   RotateCw,
   Search,
-  ExternalLink,
   ShieldAlert,
   ShieldCheck,
-  Building2,
   Users,
   Calendar,
-  DollarSign,
   Scissors,
   Eye,
   Copy,
   Check,
   Store,
-  AlertTriangle,
   Lock,
   Unlock,
 } from 'lucide-react';
@@ -26,7 +21,7 @@ import { useApi, useMutation } from '@/lib/useApi';
 import { listOwnerDashboards, type OwnerDashboardSummary } from '@/lib/api/owners';
 import { suspendTenant, unsuspendTenant } from '@/lib/api/tenants';
 import { banUser, unbanUser } from '@/lib/api/users';
-import { brandColor, count, date, money, shortId, since } from '@/lib/format';
+import { brandColor, count, money, since } from '@/lib/format';
 import {
   Badge,
   Button,
@@ -40,13 +35,11 @@ import {
 } from '@/components/ui/primitives';
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Field, FormError, Modal, TextInput } from '@/components/ui/Form';
-import Mark from '@/components/ui/Mark';
 
 type StatusFilter = 'ALL' | 'ACTIVE' | 'SUSPENDED' | 'BANNED';
 type SortKey = 'revenue' | 'barbers' | 'clients' | 'bookings' | 'newest' | 'name';
 
 export default function OwnerDashboardsPage() {
-  const router = useRouter();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [sortKey, setSortKey] = useState<SortKey>('revenue');
@@ -71,7 +64,7 @@ export default function OwnerDashboardsPage() {
     setTimeout(() => setCopiedCode(null), 2000);
   }
 
-  const rows = dashboards ?? [];
+  const rows = useMemo(() => dashboards ?? [], [dashboards]);
 
   // Summary Metrics across all owners
   const totals = useMemo(() => {

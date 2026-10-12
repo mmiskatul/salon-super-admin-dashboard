@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import {
   ArrowLeft,
   Calendar,
@@ -15,10 +15,9 @@ import {
   ShieldAlert,
   ShieldCheck,
   Store,
-  User as UserIcon,
 } from 'lucide-react';
 import { useApi, useMutation } from '@/lib/useApi';
-import { banUser, getUser, unbanUser, type PlatformUser } from '@/lib/api/users';
+import { banUser, getUser, unbanUser } from '@/lib/api/users';
 import { date, initials, since } from '@/lib/format';
 import {
   Badge,
@@ -55,7 +54,6 @@ export function UserRoleBadge({ role }: { role?: string }) {
 export default function UserDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id ? decodeURIComponent(params.id) : '';
-  const router = useRouter();
 
   const [banning, setBanning] = useState(false);
   const [banReason, setBanReason] = useState('');
@@ -284,6 +282,7 @@ export default function UserDetailPage() {
                               value={banReason}
                               onChange={(e) => setBanReason(e.target.value)}
                               placeholder="e.g. Terms violation, abusive behavior, fraud"
+                              // eslint-disable-next-line jsx-a11y/no-autofocus -- first field of a dialog the admin just opened
                               autoFocus
                             />
                           </Field>

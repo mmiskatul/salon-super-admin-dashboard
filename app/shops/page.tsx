@@ -258,9 +258,12 @@ export default function ShopsPage() {
                             {date(tenant.createdAt)}
                           </Td>
                           <Td align="right">
+                            {/* Only keeps a click or key press on these buttons from also opening the row. */}
                             <div
+                              role="presentation"
                               className="flex items-center justify-end gap-1.5"
                               onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
                             >
                               <Link
                                 href={`/owners/${tenant.id}`}

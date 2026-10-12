@@ -33,8 +33,8 @@ export default function LoyaltyPanel({ userId }: { userId: string }) {
 
   const rawAccount = loyalty.data;
   const account =
-    rawAccount && typeof rawAccount === 'object' && 'data' in rawAccount && (rawAccount as any).data
-      ? (rawAccount as any).data
+    rawAccount && typeof rawAccount === 'object' && 'data' in rawAccount && (rawAccount as { data?: LoyaltyAccount }).data
+      ? (rawAccount as { data: LoyaltyAccount }).data
       : rawAccount;
 
   if (loyalty.error || !account) {
@@ -46,10 +46,11 @@ export default function LoyaltyPanel({ userId }: { userId: string }) {
   }
 
   const rawTx = account.recentTransactions;
-  const recentTransactions: any[] = Array.isArray(rawTx)
+  const legacy = account as LoyaltyAccount & { transactions?: LoyaltyAccount['recentTransactions'] };
+  const recentTransactions: LoyaltyAccount['recentTransactions'] = Array.isArray(rawTx)
     ? rawTx
-    : Array.isArray((account as any)?.transactions)
-    ? (account as any).transactions
+    : Array.isArray(legacy.transactions)
+    ? legacy.transactions
     : [];
 
   return (

@@ -24,7 +24,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 export default function BroadcastsPage() {
   const [query, setQuery] = useState('');
-  const [filterShop, setFilterShop] = useState('ALL');
+  const [filterShop] = useState('ALL');
   const [composing, setComposing] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
   const [deletePending, setDeletePending] = useState(false);
@@ -69,8 +69,8 @@ export default function BroadcastsPage() {
       await deleteBroadcast(deleteTarget.id);
       await broadcastsApi.refresh();
       setDeleteTarget(null);
-    } catch (err: any) {
-      setDeleteError(err?.message || 'Could not delete broadcast. Please try again.');
+    } catch (err) {
+      setDeleteError((err instanceof Error && err.message) || 'Could not delete broadcast. Please try again.');
     } finally {
       setDeletePending(false);
     }
@@ -164,7 +164,6 @@ export default function BroadcastsPage() {
                     <tbody>
                       {filtered.map((b) => {
                         const shopName = b.tenantName || (b.tenantId ? tenantsMap.get(b.tenantId) ?? b.tenantId : null);
-                        const isBusy = deletePending && deleteTarget?.id === b.id;
 
                         return (
                           <Tr key={b.id}>
@@ -334,7 +333,7 @@ function SendBroadcastModal({ tenants, onClose, onSuccess }: SendModalProps) {
         <Field label="Notification category">
           <Select
             value={category}
-            onChange={(e) => setCategory(e.target.value as any)}
+            onChange={(e) => setCategory(e.target.value as 'SYSTEM' | 'PROMOTION' | 'BOOKING' | 'REMINDER')}
           >
             <option value="SYSTEM">System Announcement</option>
             <option value="PROMOTION">Promotional Alert</option>

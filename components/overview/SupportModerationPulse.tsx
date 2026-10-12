@@ -3,12 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import {
   LifeBuoy,
-  MessageSquare,
   Star,
   CheckCircle2,
   ArrowUpRight,
-  ShieldAlert,
-  Clock,
 } from 'lucide-react';
 import Link from 'next/link';
 import { listTickets, type Ticket } from '@/lib/api/support';
@@ -27,7 +24,7 @@ interface SupportModerationPulseProps {
 
 export default function SupportModerationPulse({ totals, period = 'Monthly', trustPulse }: SupportModerationPulseProps) {
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   useEffect(() => {
     listTickets()

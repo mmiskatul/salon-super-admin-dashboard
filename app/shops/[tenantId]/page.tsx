@@ -921,6 +921,7 @@ function SuspendShopDialog({
         <FormError message={error} />
 
         <Field label="Reason (optional)" hint="Shown on the shop page and recorded in the audit log.">
+          {/* eslint-disable-next-line jsx-a11y/no-autofocus -- first field of a dialog the admin just opened */}
           <TextInput value={reason} onChange={(e) => setReason(e.target.value)} autoFocus />
         </Field>
 
@@ -979,6 +980,7 @@ function DeleteShopDialog({
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
             className="tabular"
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- first field of a dialog the admin just opened
             autoFocus
           />
         </Field>
