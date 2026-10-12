@@ -116,7 +116,7 @@ export default function OverviewPage() {
             </div>
 
             <div className="grid gap-5 lg:grid-cols-3">
-              <Panel title="People using the apps" note="Signed in at least once in the period">
+              <Panel title="People using the apps" note="Signed in at least once in the period" actions={<Link href="/logins" className="text-[12px] font-bold text-[#635BFF]">Daily logins</Link>}>
                 <MiniList rows={[
                   { label: 'Today', value: `${o.active.day.total} (${o.active.day.customers} customers · ${o.active.day.partners} partners)` },
                   { label: 'Last 7 days', value: `${o.active.week.total} (${o.active.week.customers} · ${o.active.week.partners})` },

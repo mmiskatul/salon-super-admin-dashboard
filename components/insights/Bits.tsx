@@ -72,7 +72,7 @@ export function Columns({
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /** Day-of-week x hour-of-day counts (7 x 24), darker = busier. */
-export function Heatmap({ grid }: { grid: number[][] }) {
+export function Heatmap({ grid, unit = 'booking' }: { grid: number[][]; unit?: string }) {
   const max = Math.max(1, ...grid.flat());
   const hours = Array.from({ length: 24 }, (_, h) => h);
   const label = (h: number) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`);
@@ -92,7 +92,7 @@ export function Heatmap({ grid }: { grid: number[][] }) {
             <tr key={d}>
               <th className="pr-2 text-right text-[11px] font-bold text-[#64748B]">{DAYS[d]}</th>
               {row.map((v, h) => (
-                <td key={h} title={`${DAYS[d]} ${label(h)}: ${v} booking${v === 1 ? '' : 's'}`}
+                <td key={h} title={`${DAYS[d]} ${label(h)}: ${v} ${unit}${v === 1 ? '' : 's'}`}
                   className="h-5 w-5 min-w-5 rounded-[3px]"
                   style={{ backgroundColor: v ? `rgba(99, 91, 255, ${0.15 + (v / max) * 0.85})` : '#F1F5F9' }} />
               ))}

@@ -15,6 +15,7 @@ import {
   Gauge,
   History,
   LifeBuoy,
+  LogIn,
   LogOut,
   MapPinned,
   type LucideIcon,
@@ -65,6 +66,7 @@ const GROUPS: { heading: string; items: NavItem[] }[] = [
     heading: 'People',
     items: [
       { href: '/users', label: 'All accounts', icon: Users, hint: 'Every customer, shop owner, barber and admin' },
+      { href: '/logins', label: 'Daily logins', icon: LogIn, hint: 'How many people use the apps each day, who and when' },
       { href: '/growth', label: 'Customers & growth', icon: Sprout, hint: 'Sign-ups, active users, push reach and referrals' },
       { href: '/owners', label: 'Shop owners', icon: Briefcase, hint: 'Each owner and their shop dashboard' },
       { href: '/barbers', label: 'Barbers & stylists', icon: Scissors, hint: 'Shop barbers and independent barbers' },

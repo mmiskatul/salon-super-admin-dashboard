@@ -372,3 +372,115 @@ export const CANCEL_GROUP_LABELS: Record<CancelGroup, string> = {
   SYSTEM: 'System (not accepted / time passed)',
   ADMIN: 'SalunBD admin',
 };
+
+/* ── Daily logins (GET /admin/insights/logins) ─────────────────────────── */
+
+export type LoginRole = 'CUSTOMER' | 'BARBER' | 'OWNER' | 'STAFF' | 'SUPER_ADMIN';
+export type LoginMethod = 'PASSWORD' | 'GOOGLE' | 'SIGN_UP';
+
+export interface LoginDay {
+  day: string;
+  active: number;
+  signedIn: number;
+  newUsers: number;
+  returning: number;
+  byRole: Record<string, number>;
+}
+
+export interface ActivePerson {
+  userId: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  avatarUrl: string | null;
+  role: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  signIns: number;
+  renewals: number;
+  platform: string | null;
+  joinedAt: string | null;
+  isNew: boolean;
+  signInTimes: { at: string; method: LoginMethod; platform: string | null }[];
+}
+
+export interface Logins {
+  today: string;
+  days: InsightDays;
+  /** First day anything was recorded; nothing exists before it. */
+  trackingSince: string | null;
+  summary: {
+    activeToday: number;
+    signedInToday: number;
+    newToday: number;
+    activeYesterday: number;
+    signedInYesterday: number;
+    onlineNow: number;
+    onlineByRole: Counted[];
+    uniqueActive: number;
+    averageActive: number | null;
+    averageSignedIn: number | null;
+    peak: { day: string; active: number } | null;
+    signIns: number;
+  };
+  series: LoginDay[];
+  methods: Counted[];
+  platforms: Counted[];
+  signInRoles: Counted[];
+  /** Sign-ins by weekday (Sun first) and hour, Bangladesh time. */
+  weekHours: number[][];
+  day: {
+    day: string;
+    signInHours: number[];
+    active: number;
+    signInCount: number;
+    total: number;
+    page: number;
+    pageSize: number;
+    people: ActivePerson[];
+  };
+  recent: { at: string; userId: string; name: string | null; email: string | null; role: string; method: LoginMethod; platform: string | null }[];
+}
+
+export interface LoginsParams {
+  days: InsightDays;
+  day?: string;
+  role?: LoginRole | '';
+  q?: string;
+  page: number;
+  pageSize: number;
+}
+
+export function getLogins(p: LoginsParams) {
+  const qs = new URLSearchParams({ days: String(p.days), page: String(p.page), pageSize: String(p.pageSize) });
+  if (p.day) qs.set('day', p.day);
+  if (p.role) qs.set('role', p.role);
+  if (p.q?.trim()) qs.set('q', p.q.trim());
+  return apiFetch<Logins>(`/admin/insights/logins?${qs}`);
+}
+
+export const LOGIN_ROLE_LABELS: Record<LoginRole, string> = {
+  CUSTOMER: 'Customers',
+  BARBER: 'Barbers',
+  OWNER: 'Shop owners',
+  STAFF: 'Shop staff',
+  SUPER_ADMIN: 'Admins',
+};
+export const LOGIN_ROLE_COLORS: Record<LoginRole, string> = {
+  CUSTOMER: '#635BFF',
+  BARBER: '#0EA5E9',
+  OWNER: '#F59E0B',
+  STAFF: '#16A34A',
+  SUPER_ADMIN: '#94A3B8',
+};
+export const LOGIN_METHOD_LABELS: Record<LoginMethod, string> = {
+  PASSWORD: 'Email & password',
+  GOOGLE: 'Google',
+  SIGN_UP: 'New account',
+};
+export const PLATFORM_LABELS: Record<string, string> = {
+  ANDROID: 'Android',
+  IOS: 'iPhone',
+  WEB: 'Web browser',
+  UNKNOWN: 'Unknown',
+};
