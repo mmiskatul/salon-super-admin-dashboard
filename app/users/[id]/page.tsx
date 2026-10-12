@@ -32,6 +32,7 @@ import { Field, FormError, TextInput } from '@/components/ui/Form';
 import WalletPanel from '@/components/ui/WalletPanel';
 import LoyaltyPanel from '@/components/ui/LoyaltyPanel';
 import CustomerInsights from '@/components/insights/CustomerInsights';
+import AccountControls from '@/components/control/AccountControls';
 
 export function UserRoleBadge({ role }: { role?: string }) {
   const normalized = (role || '').toUpperCase();
@@ -238,6 +239,8 @@ export default function UserDetailPage() {
                     </div>
                   </div>
                 </Panel>
+
+                <AccountControls user={user} onChanged={() => void userApi.refresh()} />
 
                 {/* Suspension & Ban Moderation Card */}
                 {user.role !== 'SUPER_ADMIN' && (

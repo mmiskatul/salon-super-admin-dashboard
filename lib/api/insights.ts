@@ -299,7 +299,7 @@ export interface Overview {
   };
 }
 
-export interface NavCounts { openReports: number; openTickets: number; hiddenListings: number; bookingsWaiting: number; joinRequests: number }
+export interface NavCounts { openReports: number; openTickets: number; hiddenListings: number; bookingsWaiting: number; joinRequests: number; deletionRequests: number }
 
 export type CancelGroup = 'CUSTOMER' | 'SHOP' | 'SYSTEM' | 'ADMIN';
 export type BoardDays = 0 | 7 | 30 | 90 | 365;

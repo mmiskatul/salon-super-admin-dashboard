@@ -32,6 +32,8 @@ import { Field, FormError, Modal, TextInput } from '@/components/ui/Form';
 import Mark from '@/components/ui/Mark';
 import BarberDetailModal from '@/components/ui/BarberDetailModal';
 import ShopInsights from '@/components/insights/ShopInsights';
+import ServicesEditor from '@/components/control/ServicesEditor';
+import { NotifyButton } from '@/components/control/NotifyDialog';
 
 const TABS = [
   'Barbers',
@@ -698,6 +700,13 @@ export default function ShopPage() {
             )}
           </div>
         </Panel>
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-[17px] font-extrabold text-[#1E293B]">Admin controls</h2>
+            <NotifyButton target={{ tenantId }} targetLabel={`${shop.data?.name ?? 'this shop'}'s owner and team`} label="Notify owner & team" />
+          </div>
+          <ServicesEditor tenantId={tenantId} />
+        </section>
         <section className="space-y-3">
           <h2 className="text-[17px] font-extrabold text-[#1E293B]">Shop insights</h2>
           <ShopInsights tenantId={tenantId} />

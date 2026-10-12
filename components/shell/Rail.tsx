@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Award,
+  BellRing,
   BadgeEuro,
   Briefcase,
   CalendarCheck,
@@ -28,6 +29,7 @@ import {
   Tag,
   TrendingUp,
   Users,
+  UserX,
   Wallet,
   X,
 } from 'lucide-react';
@@ -66,6 +68,7 @@ const GROUPS: { heading: string; items: NavItem[] }[] = [
       { href: '/growth', label: 'Customers & growth', icon: Sprout, hint: 'Sign-ups, active users, push reach and referrals' },
       { href: '/owners', label: 'Shop owners', icon: Briefcase, hint: 'Each owner and their shop dashboard' },
       { href: '/barbers', label: 'Barbers & stylists', icon: Scissors, hint: 'Shop barbers and independent barbers' },
+      { href: '/deletions', label: 'Account deletions', icon: UserX, hint: 'Owners waiting for their account and shop to be deleted, and every deleted account', badge: 'deletionRequests' },
     ],
   },
   {
@@ -93,8 +96,9 @@ const GROUPS: { heading: string; items: NavItem[] }[] = [
     ],
   },
   {
-    heading: 'Trust & support',
+    heading: 'Messaging & trust',
     items: [
+      { href: '/notify', label: 'Notify people', icon: BellRing, hint: 'Send a notification to anyone: people, a shop, a group or everyone' },
       { href: '/safety', label: 'Trust & safety', icon: ShieldAlert, hint: 'Repeat offenders, blocks, bans, low ratings and chat speed' },
       { href: '/reports', label: 'Reports', icon: Flag, hint: 'Reported reviews, messages, photos and accounts', badge: 'openReports' },
       { href: '/support', label: 'Support', icon: LifeBuoy, hint: 'Support tickets from the apps', badge: 'openTickets' },

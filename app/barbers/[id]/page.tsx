@@ -39,6 +39,8 @@ import { Field, FormError, Modal, TextInput } from '@/components/ui/Form';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import Mark from '@/components/ui/Mark';
 import WalletPanel from '@/components/ui/WalletPanel';
+import ServicesEditor from '@/components/control/ServicesEditor';
+import { NotifyButton } from '@/components/control/NotifyDialog';
 
 const TABS = [
   'Appointments & Bookings',
@@ -870,6 +872,12 @@ export default function BarberDetailPage() {
                 )}
               </div>
             </Panel>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <NotifyButton target={{ userIds: [data.barber.id] }} targetLabel={data.barber.name} label="Send notification" />
+              <Link href={`/users/${data.barber.id}`}><Button variant="outline">Edit account, sign out or delete</Button></Link>
+            </div>
+            {data.barber.type === 'SOLO' && <ServicesEditor barberId={data.barber.id} />}
 
             <Panel title="Platform Moderation" note="Administrative disciplinary and access actions.">
               <div className="space-y-4">
