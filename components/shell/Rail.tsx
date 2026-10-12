@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -32,60 +32,81 @@ import {
   X,
 } from 'lucide-react';
 import { logout, type Session } from '@/lib/api-client';
+import { useApi } from '@/lib/useApi';
+import { getNavCounts, type NavCounts } from '@/lib/api/insights';
 import { SalunIcon } from '@/components/brand/SalunLogo';
 
 interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
+  /** One line on what the page is for (shown on hover). */
+  hint: string;
+  /** A live count from /admin/insights/nav-counts, shown as a badge when above zero. */
+  badge?: keyof NavCounts;
 }
 
 /**
- * Grouped by the question the operator is asking, not by which service answers it. Someone
- * chasing a payment does not know or care that transactions live in service-payment while the
- * appointment they belong to lives in service-booking.
+ * Grouped by the question the operator is asking, not by which service answers it: how is the
+ * platform doing, who is on it, which shops are live, what is being booked, where the money is,
+ * what needs moderating, and the admin back office.
  */
 const GROUPS: { heading: string; items: NavItem[] }[] = [
   {
-    heading: 'Platform',
+    heading: 'Command centre',
     items: [
-      { href: '/', label: 'Overview', icon: Gauge },
-      { href: '/owners', label: 'Owner Dashboards', icon: Briefcase },
-      { href: '/shops', label: 'Shops', icon: Store },
-      { href: '/barbers', label: 'Barbers & Stylists', icon: Scissors },
-      { href: '/users', label: 'Users & accounts', icon: Users },
+      { href: '/', label: 'Overview', icon: Gauge, hint: 'The whole system on one page' },
+      { href: '/system', label: 'System health', icon: Server, hint: 'Database, Redis, speed, errors and background jobs' },
     ],
   },
   {
-    heading: 'Insights',
+    heading: 'People',
     items: [
-      { href: '/readiness', label: 'Shop readiness', icon: ClipboardCheck },
-      { href: '/growth', label: 'Customers & growth', icon: Sprout },
-      { href: '/booking-quality', label: 'Booking quality', icon: CalendarCheck },
-      { href: '/map', label: 'Supply & demand map', icon: MapPinned },
-      { href: '/money', label: 'Money', icon: Wallet },
-      { href: '/safety', label: 'Trust & safety', icon: ShieldAlert },
-      { href: '/system', label: 'System health', icon: Server },
+      { href: '/users', label: 'All accounts', icon: Users, hint: 'Every customer, shop owner, barber and admin' },
+      { href: '/growth', label: 'Customers & growth', icon: Sprout, hint: 'Sign-ups, active users, push reach and referrals' },
+      { href: '/owners', label: 'Shop owners', icon: Briefcase, hint: 'Each owner and their shop dashboard' },
+      { href: '/barbers', label: 'Barbers & stylists', icon: Scissors, hint: 'Shop barbers and independent barbers' },
     ],
   },
   {
-    heading: 'Activity',
+    heading: 'Shops',
     items: [
-      { href: '/bookings', label: 'Bookings', icon: CalendarRange },
-      { href: '/payments', label: 'Payments', icon: BadgeEuro },
-      { href: '/coupons', label: 'Coupons & offers', icon: Tag },
-      { href: '/loyalty', label: 'Loyalty & rewards', icon: Award },
-      { href: '/metrics', label: 'Metrics', icon: TrendingUp },
+      { href: '/shops', label: 'Shops', icon: Store, hint: 'Every shop: details, team, bookings and insights' },
+      { href: '/readiness', label: 'Shop readiness', icon: ClipboardCheck, hint: 'Who is hidden from customers and what they are missing', badge: 'hiddenListings' },
+      { href: '/map', label: 'Supply & demand map', icon: MapPinned, hint: 'Where shops are and where customers are' },
     ],
   },
   {
-    heading: 'Operations',
+    heading: 'Bookings',
     items: [
-      { href: '/broadcasts', label: 'Broadcasts', icon: Megaphone },
-      { href: '/reports', label: 'Reports', icon: Flag },
-      { href: '/legal', label: 'Legal pages', icon: Scale },
-      { href: '/support', label: 'Support', icon: LifeBuoy },
-      { href: '/audit-log', label: 'Audit log', icon: History },
+      { href: '/bookings', label: 'Bookings', icon: CalendarRange, hint: 'Every booking, charts, and who cancelled when and why', badge: 'bookingsWaiting' },
+      { href: '/booking-quality', label: 'Booking quality', icon: CalendarCheck, hint: 'Acceptance speed, punctuality, strikes and busy hours' },
+    ],
+  },
+  {
+    heading: 'Money',
+    items: [
+      { href: '/money', label: 'Money overview', icon: Wallet, hint: 'Cash per day and shop, coupons, gift cards and balances' },
+      { href: '/payments', label: 'Payments', icon: BadgeEuro, hint: 'Every payment recorded by the shops' },
+      { href: '/coupons', label: 'Coupons & offers', icon: Tag, hint: 'Platform and shop coupons' },
+      { href: '/loyalty', label: 'Loyalty & rewards', icon: Award, hint: 'Points rules and reward tiers' },
+    ],
+  },
+  {
+    heading: 'Trust & support',
+    items: [
+      { href: '/safety', label: 'Trust & safety', icon: ShieldAlert, hint: 'Repeat offenders, blocks, bans, low ratings and chat speed' },
+      { href: '/reports', label: 'Reports', icon: Flag, hint: 'Reported reviews, messages, photos and accounts', badge: 'openReports' },
+      { href: '/support', label: 'Support', icon: LifeBuoy, hint: 'Support tickets from the apps', badge: 'openTickets' },
+      { href: '/broadcasts', label: 'Broadcasts', icon: Megaphone, hint: 'Send a notification to everyone or a group' },
+    ],
+  },
+  {
+    heading: 'Admin',
+    items: [
+      { href: '/legal', label: 'Legal pages', icon: Scale, hint: 'Privacy policy, terms and account deletion pages' },
+      { href: '/audit-log', label: 'Audit log', icon: History, hint: 'Everything admins have done' },
+      { href: '/metrics', label: 'Custom metrics', icon: TrendingUp, hint: 'Record and chart your own numbers' },
     ],
   },
 ];
@@ -99,6 +120,13 @@ export default function Rail({ session }: { session: Session }) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const counts = useApi(getNavCounts, [], 'nav-counts');
+  const { refresh: refreshCounts } = counts;
+  // Badges stay current while the console is open.
+  useEffect(() => {
+    const t = setInterval(() => void refreshCounts(), 60_000);
+    return () => clearInterval(t);
+  }, [refreshCounts]);
 
   async function signOut() {
     await logout();
@@ -137,6 +165,7 @@ export default function Rail({ session }: { session: Session }) {
                   <li key={item.href}>
                     <Link
                       href={item.href}
+                      title={item.hint}
                       onClick={() => setOpen(false)}
                       aria-current={active ? 'page' : undefined}
                       className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13px] font-medium transition-all ${
@@ -147,6 +176,13 @@ export default function Rail({ session }: { session: Session }) {
                     >
                       <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-[#94A3B8]'}`} />
                       <span className="truncate">{item.label}</span>
+                      {item.badge && (counts.data?.[item.badge] ?? 0) > 0 && (
+                        <span
+                          className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-extrabold tabular-nums ${active ? 'bg-white text-[#635BFF]' : 'bg-[#FEE2E2] text-[#DC2626]'}`}
+                          aria-label={`${counts.data?.[item.badge]} need attention`}>
+                          {counts.data?.[item.badge]}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 );

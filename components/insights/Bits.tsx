@@ -194,3 +194,129 @@ export function duration(minutes: number | null | undefined): string {
 export function percent(value: number | null | undefined): string {
   return value === null || value === undefined ? '—' : `${value}%`;
 }
+
+/** Columns stacked by series (e.g. completed / cancelled / no-show per day), with a legend. */
+export function StackedColumns({
+  points,
+  series,
+  height = 160,
+}: {
+  points: { label: string; values: Record<string, number> }[];
+  series: { key: string; label: string; color: string }[];
+  height?: number;
+}) {
+  const totals = points.map((p) => series.reduce((s, x) => s + (p.values[x.key] ?? 0), 0));
+  const max = Math.max(1, ...totals);
+  const ticks = new Set([0, Math.floor((points.length - 1) / 2), points.length - 1]);
+  return (
+    <div className="space-y-2">
+      <div className="flex items-end gap-[2px]" style={{ height }} role="img" aria-label={`${points.length} columns, highest ${max}`}>
+        {points.map((p, i) => (
+          <div
+            key={i}
+            className="flex flex-1 flex-col-reverse overflow-hidden rounded-t-[2px]"
+            style={{ height: `${(totals[i] / max) * 100}%`, minHeight: totals[i] ? 2 : 0 }}
+            title={`${p.label}: ${series.map((s) => `${s.label} ${p.values[s.key] ?? 0}`).join(', ')}`}>
+            {series.map((s) =>
+              p.values[s.key] ? <div key={s.key} style={{ height: `${((p.values[s.key] ?? 0) / Math.max(1, totals[i])) * 100}%`, backgroundColor: s.color }} /> : null,
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-between text-[10px] font-semibold text-[#94A3B8]">
+        {points.map((p, i) => (ticks.has(i) ? <span key={i}>{p.label}</span> : null))}
+      </div>
+      <Legend items={series.map((s) => ({ color: s.color, label: `${s.label} · ${points.reduce((n, p) => n + (p.values[s.key] ?? 0), 0)}` }))} />
+    </div>
+  );
+}
+
+/** A donut of parts of a whole, with the total in the middle and a legend with shares. */
+export function Donut({ parts, centre, size = 168 }: { parts: { label: string; value: number; color: string }[]; centre?: string; size?: number }) {
+  const total = parts.reduce((s, p) => s + Math.max(0, p.value), 0);
+  const r = 15.915; // circumference = 100, so a dash length is a percentage
+  const arcs = parts.reduce<{ label: string; value: number; color: string; share: number; offset: number }[]>((acc, p) => {
+    const share = total ? (Math.max(0, p.value) / total) * 100 : 0;
+    const offset = acc.length ? acc[acc.length - 1].offset - acc[acc.length - 1].share : 25;
+    acc.push({ ...p, share, offset });
+    return acc;
+  }, []);
+  return (
+    <div className="flex flex-wrap items-center gap-5">
+      <svg viewBox="0 0 42 42" width={size} height={size} role="img" aria-label={parts.map((p) => `${p.label} ${p.value}`).join(', ')}>
+        <circle cx="21" cy="21" r={r} fill="none" stroke="#F1F5F9" strokeWidth="6" />
+        {total > 0 &&
+          arcs.map((a) => (
+            <circle key={a.label} cx="21" cy="21" r={r} fill="none" stroke={a.color} strokeWidth="6" strokeDasharray={`${a.share} ${100 - a.share}`} strokeDashoffset={a.offset}>
+              <title>{`${a.label}: ${a.value}`}</title>
+            </circle>
+          ))}
+        <text x="21" y="21" textAnchor="middle" dominantBaseline="central" fill="#1E293B" style={{ fontSize: 7, fontWeight: 800 }}>
+          {centre ?? total}
+        </text>
+      </svg>
+      <ul className="min-w-[160px] flex-1 space-y-1.5 text-[12px]">
+        {parts.map((p) => (
+          <li key={p.label} className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: p.color }} aria-hidden />
+            <span className="flex-1 font-semibold text-[#475569]">{p.label}</span>
+            <b className="tabular-nums">{p.value}</b>
+            <span className="w-10 text-right tabular-nums text-[#94A3B8]">{total ? `${Math.round((p.value / total) * 100)}%` : '—'}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Horizontal bars for labelled numbers, each against the largest. */
+export function Bars({
+  rows,
+  format = (v: number) => String(v),
+}: {
+  rows: { label: string; value: number; color?: string; href?: string; sub?: string }[];
+  format?: (v: number) => string;
+}) {
+  const max = Math.max(1, ...rows.map((r) => r.value));
+  if (rows.length === 0) return <p className="py-6 text-center text-[12px] text-[#94A3B8]">Nothing yet.</p>;
+  return (
+    <ul className="space-y-2">
+      {rows.map((r, i) => (
+        // Names can repeat (two shops called the same), so the position is part of the key.
+        <li key={`${i}-${r.label}`}>
+          <div className="flex items-baseline justify-between gap-3 text-[12px]">
+            {r.href ? (
+              <a href={r.href} className="truncate font-semibold hover:text-[#635BFF]">{r.label}</a>
+            ) : (
+              <span className="truncate font-semibold">{r.label}</span>
+            )}
+            <span className="shrink-0 tabular-nums font-bold">
+              {format(r.value)}
+              {r.sub && <span className="ml-1.5 font-semibold text-[#94A3B8]">{r.sub}</span>}
+            </span>
+          </div>
+          <div className="mt-1 h-1.5 w-full rounded-full bg-[#F1F5F9]">
+            <div className="h-full rounded-full" style={{ width: `${Math.max(2, (r.value / max) * 100)}%`, backgroundColor: r.color ?? '#635BFF' }} />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Completed / cancelled / no-show / open as one split bar per row (comparison across rows). */
+export function OutcomeBar({ completed, cancelled, noShow, open }: { completed: number; cancelled: number; noShow: number; open: number }) {
+  const total = completed + cancelled + noShow + open;
+  if (!total) return <div className="h-2 w-full rounded-full bg-[#F1F5F9]" />;
+  const seg = (v: number, color: string, label: string) => (v ? <div key={label} title={`${label}: ${v}`} style={{ width: `${(v / total) * 100}%`, backgroundColor: color }} /> : null);
+  return (
+    <div className="flex h-2 w-full overflow-hidden rounded-full bg-[#F1F5F9]">
+      {seg(completed, OUTCOME_COLORS.completed, 'Completed')}
+      {seg(open, OUTCOME_COLORS.open, 'Open / upcoming')}
+      {seg(cancelled, OUTCOME_COLORS.cancelled, 'Cancelled')}
+      {seg(noShow, OUTCOME_COLORS.noShow, 'No-show')}
+    </div>
+  );
+}
+
+export const OUTCOME_COLORS = { completed: '#16A34A', open: '#635BFF', cancelled: '#F59E0B', noShow: '#E11D48' } as const;

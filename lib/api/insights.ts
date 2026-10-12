@@ -243,3 +243,132 @@ export const getCustomerInsight = (id: string) => apiFetch<CustomerInsight>(`/ad
 export const getShopInsight = (tenantId: string) => apiFetch<ShopInsight>(`/admin/insights/shops/${encodeURIComponent(tenantId)}`);
 
 export const STEP_LABELS: Record<ListingStep, string> = { service: 'Service', hours: 'Hours', location: 'Map pin', photos: 'Photo' };
+
+// ---------------------------------------------------------------- Overview, navigation, bookings board
+
+export interface Overview {
+  days: number;
+  generatedAt: string;
+  people: {
+    total: number;
+    customers: number;
+    owners: number;
+    shopBarbers: number;
+    independentBarbers: number;
+    admins: number;
+    newInPeriod: number;
+    newCustomers: number;
+    newPartners: number;
+    unverified: number;
+    banned: number;
+  };
+  active: { day: ActiveCount; week: ActiveCount; month: ActiveCount };
+  places: { shops: number; shopsVisible: number; shopsSuspended: number; independentBarbers: number; barbersVisible: number; newShops: number; activeServices: number; teamMembers: number };
+  bookings: {
+    total: number;
+    completed: number;
+    cancelled: number;
+    noShow: number;
+    open: number;
+    walkIns: number;
+    app: number;
+    cancelledBy: { customer: number; shop: number; system: number; admin: number };
+    completionRate: number | null;
+    cancelRate: number | null;
+    byDay: { day: string; completed: number; upcoming: number; cancelled: number; noShow: number }[];
+  };
+  today: { total: number; waiting: number; inChair: number; done: number; cancelled: number };
+  money: { cash: number; payments: number; averageTicket: number; allTime: number; couponDiscounts: number; giftCardsOwed: number; byDay: { day: string; amount: number }[] };
+  signups: { day: string; customers: number; partners: number }[];
+  engagement: {
+    reviews: number;
+    averageRating: number | null;
+    ratingDistribution: { stars: number; count: number }[];
+    unansweredReviews: number;
+    chatMessages: number;
+    notificationsSent: number;
+    favoritesAdded: number;
+    savedAddresses: number;
+    customersByCity: Counted[];
+  };
+  attention: { openReports: number; openTickets: number; hiddenListings: number };
+  top: {
+    places: { key: string; name: string; bookings: number }[];
+    services: { name: string; bookings: number }[];
+    customers: { userId: string; name: string | null; bookings: number }[];
+  };
+}
+
+export interface NavCounts { openReports: number; openTickets: number; hiddenListings: number; bookingsWaiting: number; joinRequests: number }
+
+export type CancelGroup = 'CUSTOMER' | 'SHOP' | 'SYSTEM' | 'ADMIN';
+export type BoardDays = 0 | 7 | 30 | 90 | 365;
+export interface BookingBoardParams {
+  days: BoardDays;
+  status?: string;
+  cancelledBy?: CancelGroup;
+  place?: string;
+  q?: string;
+  source?: 'app' | 'walkin';
+  page: number;
+  pageSize: number;
+}
+
+export interface BoardRow {
+  id: string;
+  reference: string;
+  place: { key: string; name: string; kind: 'shop' | 'barber' };
+  barber: { id: string; name: string | null };
+  customer: { id: string | null; name: string | null; phone: string | null; email: string | null; guest: boolean };
+  service: string | null;
+  durationMinutes: number | null;
+  startAt: string;
+  endAt: string;
+  status: string;
+  source: 'app' | 'walkin';
+  price: number;
+  discount: number;
+  couponCode: string | null;
+  needsAssignment: boolean;
+  rescheduledFrom: string | null;
+  timeline: { requestedAt: string; acceptedAt: string | null; startedAt: string | null; completedAt: string | null; calledOffAt: string | null; calledOffAtExact: boolean };
+  cancellation: {
+    group: CancelGroup | null;
+    role: string | null;
+    by: { id: string; name: string | null; email: string; role: string } | null;
+    reason: string | null;
+    late: boolean;
+    hoursBeforeStart: number | null;
+  } | null;
+}
+
+export interface BookingBoard {
+  query: BookingBoardParams & { from: string | null };
+  summary: { total: number; completed: number; cancelled: number; noShow: number; open: number; lateCancels: number; walkIns: number; cashCompleted: number; completionRate: number | null; cancelRate: number | null };
+  statusCounts: Counted[];
+  byDay: { day: string; completed: number; open: number; cancelled: number; noShow: number }[];
+  weekdays: { name: string; completed: number; cancelled: number; noShow: number; open: number }[];
+  cancellations: { byWho: { key: CancelGroup; count: number }[]; reasons: Counted[]; leadTime: { key: string; label: string; count: number }[] };
+  places: { key: string; name: string; total: number; completed: number; cancelled: number; noShow: number; open: number; cash: number; cancelRate: number | null }[];
+  services: { name: string; total: number; completed: number; cancelled: number; cancelRate: number | null }[];
+  table: { total: number; page: number; pageSize: number; pages: number; rows: BoardRow[] };
+}
+
+export const getOverview = (days: InsightDays) => apiFetch<Overview>(`/admin/insights/overview?days=${days}`);
+export const getNavCounts = () => apiFetch<NavCounts>('/admin/insights/nav-counts');
+export function getBookingBoard(p: BookingBoardParams) {
+  const qs = new URLSearchParams({ days: String(p.days), page: String(p.page), pageSize: String(p.pageSize) });
+  if (p.status) qs.set('status', p.status);
+  if (p.cancelledBy) qs.set('cancelledBy', p.cancelledBy);
+  if (p.place) qs.set('place', p.place);
+  if (p.q?.trim()) qs.set('q', p.q.trim());
+  if (p.source) qs.set('source', p.source);
+  return apiFetch<BookingBoard>(`/admin/insights/bookings-board?${qs.toString()}`);
+}
+
+export const CANCEL_GROUP_LABELS: Record<CancelGroup, string> = {
+  CUSTOMER: 'Customer',
+  SHOP: 'Shop / barber',
+  SYSTEM: 'System (not accepted / time passed)',
+  ADMIN: 'SalunBD admin',
+};
