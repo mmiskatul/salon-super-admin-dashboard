@@ -480,6 +480,11 @@ export default function LoginsPage() {
   const [platformFilter, setPlatformFilter] = useState<'ALL' | 'ANDROID' | 'IOS' | 'WEB'>('ALL');
   const [sortBy, setSortBy] = useState<'lastSeen' | 'firstSeen' | 'renewals' | 'name'>('lastSeen');
 
+  // Live Sign-in Audit Stream search and pagination
+  const [auditSearch, setAuditSearch] = useState('');
+  const [auditPage, setAuditPage] = useState(1);
+  const AUDIT_PAGE_SIZE = 15;
+
   // Chart time-scale granularity: auto (1d->hourly, 7d->daily, 30d->weekly, 90d/365d->monthly)
   const [chartGranularity, setChartGranularity] = useState<'auto' | 'hourly' | 'daily' | 'weekly' | 'monthly'>('auto');
 
@@ -637,6 +642,36 @@ export default function LoginsPage() {
 
     return list;
   }, [d?.day.people, activityFilter, platformFilter, sortBy]);
+
+  // Live Audit Stream filtering & pagination
+  const filteredRecent = useMemo(() => {
+    if (!d?.recent) return [];
+    const term = auditSearch.trim().toLowerCase();
+    if (!term) return d.recent;
+    return d.recent.filter((e) => {
+      const name = (e.name || '').toLowerCase();
+      const email = (e.email || '').toLowerCase();
+      const userId = e.userId.toLowerCase();
+      const role = (e.role || '').toLowerCase();
+      const method = (LOGIN_METHOD_LABELS[e.method] ?? e.method).toLowerCase();
+      const platform = (e.platform ? PLATFORM_LABELS[e.platform] ?? e.platform : '').toLowerCase();
+      return (
+        name.includes(term) ||
+        email.includes(term) ||
+        userId.includes(term) ||
+        role.includes(term) ||
+        method.includes(term) ||
+        platform.includes(term)
+      );
+    });
+  }, [d?.recent, auditSearch]);
+
+  const totalAuditPages = Math.max(1, Math.ceil(filteredRecent.length / AUDIT_PAGE_SIZE));
+  const currentAuditPage = Math.min(auditPage, totalAuditPages);
+  const paginatedRecent = useMemo(() => {
+    const start = (currentAuditPage - 1) * AUDIT_PAGE_SIZE;
+    return filteredRecent.slice(start, start + AUDIT_PAGE_SIZE);
+  }, [filteredRecent, currentAuditPage]);
 
   // CSV Export for active people
   const exportDayPeopleCsv = () => {
@@ -1775,81 +1810,187 @@ export default function LoginsPage() {
             </section>
 
             {/* Global Recent Sign-in Stream */}
-            <Panel
-              title="Live Sign-in Audit Stream"
-              note="Most recent authentication events across all accounts in SalunBD (Newest first)"
-              flush
-            >
-              {d.recent.length === 0 ? (
-                <Empty title="No sign-in events recorded yet" />
-              ) : (
-                <Scroll>
-                  <Table>
-                    <thead>
-                      <tr>
-                        <Th>Timestamp (BST)</Th>
-                        <Th>Person / User</Th>
-                        <Th>Account Role</Th>
-                        <Th>Auth Method</Th>
-                        <Th>Platform</Th>
-                        <Th align="right">Action</Th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {d.recent.map((e, i) => (
-                        <Tr key={`${e.userId}-${i}`}>
-                          <Td nowrap>
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono font-semibold text-[#1E293B]">
-                                {bdDateTime(e.at)}
-                              </span>
-                              <span className="text-[11px] text-[#94A3B8]">({since(e.at)})</span>
-                            </div>
-                          </Td>
-                          <Td>
-                            <div className="flex items-center gap-2">
-                              <Link
-                                href={`/users/${e.userId}`}
-                                className="font-bold text-[#1E293B] hover:text-[#635BFF] hover:underline"
-                              >
-                                {e.name || e.email || e.userId.slice(0, 8)}
-                              </Link>
-                              {e.email && <span className="text-[12px] text-[#94A3B8]">{e.email}</span>}
-                            </div>
-                          </Td>
-                          <Td nowrap>
-                            <RoleBadge role={e.role} />
-                          </Td>
-                          <Td nowrap>
-                            <span className="inline-flex items-center gap-1.5 rounded bg-[#F1F5F9] px-2 py-0.5 text-[12px] font-bold text-[#475569]">
-                              <span
-                                className="h-2 w-2 rounded-full"
-                                style={{ backgroundColor: METHOD_COLORS[e.method] ?? '#94A3B8' }}
-                              />
-                              {LOGIN_METHOD_LABELS[e.method] ?? e.method}
-                            </span>
-                          </Td>
-                          <Td nowrap>
-                            <div className="flex items-center gap-1.5 font-medium text-[#64748B]">
-                              <PlatformIcon platform={e.platform} />
-                              <span>{e.platform ? PLATFORM_LABELS[e.platform] ?? e.platform : '—'}</span>
-                            </div>
-                          </Td>
-                          <Td align="right">
-                            <Link
-                              href={`/users/${e.userId}`}
-                              className="text-[12px] font-bold text-[#635BFF] hover:underline"
-                            >
-                              View User
-                            </Link>
-                          </Td>
-                        </Tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                </Scroll>
-              )}
-            </Panel>
+            <div id="audit-stream">
+              <Panel
+                title="Live Sign-in Audit Stream"
+                note="Most recent authentication events across all accounts in SalunBD (Newest first)"
+                flush
+                actions={
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Search input for live audit stream */}
+                    <div className="relative w-64 sm:w-72">
+                      <Search
+                        className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#94A3B8]"
+                        aria-hidden
+                      />
+                      <input
+                        type="text"
+                        value={auditSearch}
+                        onChange={(e) => {
+                          setAuditSearch(e.target.value);
+                          setAuditPage(1);
+                        }}
+                        placeholder="Search audit stream (user, email, role, method)..."
+                        className="w-full rounded-lg border border-[#E2E8F0] bg-white py-1.5 pl-8 pr-7 text-[12px] font-medium text-[#1E293B] shadow-xs placeholder:text-[#94A3B8] focus:border-[#635BFF] focus:outline-none"
+                      />
+                      {auditSearch && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAuditSearch('');
+                            setAuditPage(1);
+                          }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#1E293B]"
+                          title="Clear search"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    <span className="hidden sm:inline-flex items-center rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-2.5 py-1.5 text-[11px] font-bold text-[#64748B]">
+                      {filteredRecent.length} Event{filteredRecent.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                }
+              >
+                {d.recent.length === 0 ? (
+                  <Empty title="No sign-in events recorded yet" />
+                ) : filteredRecent.length === 0 ? (
+                  <Empty
+                    title="No events match search"
+                    hint={`No sign-in records found for "${auditSearch}".`}
+                    action={
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setAuditSearch('');
+                          setAuditPage(1);
+                        }}
+                      >
+                        Clear Search
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <>
+                    <Scroll>
+                      <Table>
+                        <thead>
+                          <tr>
+                            <Th>Timestamp (BST)</Th>
+                            <Th>Person / User</Th>
+                            <Th>Account Role</Th>
+                            <Th>Auth Method</Th>
+                            <Th>Platform</Th>
+                            <Th align="right">Action</Th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedRecent.map((e, i) => (
+                            <Tr key={`${e.userId}-${i}`}>
+                              <Td nowrap>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-semibold text-[#1E293B]">
+                                    {bdDateTime(e.at)}
+                                  </span>
+                                  <span className="text-[11px] text-[#94A3B8]">({since(e.at)})</span>
+                                </div>
+                              </Td>
+                              <Td>
+                                <div className="flex items-center gap-2">
+                                  <Link
+                                    href={`/users/${e.userId}`}
+                                    className="font-bold text-[#1E293B] hover:text-[#635BFF] hover:underline"
+                                  >
+                                    {e.name || e.email || e.userId.slice(0, 8)}
+                                  </Link>
+                                  {e.email && <span className="text-[12px] text-[#94A3B8]">{e.email}</span>}
+                                </div>
+                              </Td>
+                              <Td nowrap>
+                                <RoleBadge role={e.role} />
+                              </Td>
+                              <Td nowrap>
+                                <span className="inline-flex items-center gap-1.5 rounded bg-[#F1F5F9] px-2 py-0.5 text-[12px] font-bold text-[#475569]">
+                                  <span
+                                    className="h-2 w-2 rounded-full"
+                                    style={{ backgroundColor: METHOD_COLORS[e.method] ?? '#94A3B8' }}
+                                  />
+                                  {LOGIN_METHOD_LABELS[e.method] ?? e.method}
+                                </span>
+                              </Td>
+                              <Td nowrap>
+                                <div className="flex items-center gap-1.5 font-medium text-[#64748B]">
+                                  <PlatformIcon platform={e.platform} />
+                                  <span>{e.platform ? PLATFORM_LABELS[e.platform] ?? e.platform : '—'}</span>
+                                </div>
+                              </Td>
+                              <Td align="right">
+                                <Link
+                                  href={`/users/${e.userId}`}
+                                  className="text-[12px] font-bold text-[#635BFF] hover:underline"
+                                >
+                                  View User
+                                </Link>
+                              </Td>
+                            </Tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </Scroll>
+
+                    {/* Pagination Bar for Audit Stream */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-[#F1F5F9] px-5 py-3.5 text-[12px] font-semibold text-[#64748B]">
+                      <div className="flex items-center gap-2">
+                        <span>
+                          Showing{' '}
+                          <b className="text-[#1E293B]">
+                            {filteredRecent.length === 0 ? 0 : (currentAuditPage - 1) * AUDIT_PAGE_SIZE + 1}–
+                            {Math.min(filteredRecent.length, currentAuditPage * AUDIT_PAGE_SIZE)}
+                          </b>{' '}
+                          of <b className="text-[#1E293B]">{count(filteredRecent.length)}</b> recent sign-ins
+                        </span>
+                        {auditSearch && (
+                          <span className="text-[#94A3B8]">
+                            (filtered from {count(d.recent.length)} total)
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          disabled={currentAuditPage <= 1}
+                          onClick={() => {
+                            setAuditPage((p) => Math.max(1, p - 1));
+                            document.getElementById('audit-stream')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                          }}
+                          className="px-3 py-1 text-[12px]"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Previous
+                        </Button>
+                        <span className="px-2 font-bold text-[#1E293B]">
+                          Page {currentAuditPage} of {totalAuditPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          disabled={currentAuditPage >= totalAuditPages}
+                          onClick={() => {
+                            setAuditPage((p) => Math.min(totalAuditPages, p + 1));
+                            document.getElementById('audit-stream')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                          }}
+                          className="px-3 py-1 text-[12px]"
+                        >
+                          Next
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </Panel>
+            </div>
           </>
         )}
       </Canvas>
