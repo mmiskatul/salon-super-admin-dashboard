@@ -465,23 +465,66 @@ export default function OverviewPage() {
                 />
               </Panel>
 
-              <Panel
-                title={`New Sign-ups Per Day (${periodShort} View)`}
-                note={`Customer vs Partner registrations over ${periodLabel} (${o.people.newInPeriod} new total)`}
-                className="lg:col-span-2"
-                actions={
-                  <div className="flex items-center gap-3 text-[11px] font-bold">
-                    <span className="flex items-center gap-1 text-[#635BFF]"><span className="h-2 w-2 rounded-full bg-[#635BFF]" /> Customers</span>
-                    <span className="flex items-center gap-1 text-[#F59E0B]"><span className="h-2 w-2 rounded-full bg-[#F59E0B]" /> Partners</span>
-                  </div>
-                }
-              >
-                <SignupsTrendChart
-                  data={o.signups}
-                  selectedDate={selectedDate}
-                  onSelectDate={handleDateChange}
-                />
-              </Panel>
+              {(() => {
+                const timelineUnit = o.timeline?.unit ?? (days === 1 ? 'hour' : days === 7 ? 'day' : days <= 90 ? 'week' : 'month');
+                const signupsData = o.timeline?.signups ?? o.signups;
+
+                const signupsTitle =
+                  timelineUnit === 'hour'
+                    ? `New Sign-ups on ${selectedDate} (Hourly View)`
+                    : timelineUnit === 'day'
+                    ? `New Sign-ups Per Day (Weekly View)`
+                    : timelineUnit === 'week'
+                    ? `New Sign-ups Per Week (Monthly View)`
+                    : `New Sign-ups Per Month (Annual View)`;
+
+                const signupsNote =
+                  timelineUnit === 'hour'
+                    ? `Customer vs Partner registrations throughout ${selectedDate} (${o.people.newInPeriod} new total)`
+                    : timelineUnit === 'day'
+                    ? `Customer vs Partner registrations over ${periodLabel} (${o.people.newInPeriod} new total) · Click bar to focus date`
+                    : timelineUnit === 'week'
+                    ? `Weekly new user acquisition across ${periodLabel} (${o.people.newInPeriod} new total)`
+                    : `Monthly new user acquisition over the past year (${o.people.newInPeriod} new total)`;
+
+                const granularityBadge =
+                  timelineUnit === 'hour'
+                    ? 'Hourly View'
+                    : timelineUnit === 'day'
+                    ? 'Daily View'
+                    : timelineUnit === 'week'
+                    ? 'Weekly View'
+                    : 'Monthly View';
+
+                return (
+                  <Panel
+                    title={signupsTitle}
+                    note={signupsNote}
+                    className="lg:col-span-2"
+                    actions={
+                      <div className="flex items-center gap-3 text-[11px] font-bold">
+                        <span className="rounded-full bg-[#EEF2FF] px-2 py-0.5 text-[10px] font-bold text-[#4338CA]">
+                          {granularityBadge}
+                        </span>
+                        <span className="flex items-center gap-1 text-[#635BFF]">
+                          <span className="h-2 w-2 rounded-full bg-[#635BFF]" /> Customers
+                        </span>
+                        <span className="flex items-center gap-1 text-[#F59E0B]">
+                          <span className="h-2 w-2 rounded-full bg-[#F59E0B]" /> Partners
+                        </span>
+                      </div>
+                    }
+                  >
+                    <SignupsTrendChart
+                      data={signupsData}
+                      selectedDate={selectedDate}
+                      onSelectDate={handleDateChange}
+                      days={days}
+                      unit={timelineUnit}
+                    />
+                  </Panel>
+                );
+              })()}
             </div>
 
             {/* Visual Analytics Row 4: Operational Quality & Demographics */}

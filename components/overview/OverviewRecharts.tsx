@@ -361,20 +361,66 @@ export function DonutBreakdownChart({
   );
 }
 
-/** 4. New Signups Grouped Bar Chart */
+export interface TrendSignupItem {
+  key?: string;
+  label?: string;
+  shortLabel?: string;
+  day?: string;
+  customers: number;
+  partners: number;
+  total?: number;
+}
+
+/** 4. New Signups Grouped Bar Chart (Supports Hour, Day, Week, Month granularities) */
 export function SignupsTrendChart({
   data,
   selectedDate,
   onSelectDate,
+  days = 30,
+  unit = 'day',
 }: {
-  data: { day: string; customers: number; partners: number }[];
+  data: TrendSignupItem[];
   selectedDate?: string;
   onSelectDate?: (day: string) => void;
+  days?: number;
+  unit?: 'hour' | 'day' | 'week' | 'month';
 }) {
-  const formattedData = data.map((d) => ({
-    ...d,
-    shortDay: d.day.slice(5),
-  }));
+  const formattedData = data.map((d) => {
+    const xLabel = d.shortLabel ?? (d.day ? d.day.slice(5) : d.key ?? '');
+    const fullLabel = d.label ?? (d.day ? d.day : d.key ?? '');
+    return {
+      ...d,
+      xLabel,
+      fullLabel,
+      total: d.customers + d.partners,
+    };
+  });
+
+  const tickInterval =
+    unit === 'hour'
+      ? 2 // show every 3rd hour: 12 AM, 3 AM, 6 AM, 9 AM, 12 PM, 3 PM, 6 PM, 9 PM
+      : unit === 'month' || unit === 'week' || days === 7
+      ? 0
+      : days === 365
+      ? Math.max(1, Math.floor(data.length / 12))
+      : days === 90
+      ? Math.max(1, Math.floor(data.length / 8))
+      : days === 30
+      ? Math.max(1, Math.floor(data.length / 7))
+      : 0;
+
+  const barSize =
+    unit === 'hour'
+      ? 8
+      : unit === 'week'
+      ? 18
+      : unit === 'month'
+      ? 14
+      : days === 1
+      ? 24
+      : days === 7
+      ? 12
+      : undefined;
 
   return (
     <div className="h-[220px] w-full font-manrope">
@@ -384,18 +430,22 @@ export function SignupsTrendChart({
           margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
           onClick={(state: any) => {
             if (state && state.activePayload && state.activePayload.length) {
-              const clicked = state.activePayload[0].payload as { day: string };
-              if (clicked && onSelectDate) onSelectDate(clicked.day);
+              const clicked = state.activePayload[0].payload as { day?: string; key?: string };
+              const target = clicked?.day ?? clicked?.key;
+              if (target && onSelectDate && /^\d{4}-\d{2}-\d{2}$/.test(target)) {
+                onSelectDate(target);
+              }
             }
           }}
         >
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
           <XAxis
-            dataKey="shortDay"
+            dataKey="xLabel"
             stroke="#94A3B8"
             fontSize={11}
             tickLine={false}
             axisLine={false}
+            interval={tickInterval}
           />
           <YAxis
             stroke="#94A3B8"
@@ -405,11 +455,11 @@ export function SignupsTrendChart({
             allowDecimals={false}
           />
           <Tooltip
-            content={<GlassTooltip label="Registrations on date" />}
+            content={<GlassTooltip labelProp="fullLabel" />}
             cursor={{ fill: '#F8FAFC', opacity: 0.8 }}
           />
-          <Bar dataKey="customers" name="Customers" fill="#635BFF" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="partners" name="Partners (Shops/Barbers)" fill="#F59E0B" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="customers" name="Customers" fill="#635BFF" maxBarSize={barSize} radius={[3, 3, 0, 0]} />
+          <Bar dataKey="partners" name="Partners (Shops/Barbers)" fill="#F59E0B" maxBarSize={barSize} radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

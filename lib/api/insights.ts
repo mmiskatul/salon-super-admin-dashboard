@@ -281,11 +281,21 @@ export interface TimelineMoneyBucket {
   payments: number;
 }
 
+export interface TimelineSignupBucket {
+  key: string;
+  label: string;
+  shortLabel: string;
+  customers: number;
+  partners: number;
+  total: number;
+}
+
 export interface OverviewTimeline {
   unit: 'hour' | 'day' | 'week' | 'month';
   unitLabel: string;
   bookings: TimelineBookingBucket[];
   money: TimelineMoneyBucket[];
+  signups: TimelineSignupBucket[];
 }
 
 export interface Overview {
