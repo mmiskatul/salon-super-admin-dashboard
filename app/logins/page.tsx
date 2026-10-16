@@ -33,6 +33,10 @@ import {
   Laptop,
   CheckCircle2,
   Filter,
+  Sun,
+  Sunrise,
+  Sunset,
+  Moon,
 } from 'lucide-react';
 import { useApi } from '@/lib/useApi';
 import {
@@ -312,6 +316,154 @@ function computeChartSeries(
     total: s.active,
     dateKey: s.day,
   }));
+}
+
+/** 24-Hour Sign-in Traffic breakdown for the selected day */
+function HourlyTraffic24h({
+  hours,
+  totalSignIns,
+  activePeople,
+  peakHour,
+}: {
+  hours: number[];
+  totalSignIns: number;
+  activePeople: number;
+  peakHour: { hour: number; count: number; label: string } | null;
+}) {
+  const max = Math.max(1, ...hours);
+  const total = hours.reduce((a, b) => a + b, 0);
+
+  // Time periods calculation (BST)
+  const night = hours.slice(0, 6).reduce((a, b) => a + b, 0); // 12am - 5:59am
+  const morning = hours.slice(6, 12).reduce((a, b) => a + b, 0); // 6am - 11:59am
+  const afternoon = hours.slice(12, 18).reduce((a, b) => a + b, 0); // 12pm - 5:59pm
+  const evening = hours.slice(18, 24).reduce((a, b) => a + b, 0); // 6pm - 11:59pm
+
+  return (
+    <div className="space-y-4">
+      {/* 24-hour visual bar chart */}
+      <div className="relative pt-6">
+        <div className="flex h-36 items-end gap-1 sm:gap-1.5" role="img" aria-label="24-hour sign-in traffic breakdown">
+          {hours.map((val, h) => {
+            const isPeak = peakHour && peakHour.hour === h && val > 0;
+            const heightPct = Math.max(val > 0 ? 8 : 2, (val / max) * 100);
+            const pctOfDay = total > 0 ? Math.round((val / total) * 100) : 0;
+            const hourName = hourLabel(h);
+
+            return (
+              <div
+                key={h}
+                className="group relative flex flex-1 flex-col items-center justify-end h-full"
+              >
+                {/* Count badge on top for bars > 0 */}
+                {val > 0 && (
+                  <span className="mb-1 hidden text-[10px] font-extrabold text-[#1E293B] sm:block tabular-nums">
+                    {val}
+                  </span>
+                )}
+
+                {/* Tooltip on hover */}
+                <div className="pointer-events-none absolute bottom-full mb-2 hidden z-30 whitespace-nowrap rounded-xl bg-[#1E293B] p-2.5 text-center text-[11px] font-medium text-white shadow-2xl group-hover:block">
+                  <p className="font-extrabold text-[#F8FAFC]">
+                    {hourName} ({h === 0 ? '12:00 AM' : h < 12 ? `${h}:00 AM` : h === 12 ? '12:00 PM' : `${h - 12}:00 PM`} BST)
+                  </p>
+                  <p className="mt-0.5 text-[#CBD5E1]">
+                    <b className="text-white">{val}</b> sign-in{val === 1 ? '' : 's'} {total > 0 ? `· ${pctOfDay}% of day` : ''}
+                  </p>
+                  {isPeak && <p className="mt-1 text-[#FBBF24] font-extrabold text-[10px]">🔥 Busiest Hour of the Day</p>}
+                </div>
+
+                {/* Bar */}
+                <div
+                  style={{ height: `${heightPct}%` }}
+                  className={`w-full rounded-t-md transition-all group-hover:brightness-110 ${
+                    isPeak
+                      ? 'bg-gradient-to-t from-[#D97706] to-[#F59E0B] shadow-sm'
+                      : val > 0
+                      ? 'bg-gradient-to-t from-[#635BFF] to-[#818CF8]'
+                      : 'bg-[#F1F5F9]'
+                  }`}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 24-hour X-axis labels */}
+        <div className="mt-2.5 flex items-center justify-between border-t border-[#E2E8F0] pt-2 text-[9px] sm:text-[10px] font-bold text-[#64748B]">
+          {hours.map((_, h) => {
+            const isMajor = h % 3 === 0; // 12am, 3am, 6am, 9am, 12pm, 3pm, 6pm, 9pm
+            return (
+              <span
+                key={h}
+                className={`flex-1 text-center truncate ${
+                  isMajor ? 'text-[#1E293B] font-extrabold' : 'hidden md:inline text-[#94A3B8]'
+                }`}
+                title={hourLabel(h)}
+              >
+                {hourLabel(h)}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Time-of-day summary cards */}
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 border-t border-[#F1F5F9] pt-3 text-[12px]">
+        <div className="rounded-xl bg-[#F8FAFC] p-3 border border-[#E2E8F0]/70">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#64748B]">
+            <Sunrise className="h-3.5 w-3.5 text-[#F59E0B]" />
+            <span>Morning (6am–12pm)</span>
+          </div>
+          <p className="mt-1.5 text-[16px] font-extrabold text-[#1E293B] tabular-nums">
+            {morning}{' '}
+            <span className="text-[11px] font-semibold text-[#94A3B8]">
+              ({total > 0 ? Math.round((morning / total) * 100) : 0}%)
+            </span>
+          </p>
+        </div>
+
+        <div className="rounded-xl bg-[#F8FAFC] p-3 border border-[#E2E8F0]/70">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#64748B]">
+            <Sun className="h-3.5 w-3.5 text-[#EAB308]" />
+            <span>Afternoon (12pm–6pm)</span>
+          </div>
+          <p className="mt-1.5 text-[16px] font-extrabold text-[#1E293B] tabular-nums">
+            {afternoon}{' '}
+            <span className="text-[11px] font-semibold text-[#94A3B8]">
+              ({total > 0 ? Math.round((afternoon / total) * 100) : 0}%)
+            </span>
+          </p>
+        </div>
+
+        <div className="rounded-xl bg-[#F8FAFC] p-3 border border-[#E2E8F0]/70">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#64748B]">
+            <Sunset className="h-3.5 w-3.5 text-[#F97316]" />
+            <span>Evening (6pm–12am)</span>
+          </div>
+          <p className="mt-1.5 text-[16px] font-extrabold text-[#1E293B] tabular-nums">
+            {evening}{' '}
+            <span className="text-[11px] font-semibold text-[#94A3B8]">
+              ({total > 0 ? Math.round((evening / total) * 100) : 0}%)
+            </span>
+          </p>
+        </div>
+
+        <div className="rounded-xl bg-[#F8FAFC] p-3 border border-[#E2E8F0]/70">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#64748B]">
+            <Moon className="h-3.5 w-3.5 text-[#6366F1]" />
+            <span>Night (12am–6am)</span>
+          </div>
+          <p className="mt-1.5 text-[16px] font-extrabold text-[#1E293B] tabular-nums">
+            {night}{' '}
+            <span className="text-[11px] font-semibold text-[#94A3B8]">
+              ({total > 0 ? Math.round((night / total) * 100) : 0}%)
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function LoginsPage() {
@@ -1076,7 +1228,12 @@ export default function LoginsPage() {
                         return (
                           <Tr
                             key={s.day}
-                            className={isSelected ? '!bg-[#F5F3FF] font-medium' : undefined}
+                            onClick={() => pick(s.day)}
+                            className={`cursor-pointer transition-all ${
+                              isSelected
+                                ? '!bg-[#F5F3FF] font-medium border-l-4 border-l-[#635BFF] shadow-xs'
+                                : 'hover:bg-[#F8FAFC]'
+                            }`}
                           >
                             <Td nowrap>
                               <div className="flex items-center gap-2">
@@ -1110,11 +1267,17 @@ export default function LoginsPage() {
                             ))}
                             <Td align="right">
                               {isSelected ? (
-                                <span className="text-[12px] font-extrabold text-[#635BFF]">Active Selection</span>
+                                <span className="inline-flex items-center gap-1 rounded-md bg-[#EEF2FF] px-2.5 py-1 text-[11px] font-extrabold text-[#635BFF] border border-[#DDD6FE]">
+                                  <Check className="h-3 w-3" />
+                                  Inspecting
+                                </span>
                               ) : (
                                 <button
                                   type="button"
-                                  onClick={() => pick(s.day)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    pick(s.day);
+                                  }}
                                   disabled={!s.active}
                                   className="rounded-md border border-[#E2E8F0] bg-white px-2.5 py-1 text-[11px] font-bold text-[#635BFF] transition-all hover:border-[#635BFF] hover:bg-[#EEF2FF] disabled:border-transparent disabled:bg-transparent disabled:text-[#CBD5E1]"
                                 >
@@ -1131,30 +1294,96 @@ export default function LoginsPage() {
               </div>
             </Panel>
 
-            {/* Deep Active People Inspector */}
+            {/* Connected Day Inspector: Hourly Traffic & Active People Directory */}
             <section id="who" className="space-y-5">
-              {/* Hourly Traffic Histogram for the selected day */}
+              {/* Active Day Inspector Sync Header */}
+              <div className="flex flex-col gap-3 rounded-2xl border-2 border-[#635BFF]/30 bg-gradient-to-r from-[#F5F3FF] via-[#EEF2FF] to-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#635BFF] text-white shadow-sm">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-extrabold text-[#635BFF] uppercase tracking-wider">
+                        Date Inspector View
+                      </span>
+                      {selectedDayIsToday && <Badge tone="live">Today</Badge>}
+                    </div>
+                    <h3 className="text-[18px] font-extrabold text-[#1E293B]">
+                      {dayLong(d.day.day, d.today)}
+                    </h3>
+                    <p className="text-[12px] font-medium text-[#64748B]">
+                      Showing connected 24-hour traffic and active session directory for this date
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-3 rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-1.5 text-[12px] font-bold text-[#1E293B] shadow-xs">
+                    <span>
+                      Active: <b className="text-[#635BFF]">{count(d.day.active)}</b>
+                    </span>
+                    <span className="text-[#CBD5E1]">|</span>
+                    <span>
+                      Sign-ins: <b className="text-[#10B981]">{count(d.day.signInCount)}</b>
+                    </span>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    onClick={handlePrevDay}
+                    title="Previous day"
+                    className="px-2.5 py-1.5 text-[12px]"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="hidden sm:inline">Prev Day</span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={handleNextDay}
+                    disabled={isLatestDay}
+                    title="Next day"
+                    className="px-2.5 py-1.5 text-[12px]"
+                  >
+                    <span className="hidden sm:inline">Next Day</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+
+                  <label className="relative inline-flex items-center">
+                    <span className="sr-only">Change Inspected Date</span>
+                    <input
+                      type="date"
+                      value={d.day.day}
+                      max={d.today}
+                      onChange={(e) => e.target.value && pick(e.target.value)}
+                      className="cursor-pointer rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-[12px] font-bold text-[#1E293B] shadow-xs hover:border-[#CBD5E1] focus:border-[#635BFF] focus:outline-none"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* 24-Hour Sign-in Traffic Panel */}
               <Panel
-                title={`Hourly Sign-in Traffic — ${dayLong(d.day.day, d.today)}`}
-                note={`${count(d.day.active)} people active · ${count(d.day.signInCount)} total sign-ins`}
+                title={`24-Hour Sign-in Traffic — ${dayLong(d.day.day, d.today)}`}
+                note={`Hourly distribution of sign-in events across all 24 hours (BST · UTC+6) on this selected date`}
                 actions={
                   peakHourInfo && (
-                    <div className="flex items-center gap-1.5 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] px-3 py-1 text-[12px] font-bold text-[#92400E]">
+                    <div className="flex items-center gap-1.5 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] px-3 py-1.5 text-[12px] font-bold text-[#92400E]">
                       <Flame className="h-3.5 w-3.5 text-[#D97706]" />
                       <span>
-                        Peak Hour: {peakHourInfo.label} ({peakHourInfo.count} sign-ins)
+                        Busiest Hour: {peakHourInfo.label} ({peakHourInfo.count} sign-ins)
                       </span>
                     </div>
                   )
                 }
               >
-                <div className="space-y-1">
-                  <Columns
-                    points={d.day.signInHours.map((v, h) => ({ label: hourLabel(h), value: v }))}
-                    height={100}
-                    format={count}
-                  />
-                </div>
+                <HourlyTraffic24h
+                  hours={d.day.signInHours}
+                  totalSignIns={d.day.signInCount}
+                  activePeople={d.day.active}
+                  peakHour={peakHourInfo}
+                />
               </Panel>
 
               {/* People Directory Panel */}
