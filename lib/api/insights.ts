@@ -364,9 +364,29 @@ export interface Overview {
   };
   attention: { openReports: number; openTickets: number; hiddenListings: number };
   top: {
-    places: { key: string; name: string; bookings: number }[];
-    services: { name: string; bookings: number }[];
-    customers: { userId: string; name: string | null; bookings: number }[];
+    places: {
+      key: string;
+      name: string;
+      bookings: number;
+      completed?: number;
+      revenue?: number;
+      kind?: 'shop' | 'barber';
+    }[];
+    services: {
+      name: string;
+      bookings: number;
+      completed?: number;
+      revenue?: number;
+    }[];
+    customers: {
+      userId: string;
+      name: string | null;
+      email?: string | null;
+      phone?: string | null;
+      bookings: number;
+      completed?: number;
+      spent?: number;
+    }[];
   };
 }
 

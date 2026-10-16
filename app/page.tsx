@@ -48,6 +48,7 @@ import {
   SignupsTrendChart,
   RankingHorizontalChart,
 } from '@/components/overview/OverviewRecharts';
+import { OverviewLeaderboards } from '@/components/overview/OverviewLeaderboards';
 import { percent } from '@/components/insights/Bits';
 
 export default function OverviewPage() {
@@ -768,51 +769,7 @@ export default function OverviewPage() {
             </div>
 
             {/* Visual Analytics Row 5: Platform Leaderboards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {/* Busiest Salons & Barbers */}
-              <Panel
-                title="Top Performing Places"
-                note="Appointments booked in this period"
-              >
-                <RankingHorizontalChart
-                  items={o.top.places.map((p) => ({
-                    name: p.name,
-                    value: p.bookings,
-                    href: placeHref(p.key),
-                  }))}
-                  color="#635BFF"
-                />
-              </Panel>
-
-              {/* Top Booked Services */}
-              <Panel
-                title="Top Booked Services"
-                note="Most popular treatments in this period"
-              >
-                <RankingHorizontalChart
-                  items={o.top.services.map((s) => ({
-                    name: s.name,
-                    value: s.bookings,
-                  }))}
-                  color="#16A34A"
-                />
-              </Panel>
-
-              {/* Top VIP Customers */}
-              <Panel
-                title="Top Repeat Customers"
-                note="Most frequent visitors across network"
-              >
-                <RankingHorizontalChart
-                  items={o.top.customers.map((c) => ({
-                    name: c.name || `User #${c.userId.slice(-6)}`,
-                    value: c.bookings,
-                    href: `/customers/${encodeURIComponent(c.userId)}`,
-                  }))}
-                  color="#0EA5E9"
-                />
-              </Panel>
-            </div>
+            <OverviewLeaderboards overview={o} periodLabel={periodLabel} />
 
             {/* Visual Analytics Row 6: Operational Quality & Demographics */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
