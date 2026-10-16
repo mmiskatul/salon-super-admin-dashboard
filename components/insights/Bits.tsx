@@ -46,21 +46,40 @@ export function Columns({
   color = '#635BFF',
   height = 120,
   format = (v: number) => String(v),
+  activeLabel,
+  onSelect,
 }: {
   points: { label: string; value: number }[];
   color?: string;
   height?: number;
   format?: (v: number) => string;
+  activeLabel?: string;
+  onSelect?: (label: string, index: number) => void;
 }) {
   const max = Math.max(1, ...points.map((p) => p.value));
   const ticks = new Set([0, Math.floor((points.length - 1) / 2), points.length - 1]);
   return (
     <div>
       <div className="flex items-end gap-[2px]" style={{ height }} role="img" aria-label={`${points.length} values, highest ${format(max)}`}>
-        {points.map((p, i) => (
-          <div key={i} className="flex-1 rounded-t-[2px]" title={`${p.label}: ${format(p.value)}`}
-            style={{ height: `${Math.max(p.value > 0 ? 3 : 0, (p.value / max) * 100)}%`, backgroundColor: color, opacity: p.value > 0 ? 1 : 0.15, minHeight: 1 }} />
-        ))}
+        {points.map((p, i) => {
+          const isActive = activeLabel && p.label === activeLabel;
+          return (
+            <div
+              key={i}
+              onClick={() => onSelect?.(p.label, i)}
+              className={`flex-1 rounded-t-[2px] transition-all ${
+                onSelect ? 'cursor-pointer hover:brightness-110' : ''
+              } ${isActive ? 'ring-2 ring-[#635BFF] ring-offset-1 z-10' : ''}`}
+              title={`${p.label}: ${format(p.value)}${onSelect ? ' (Click to select date)' : ''}`}
+              style={{
+                height: `${Math.max(p.value > 0 ? 3 : 0, (p.value / max) * 100)}%`,
+                backgroundColor: isActive ? '#4F46E5' : color,
+                opacity: p.value > 0 || isActive ? 1 : 0.15,
+                minHeight: isActive ? 4 : 1,
+              }}
+            />
+          );
+        })}
       </div>
       <div className="mt-1.5 flex justify-between text-[10px] font-semibold text-[#94A3B8]">
         {points.map((p, i) => (ticks.has(i) ? <span key={i}>{p.label}</span> : null))}
@@ -200,10 +219,14 @@ export function StackedColumns({
   points,
   series,
   height = 160,
+  activeLabel,
+  onSelect,
 }: {
   points: { label: string; values: Record<string, number> }[];
   series: { key: string; label: string; color: string }[];
   height?: number;
+  activeLabel?: string;
+  onSelect?: (label: string, index: number) => void;
 }) {
   const totals = points.map((p) => series.reduce((s, x) => s + (p.values[x.key] ?? 0), 0));
   const max = Math.max(1, ...totals);
@@ -211,17 +234,26 @@ export function StackedColumns({
   return (
     <div className="space-y-2">
       <div className="flex items-end gap-[2px]" style={{ height }} role="img" aria-label={`${points.length} columns, highest ${max}`}>
-        {points.map((p, i) => (
-          <div
-            key={i}
-            className="flex flex-1 flex-col-reverse overflow-hidden rounded-t-[2px]"
-            style={{ height: `${(totals[i] / max) * 100}%`, minHeight: totals[i] ? 2 : 0 }}
-            title={`${p.label}: ${series.map((s) => `${s.label} ${p.values[s.key] ?? 0}`).join(', ')}`}>
-            {series.map((s) =>
-              p.values[s.key] ? <div key={s.key} style={{ height: `${((p.values[s.key] ?? 0) / Math.max(1, totals[i])) * 100}%`, backgroundColor: s.color }} /> : null,
-            )}
-          </div>
-        ))}
+        {points.map((p, i) => {
+          const isActive = activeLabel && p.label === activeLabel;
+          return (
+            <div
+              key={i}
+              onClick={() => onSelect?.(p.label, i)}
+              className={`flex flex-1 flex-col-reverse overflow-hidden rounded-t-[2px] transition-all ${
+                onSelect ? 'cursor-pointer hover:brightness-110' : ''
+              } ${isActive ? 'ring-2 ring-[#635BFF] ring-offset-1 z-10' : ''}`}
+              style={{
+                height: `${(totals[i] / max) * 100}%`,
+                minHeight: totals[i] ? 2 : isActive ? 4 : 0,
+              }}
+              title={`${p.label}: ${series.map((s) => `${s.label} ${p.values[s.key] ?? 0}`).join(', ')}${onSelect ? ' (Click to select date)' : ''}`}>
+              {series.map((s) =>
+                p.values[s.key] ? <div key={s.key} style={{ height: `${((p.values[s.key] ?? 0) / Math.max(1, totals[i])) * 100}%`, backgroundColor: s.color }} /> : null,
+              )}
+            </div>
+          );
+        })}
       </div>
       <div className="flex justify-between text-[10px] font-semibold text-[#94A3B8]">
         {points.map((p, i) => (ticks.has(i) ? <span key={i}>{p.label}</span> : null))}

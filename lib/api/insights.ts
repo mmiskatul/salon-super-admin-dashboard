@@ -2,7 +2,23 @@ import { apiFetch } from '../api-client';
 
 /** The insight pages (backend AdminInsightsService, GET /admin/insights/*). Super admins only. */
 
-export type InsightDays = 7 | 30 | 90 | 365;
+export type InsightDays = 1 | 7 | 30 | 90 | 365;
+export type InsightPeriod = 'Day' | 'Weekly' | 'Monthly' | 'Yearly';
+
+export const PERIOD_TO_DAYS: Record<InsightPeriod, InsightDays> = {
+  Day: 1,
+  Weekly: 7,
+  Monthly: 30,
+  Yearly: 365,
+};
+
+export const DAYS_TO_PERIOD: Record<number, InsightPeriod> = {
+  1: 'Day',
+  7: 'Weekly',
+  30: 'Monthly',
+  90: 'Monthly',
+  365: 'Yearly',
+};
 export type ListingStep = 'service' | 'hours' | 'location' | 'photos';
 export interface Counted { key: string; count: number }
 
@@ -248,6 +264,7 @@ export const STEP_LABELS: Record<ListingStep, string> = { service: 'Service', ho
 
 export interface Overview {
   days: number;
+  selectedDate?: string;
   generatedAt: string;
   people: {
     total: number;
@@ -302,7 +319,7 @@ export interface Overview {
 export interface NavCounts { openReports: number; openTickets: number; hiddenListings: number; bookingsWaiting: number; joinRequests: number; deletionRequests: number }
 
 export type CancelGroup = 'CUSTOMER' | 'SHOP' | 'SYSTEM' | 'ADMIN';
-export type BoardDays = 0 | 7 | 30 | 90 | 365;
+export type BoardDays = 0 | 1 | 7 | 30 | 90 | 365;
 export interface BookingBoardParams {
   days: BoardDays;
   status?: string;
@@ -354,7 +371,11 @@ export interface BookingBoard {
   table: { total: number; page: number; pageSize: number; pages: number; rows: BoardRow[] };
 }
 
-export const getOverview = (days: InsightDays) => apiFetch<Overview>(`/admin/insights/overview?days=${days}`);
+export const getOverview = (days: InsightDays, date?: string) => {
+  const qs = new URLSearchParams({ days: String(days) });
+  if (date) qs.set('date', date);
+  return apiFetch<Overview>(`/admin/insights/overview?${qs.toString()}`);
+};
 export const getNavCounts = () => apiFetch<NavCounts>('/admin/insights/nav-counts');
 export function getBookingBoard(p: BookingBoardParams) {
   const qs = new URLSearchParams({ days: String(p.days), page: String(p.page), pageSize: String(p.pageSize) });

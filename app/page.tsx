@@ -1,15 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, ArrowUpRight, Megaphone, RotateCw } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, Megaphone, RotateCw, Calendar } from 'lucide-react';
 import { useApi } from '@/lib/useApi';
 import { getOverview, type InsightDays } from '@/lib/api/insights';
 import { placeHref } from '@/lib/placeHref';
 import { count, money } from '@/lib/format';
 import { Button, Canvas, Failed, Loading, PageHead, Panel, Stat } from '@/components/ui/primitives';
 import ClusterHealthWidget from '@/components/overview/ClusterHealthWidget';
-import { Bars, Columns, DaysPicker, Donut, OUTCOME_COLORS, percent, StackedColumns } from '@/components/insights/Bits';
+import { DateWiseProgressFilter } from '@/components/overview/DateWiseProgressFilter';
+import { DailyProgressTable } from '@/components/overview/DailyProgressTable';
+import { Bars, Columns, Donut, OUTCOME_COLORS, percent, StackedColumns } from '@/components/insights/Bits';
 
 function Kpi({ label, value, sub, href, tone }: { label: string; value: React.ReactNode; sub?: React.ReactNode; href?: string; tone?: 'plain' | 'signal' | 'live' }) {
   const body = <Stat label={label} value={value} sub={sub} tone={tone} />;
@@ -29,22 +31,69 @@ function MiniList({ rows }: { rows: { label: string; value: React.ReactNode }[] 
   );
 }
 
-/** The whole system on one page: people, places, bookings, money, engagement, today and health. */
+/** The whole system on one page: people, places, bookings, money, engagement, date-wise progress and health. */
 export default function OverviewPage() {
   const [days, setDays] = useState<InsightDays>(30);
-  const data = useApi(() => getOverview(days), [days], 'overview-whole-system');
+
+  const todayIso = useMemo(() => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const now = new Date();
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  }, []);
+
+  const [selectedDate, setSelectedDate] = useState<string>(todayIso);
+
+  const data = useApi(() => getOverview(days, selectedDate), [days, selectedDate], 'overview-whole-system');
   const o = data.data;
   const shortDay = (d: string) => d.slice(5);
+
+  const handleDateChange = (date: string) => {
+    setSelectedDate(date);
+    // If selected date is further back than current days range, automatically widen range
+    const diffDays = Math.ceil((Date.now() - new Date(`${date}T00:00:00`).getTime()) / 86400000);
+    if (diffDays > 90 && days !== 365) {
+      setDays(365);
+    } else if (diffDays > 30 && days < 90) {
+      setDays(90);
+    } else if (diffDays > 7 && days === 7) {
+      setDays(30);
+    }
+  };
+
+  const handleClearDate = () => {
+    setSelectedDate(todayIso);
+  };
+
+  // Compute breakdown for the focused date in the "Today / Date" panel
+  const focusedDateBreakdown = useMemo(() => {
+    if (!o) return { total: 0, waiting: 0, inChair: 0, done: 0, cancelled: 0 };
+    if (selectedDate === todayIso) {
+      return o.today;
+    }
+    const dayB = o.bookings.byDay.find((b) => b.day === selectedDate);
+    if (dayB) {
+      return {
+        total: dayB.completed + dayB.upcoming + dayB.cancelled + dayB.noShow,
+        waiting: dayB.upcoming,
+        inChair: 0,
+        done: dayB.completed,
+        cancelled: dayB.cancelled + dayB.noShow,
+      };
+    }
+    return o.today;
+  }, [o, selectedDate, todayIso]);
+
+  const periodLabel = days === 1 ? 'today' : days === 7 ? '7 days' : days === 30 ? '30 days' : days === 365 ? '1 year' : `${days} days`;
+  const periodShort = days === 1 ? 'Day' : days === 7 ? 'Week' : days === 30 ? 'Month' : days === 365 ? 'Year' : `${days}d`;
 
   return (
     <>
       <PageHead
         eyebrow="Command centre"
         title="Platform overview"
-        lede="Everything on SalunBD in one place: every customer, shop owner and barber, what was booked and what happened to it, the cash recorded, how people use the apps, and what needs your attention."
+        lede="Everything on SalunBD in one place: every customer, shop owner and barber, what was booked and what happened to it, date-wise progress, the cash recorded, and what needs your attention."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <DaysPicker value={days} onChange={setDays} />
             <Link href="/broadcasts">
               <Button variant="outline"><Megaphone className="h-4 w-4" /> Broadcast</Button>
             </Link>
@@ -59,6 +108,16 @@ export default function OverviewPage() {
           <Loading label="Reading the whole system" />
         ) : (
           <>
+            {/* Top Date Filter & Progress Spotlight */}
+            <DateWiseProgressFilter
+              days={days}
+              onDaysChange={setDays}
+              selectedDate={selectedDate}
+              onDateChange={handleDateChange}
+              overviewData={o}
+              onClearDateFilter={handleClearDate}
+            />
+
             {(o.attention.openReports > 0 || o.attention.openTickets > 0 || o.attention.hiddenListings > 0) && (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] px-4 py-3 text-[13px] font-semibold text-[#92400E]">
                 <AlertTriangle className="h-4 w-4" aria-hidden />
@@ -71,28 +130,113 @@ export default function OverviewPage() {
 
             {/* Headline numbers */}
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <Kpi label="All accounts" value={count(o.people.total)} sub={`+${o.people.newInPeriod} in ${days} days`} href="/users" />
+              <Kpi label="All accounts" value={count(o.people.total)} sub={`+${o.people.newInPeriod} in ${periodLabel}`} href="/users" />
               <Kpi label="Customers" value={count(o.people.customers)} sub={`+${o.people.newCustomers} new`} href="/growth" />
               <Kpi label="Partners" value={count(o.people.owners + o.people.shopBarbers + o.people.independentBarbers)} sub={`+${o.people.newPartners} new`} href="/barbers" />
               <Kpi label="Active this week" value={count(o.active.week.total)} sub={`${o.active.day.total} today`} tone="live" href="/growth" />
               <Kpi label="Visible places" value={`${o.places.shopsVisible + o.places.barbersVisible}`} sub={`of ${o.places.shops + o.places.independentBarbers}`} href="/readiness" />
-              <Kpi label={`Bookings, ${days}d`} value={count(o.bookings.total)} sub={`${percent(o.bookings.completionRate)} completed`} href="/bookings" />
-              <Kpi label={`Cash, ${days}d`} value={money(o.money.cash)} sub={`${o.money.payments} payments`} tone="live" href="/money" />
+              <Kpi label={`Bookings, ${periodShort}`} value={count(o.bookings.total)} sub={`${percent(o.bookings.completionRate)} completed`} href="/bookings" />
+              <Kpi label={`Cash, ${periodShort}`} value={money(o.money.cash)} sub={`${o.money.payments} payments`} tone="live" href="/money" />
               <Kpi label="Rating" value={o.engagement.averageRating ?? '—'} sub={`${o.engagement.reviews} reviews`} href="/safety" />
             </div>
 
-            {/* Today, live */}
-            <Panel title="Today" note="Bookings for today across every shop and barber" actions={<Link href="/bookings" className="inline-flex items-center gap-1 text-[12px] font-bold text-[#635BFF]">Open bookings <ArrowUpRight className="h-3.5 w-3.5" /></Link>}>
+            {/* Today or Selected Date Breakdown */}
+            <Panel
+              title={selectedDate === todayIso ? 'Today' : `Appointments on ${selectedDate}`}
+              note={
+                selectedDate === todayIso
+                  ? 'Bookings for today across every shop and barber'
+                  : `Bookings recorded for ${selectedDate} across every shop and barber`
+              }
+              actions={
+                <Link href="/bookings" className="inline-flex items-center gap-1 text-[12px] font-bold text-[#635BFF]">
+                  Open bookings <ArrowUpRight className="h-3.5 w-3.5" />
+                </Link>
+              }
+            >
               <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-                <MiniList rows={[{ label: 'Booked for today', value: o.today.total }]} />
-                <MiniList rows={[{ label: 'Waiting', value: o.today.waiting }]} />
-                <MiniList rows={[{ label: 'In the chair now', value: o.today.inChair }]} />
-                <MiniList rows={[{ label: 'Done', value: o.today.done }]} />
-                <MiniList rows={[{ label: 'Cancelled / no-show', value: o.today.cancelled }]} />
+                <MiniList rows={[{ label: selectedDate === todayIso ? 'Booked for today' : 'Booked on date', value: focusedDateBreakdown.total }]} />
+                <MiniList rows={[{ label: 'Waiting / Upcoming', value: focusedDateBreakdown.waiting }]} />
+                <MiniList rows={[{ label: selectedDate === todayIso ? 'In the chair now' : 'In chair', value: focusedDateBreakdown.inChair }]} />
+                <MiniList rows={[{ label: 'Done', value: focusedDateBreakdown.done }]} />
+                <MiniList rows={[{ label: 'Cancelled / no-show', value: focusedDateBreakdown.cancelled }]} />
               </div>
             </Panel>
 
-            {/* People */}
+            {/* Comprehensive Date-Wise Progress Table */}
+            <DailyProgressTable
+              overview={o}
+              selectedDate={selectedDate}
+              onSelectDate={handleDateChange}
+            />
+
+            {/* Bookings Charts */}
+            <div className="grid gap-5 lg:grid-cols-3">
+              <Panel
+                title="Bookings made per day"
+                note={`Coloured by what has happened to them since · Click any day column to focus that date`}
+                className="lg:col-span-2"
+                actions={<Link href="/bookings" className="text-[12px] font-bold text-[#635BFF]">All bookings</Link>}
+              >
+                <StackedColumns
+                  points={o.bookings.byDay.map(({ day, ...values }) => ({ label: shortDay(day), values }))}
+                  series={[
+                    { key: 'completed', label: 'Completed', color: OUTCOME_COLORS.completed },
+                    { key: 'upcoming', label: 'Open / upcoming', color: OUTCOME_COLORS.open },
+                    { key: 'cancelled', label: 'Cancelled', color: OUTCOME_COLORS.cancelled },
+                    { key: 'noShow', label: 'No-show', color: OUTCOME_COLORS.noShow },
+                  ]}
+                  activeLabel={shortDay(selectedDate)}
+                  onSelect={(_, idx) => {
+                    const target = o.bookings.byDay[idx];
+                    if (target) handleDateChange(target.day);
+                  }}
+                />
+              </Panel>
+              <Panel title="Outcomes" note={`${count(o.bookings.total)} bookings · ${o.bookings.app} in the app · ${o.bookings.walkIns} walk-ins`}>
+                <Donut
+                  centre={count(o.bookings.total)}
+                  parts={[
+                    { label: 'Completed', value: o.bookings.completed, color: OUTCOME_COLORS.completed },
+                    { label: 'Open / upcoming', value: o.bookings.open, color: OUTCOME_COLORS.open },
+                    { label: 'Cancelled', value: o.bookings.cancelled, color: OUTCOME_COLORS.cancelled },
+                    { label: 'No-show', value: o.bookings.noShow, color: OUTCOME_COLORS.noShow },
+                  ]}
+                />
+              </Panel>
+            </div>
+
+            {/* Money */}
+            <div className="grid gap-5 lg:grid-cols-3">
+              <Panel
+                title="Cash per day"
+                note="Payments shops recorded as paid (SalunBD is cash-only) · Click any bar to focus date"
+                className="lg:col-span-2"
+                actions={<Link href="/money" className="text-[12px] font-bold text-[#635BFF]">Money</Link>}
+              >
+                <Columns
+                  points={o.money.byDay.map((d) => ({ label: shortDay(d.day), value: d.amount }))}
+                  color="#16A34A"
+                  format={money}
+                  activeLabel={shortDay(selectedDate)}
+                  onSelect={(_, idx) => {
+                    const target = o.money.byDay[idx];
+                    if (target) handleDateChange(target.day);
+                  }}
+                />
+              </Panel>
+              <Panel title="Money at a glance">
+                <MiniList rows={[
+                  { label: `Cash (${periodLabel})`, value: money(o.money.cash) },
+                  { label: 'Average payment', value: money(o.money.averageTicket) },
+                  { label: 'Cash, all time', value: money(o.money.allTime) },
+                  { label: 'Coupon discounts given', value: money(o.money.couponDiscounts) },
+                  { label: 'Gift card balances owed', value: money(o.money.giftCardsOwed) },
+                ]} />
+              </Panel>
+            </div>
+
+            {/* People & Signups */}
             <div className="grid gap-5 lg:grid-cols-3">
               <Panel title="Who is on SalunBD" note={`${count(o.people.total)} accounts`}>
                 <Donut
@@ -107,10 +251,15 @@ export default function OverviewPage() {
                 />
                 <p className="mt-3 text-[12px] font-semibold text-[#64748B]">{o.people.unverified} haven&apos;t verified their email · {o.people.banned} banned</p>
               </Panel>
-              <Panel title="New sign-ups per day" note={`Last ${days} days`} className="lg:col-span-2">
+              <Panel title="New sign-ups per day" note={`Last ${periodLabel} · Click bar to focus date`} className="lg:col-span-2">
                 <StackedColumns
                   points={o.signups.map((s) => ({ label: shortDay(s.day), values: { customers: s.customers, partners: s.partners } }))}
                   series={[{ key: 'customers', label: 'Customers', color: '#635BFF' }, { key: 'partners', label: 'Partners (owners & barbers)', color: '#F59E0B' }]}
+                  activeLabel={shortDay(selectedDate)}
+                  onSelect={(_, idx) => {
+                    const target = o.signups[idx];
+                    if (target) handleDateChange(target.day);
+                  }}
                 />
               </Panel>
             </div>
@@ -123,7 +272,7 @@ export default function OverviewPage() {
                   { label: 'Last 30 days', value: `${o.active.month.total} (${o.active.month.customers} · ${o.active.month.partners})` },
                 ]} />
               </Panel>
-              <Panel title="Shops and barbers" note={`${o.places.newShops} new shops in ${days} days`}>
+              <Panel title="Shops and barbers" note={`${o.places.newShops} new shops in ${periodLabel}`}>
                 <MiniList rows={[
                   { label: 'Shops', value: `${o.places.shops} (${o.places.shopsVisible} visible${o.places.shopsSuspended ? `, ${o.places.shopsSuspended} suspended` : ''})` },
                   { label: 'Independent barbers', value: `${o.places.independentBarbers} (${o.places.barbersVisible} visible)` },
@@ -133,32 +282,6 @@ export default function OverviewPage() {
               </Panel>
               <Panel title="Where customers are" note="City of their saved addresses">
                 <Bars rows={o.engagement.customersByCity.map((c) => ({ label: c.key, value: c.count }))} />
-              </Panel>
-            </div>
-
-            {/* Bookings */}
-            <div className="grid gap-5 lg:grid-cols-3">
-              <Panel title="Bookings made per day" note="Coloured by what has happened to them since" className="lg:col-span-2" actions={<Link href="/bookings" className="text-[12px] font-bold text-[#635BFF]">All bookings</Link>}>
-                <StackedColumns
-                  points={o.bookings.byDay.map(({ day, ...values }) => ({ label: shortDay(day), values }))}
-                  series={[
-                    { key: 'completed', label: 'Completed', color: OUTCOME_COLORS.completed },
-                    { key: 'upcoming', label: 'Open / upcoming', color: OUTCOME_COLORS.open },
-                    { key: 'cancelled', label: 'Cancelled', color: OUTCOME_COLORS.cancelled },
-                    { key: 'noShow', label: 'No-show', color: OUTCOME_COLORS.noShow },
-                  ]}
-                />
-              </Panel>
-              <Panel title="Outcomes" note={`${count(o.bookings.total)} bookings · ${o.bookings.app} in the app · ${o.bookings.walkIns} walk-ins`}>
-                <Donut
-                  centre={count(o.bookings.total)}
-                  parts={[
-                    { label: 'Completed', value: o.bookings.completed, color: OUTCOME_COLORS.completed },
-                    { label: 'Open / upcoming', value: o.bookings.open, color: OUTCOME_COLORS.open },
-                    { label: 'Cancelled', value: o.bookings.cancelled, color: OUTCOME_COLORS.cancelled },
-                    { label: 'No-show', value: o.bookings.noShow, color: OUTCOME_COLORS.noShow },
-                  ]}
-                />
               </Panel>
             </div>
 
@@ -176,22 +299,6 @@ export default function OverviewPage() {
               </Panel>
               <Panel title="Most booked services">
                 <Bars rows={o.top.services.map((s) => ({ label: s.name, value: s.bookings, color: '#0EA5E9' }))} />
-              </Panel>
-            </div>
-
-            {/* Money */}
-            <div className="grid gap-5 lg:grid-cols-3">
-              <Panel title="Cash per day" note="Payments shops recorded as paid (SalunBD is cash-only)" className="lg:col-span-2" actions={<Link href="/money" className="text-[12px] font-bold text-[#635BFF]">Money</Link>}>
-                <Columns points={o.money.byDay.map((d) => ({ label: shortDay(d.day), value: d.amount }))} color="#16A34A" format={money} />
-              </Panel>
-              <Panel title="Money at a glance">
-                <MiniList rows={[
-                  { label: `Cash, last ${days} days`, value: money(o.money.cash) },
-                  { label: 'Average payment', value: money(o.money.averageTicket) },
-                  { label: 'Cash, all time', value: money(o.money.allTime) },
-                  { label: 'Coupon discounts given', value: money(o.money.couponDiscounts) },
-                  { label: 'Gift card balances owed', value: money(o.money.giftCardsOwed) },
-                ]} />
               </Panel>
             </div>
 
