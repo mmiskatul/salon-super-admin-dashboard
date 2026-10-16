@@ -298,6 +298,36 @@ export interface OverviewTimeline {
   signups: TimelineSignupBucket[];
 }
 
+export interface TopCancelledBarber {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  shopName: string | null;
+  isIndependent: boolean;
+  cancelled: number;
+  noShow: number;
+  cancelledByShop: number;
+  cancelledByCustomer: number;
+  total: number;
+  cancelRate: number;
+  lastCancelledAt: string | null;
+}
+
+export interface TopCancelledCustomer {
+  userId: string;
+  name: string | null;
+  email?: string | null;
+  phone?: string | null;
+  cancelled: number;
+  noShow: number;
+  cancelledByCustomer: number;
+  cancelledByShop: number;
+  total: number;
+  cancelRate: number;
+  lastCancelledAt: string | null;
+}
+
 export interface Overview {
   days: number;
   selectedDate: string;
@@ -363,6 +393,12 @@ export interface Overview {
     customersByCity: Counted[];
   };
   attention: { openReports: number; openTickets: number; hiddenListings: number };
+  cancellations?: {
+    rate: number | null;
+    byWho: { customer: number; shop: number; system: number; admin: number };
+    topBarbers: TopCancelledBarber[];
+    topCustomers: TopCancelledCustomer[];
+  };
   top: {
     shops?: {
       id: string;
@@ -408,6 +444,8 @@ export interface Overview {
       spent?: number;
       lastBookingAt?: string | null;
     }[];
+    cancelledBarbers?: TopCancelledBarber[];
+    cancelledCustomers?: TopCancelledCustomer[];
   };
 }
 

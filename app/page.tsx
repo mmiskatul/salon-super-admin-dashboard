@@ -49,6 +49,7 @@ import {
   RankingHorizontalChart,
 } from '@/components/overview/OverviewRecharts';
 import { OverviewLeaderboards } from '@/components/overview/OverviewLeaderboards';
+import { CancellationRiskWatchlist } from '@/components/overview/CancellationRiskWatchlist';
 import { percent } from '@/components/insights/Bits';
 
 export default function OverviewPage() {
@@ -780,7 +781,10 @@ export default function OverviewPage() {
             {/* Visual Analytics Row 5: Platform Leaderboards */}
             <OverviewLeaderboards overview={o} periodLabel={periodLabel} />
 
-            {/* Visual Analytics Row 6: Operational Quality & Demographics */}
+            {/* Visual Analytics Row 6: Cancellation Risk & Watchlist */}
+            <CancellationRiskWatchlist overview={o} periodLabel={periodLabel} />
+
+            {/* Visual Analytics Row 7: Operational Quality & Demographics */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Cancellation Root Causes */}
               <Panel
