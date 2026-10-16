@@ -596,6 +596,14 @@ export interface Logins {
   day: {
     day: string;
     signInHours: number[];
+    byHour?: {
+      hour: number;
+      label: string;
+      byRole: Record<string, number>;
+      newUsers: number;
+      returning: number;
+      active: number;
+    }[];
     active: number;
     signInCount: number;
     total: number;

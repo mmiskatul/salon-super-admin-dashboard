@@ -179,6 +179,141 @@ function PlatformIcon({ platform }: { platform?: string | null }) {
   return <Laptop className="h-3.5 w-3.5 text-[#94A3B8]" />;
 }
 
+interface AggregatedPoint {
+  label: string;
+  subLabel?: string;
+  byRole: Record<string, number>;
+  returning: number;
+  newUsers: number;
+  total: number;
+  dateKey?: string;
+}
+
+function computeChartSeries(
+  granularity: 'hourly' | 'daily' | 'weekly' | 'monthly',
+  d: any
+): AggregatedPoint[] {
+  if (granularity === 'hourly') {
+    // 24 hours of d.day
+    if (d.day.byHour && d.day.byHour.length === 24) {
+      return d.day.byHour.map((h: any) => ({
+        label: h.label,
+        byRole: h.byRole,
+        returning: h.returning,
+        newUsers: h.newUsers,
+        total: h.active,
+      }));
+    }
+    // Fallback if byHour is not yet available
+    return Array.from({ length: 24 }, (_, h) => {
+      const lbl = hourLabel(h);
+      const val = d.day.signInHours?.[h] || 0;
+      return {
+        label: lbl,
+        byRole: { CUSTOMER: val },
+        returning: val,
+        newUsers: 0,
+        total: val,
+      };
+    });
+  }
+
+  if (granularity === 'weekly') {
+    // Chunk d.series into 7-day week intervals
+    const chunks: AggregatedPoint[] = [];
+    const series = d.series;
+    const chunkSize = 7;
+    for (let i = 0; i < series.length; i += chunkSize) {
+      const weekDays = series.slice(i, i + chunkSize);
+      const first = weekDays[0];
+      const last = weekDays[weekDays.length - 1];
+      const weekNum = Math.floor(i / chunkSize) + 1;
+      const label = `W${weekNum} (${dayLabel(first.day)}${first.day !== last.day ? `–${dayLabel(last.day)}` : ''})`;
+
+      const byRole: Record<string, number> = {};
+      let returning = 0;
+      let newUsers = 0;
+      let total = 0;
+
+      for (const day of weekDays) {
+        returning += day.returning;
+        newUsers += day.newUsers;
+        total += day.active;
+        for (const [r, cnt] of Object.entries(day.byRole as Record<string, number>)) {
+          byRole[r] = (byRole[r] || 0) + cnt;
+        }
+      }
+
+      chunks.push({
+        label,
+        subLabel: `${dayLabel(first.day)} to ${dayLabel(last.day)}`,
+        byRole,
+        returning,
+        newUsers,
+        total,
+        dateKey: last.day,
+      });
+    }
+    return chunks;
+  }
+
+  if (granularity === 'monthly') {
+    // Group d.series by month (YYYY-MM)
+    const monthMap = new Map<string, { days: any[]; monthName: string }>();
+    for (const day of d.series) {
+      const ym = day.day.slice(0, 7); // "YYYY-MM"
+      if (!monthMap.has(ym)) {
+        const dObj = new Date(`${day.day}T00:00:00Z`);
+        const monthName = dObj.toLocaleDateString('en-GB', {
+          timeZone: 'UTC',
+          month: 'short',
+          year: d.series.length > 200 ? '2-digit' : undefined,
+        });
+        monthMap.set(ym, { days: [], monthName });
+      }
+      monthMap.get(ym)!.days.push(day);
+    }
+
+    const points: AggregatedPoint[] = [];
+    for (const [ym, { days: monthDays, monthName }] of monthMap.entries()) {
+      const byRole: Record<string, number> = {};
+      let returning = 0;
+      let newUsers = 0;
+      let total = 0;
+
+      for (const day of monthDays) {
+        returning += day.returning;
+        newUsers += day.newUsers;
+        total += day.active;
+        for (const [r, cnt] of Object.entries(day.byRole as Record<string, number>)) {
+          byRole[r] = (byRole[r] || 0) + cnt;
+        }
+      }
+
+      points.push({
+        label: monthName,
+        subLabel: ym,
+        byRole,
+        returning,
+        newUsers,
+        total,
+        dateKey: monthDays[monthDays.length - 1].day,
+      });
+    }
+    return points;
+  }
+
+  // Default: daily (d.series)
+  return d.series.map((s: any) => ({
+    label: dayLabel(s.day),
+    byRole: s.byRole,
+    returning: s.returning,
+    newUsers: s.newUsers,
+    total: s.active,
+    dateKey: s.day,
+  }));
+}
+
 export default function LoginsPage() {
   const [days, setDays] = useState<InsightDays>(30);
   const [day, setDay] = useState<string>('');
@@ -192,6 +327,17 @@ export default function LoginsPage() {
   const [activityFilter, setActivityFilter] = useState<'ALL' | 'SIGNED_IN' | 'APP_OPEN' | 'NEW'>('ALL');
   const [platformFilter, setPlatformFilter] = useState<'ALL' | 'ANDROID' | 'IOS' | 'WEB'>('ALL');
   const [sortBy, setSortBy] = useState<'lastSeen' | 'firstSeen' | 'renewals' | 'name'>('lastSeen');
+
+  // Chart time-scale granularity: auto (1d->hourly, 7d->daily, 30d->weekly, 90d/365d->monthly)
+  const [chartGranularity, setChartGranularity] = useState<'auto' | 'hourly' | 'daily' | 'weekly' | 'monthly'>('auto');
+
+  const effectiveGranularity = useMemo<'hourly' | 'daily' | 'weekly' | 'monthly'>(() => {
+    if (chartGranularity !== 'auto') return chartGranularity;
+    if (days === 1) return 'hourly';
+    if (days === 7) return 'daily';
+    if (days === 30) return 'weekly';
+    return 'monthly'; // 90 or 365
+  }, [chartGranularity, days]);
 
   // Inspection modal
   const [inspectingPerson, setInspectingPerson] = useState<ActivePerson | null>(null);
@@ -236,6 +382,12 @@ export default function LoginsPage() {
     'logins'
   );
   const d = data.data;
+
+  // Dynamically computed aggregated series for the charts
+  const chartPoints = useMemo<AggregatedPoint[]>(() => {
+    if (!d) return [];
+    return computeChartSeries(effectiveGranularity, d);
+  }, [effectiveGranularity, d]);
 
   // Auto refresh interval
   useEffect(() => {
@@ -453,7 +605,7 @@ export default function LoginsPage() {
             </button>
 
             {/* Timeframe picker */}
-            <DaysPicker value={days} onChange={setDays} />
+            <DaysPicker value={days} onChange={setDays} includeToday />
 
             {/* Manual Refresh */}
             <Button onClick={data.refresh} disabled={data.loading} className="shadow-sm">
@@ -677,40 +829,119 @@ export default function LoginsPage() {
               </div>
             </div>
 
+            {/* Time-Scale Granularity Toolbar */}
+            <div className="flex flex-col gap-3 rounded-xl border border-[#E2E8F0] bg-white p-3.5 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EEF2FF] text-[#635BFF]">
+                  <Activity className="h-4 w-4" />
+                </span>
+                <div>
+                  <h3 className="text-[13px] font-extrabold text-[#1E293B]">
+                    Time-Scale Aggregation Mode
+                  </h3>
+                  <p className="text-[11px] font-medium text-[#64748B]">
+                    {effectiveGranularity === 'hourly'
+                      ? `Displaying 24-hour distribution (12am–11pm BST) for ${dayLong(d.day.day, d.today)}`
+                      : effectiveGranularity === 'weekly'
+                      ? `Displaying week-by-week aggregated volume across past ${days} days`
+                      : effectiveGranularity === 'monthly'
+                      ? `Displaying calendar month-by-month trends across past ${days === 365 ? '1 Year (12 Months)' : `${days} Days`}`
+                      : `Displaying date-by-date daily metrics across past ${days} days`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-1 text-[11px] font-bold">
+                <span className="px-2 text-[#94A3B8] uppercase">Scale:</span>
+                {[
+                  { key: 'auto', label: `Auto (${effectiveGranularity.toUpperCase()})` },
+                  { key: 'hourly', label: 'Hours (24h)' },
+                  { key: 'daily', label: 'Dates (7D)' },
+                  { key: 'weekly', label: 'Weeks (30D)' },
+                  { key: 'monthly', label: 'Months (Year)' },
+                ].map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setChartGranularity(opt.key as any)}
+                    className={`rounded-md px-2.5 py-1 transition-all ${
+                      chartGranularity === opt.key
+                        ? 'bg-[#635BFF] text-white shadow-xs'
+                        : 'text-[#64748B] hover:text-[#1E293B]'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Interactive Charts: Role Distribution & New/Returning Flow */}
             <div className="grid gap-5 xl:grid-cols-2">
               <Panel
-                title="Active People per Day (By Account Type)"
-                note={`Click any bar to inspect that date · Showing last ${days} days`}
+                title={
+                  effectiveGranularity === 'hourly'
+                    ? 'Active People per Hour (By Account Type)'
+                    : effectiveGranularity === 'weekly'
+                    ? 'Active People per Week (By Account Type)'
+                    : effectiveGranularity === 'monthly'
+                    ? 'Active People per Month (By Account Type)'
+                    : 'Active People per Day (By Account Type)'
+                }
+                note={
+                  effectiveGranularity === 'hourly'
+                    ? `24 hours (BST · UTC+6) — ${dayLong(d.day.day, d.today)}`
+                    : effectiveGranularity === 'weekly'
+                    ? `Week-wise aggregation across past ${days} days`
+                    : effectiveGranularity === 'monthly'
+                    ? `Month-wise breakdown across ${days === 365 ? '1 Year' : `${days} Days`}`
+                    : `Click any bar to inspect that date · Showing last ${days} days`
+                }
               >
                 <StackedColumns
-                  points={d.series.map((s) => ({ label: dayLabel(s.day), values: s.byRole }))}
+                  points={chartPoints.map((s) => ({ label: s.label, values: s.byRole }))}
                   series={ROLES.map((r) => ({ key: r, label: LOGIN_ROLE_LABELS[r], color: LOGIN_ROLE_COLORS[r] }))}
-                  activeLabel={dayLabel(d.day.day)}
+                  activeLabel={effectiveGranularity === 'daily' ? dayLabel(d.day.day) : undefined}
                   onSelect={(_label, idx) => {
-                    const selected = d.series[idx];
-                    if (selected) pick(selected.day);
+                    const selected = chartPoints[idx];
+                    if (selected?.dateKey) pick(selected.dateKey);
                   }}
                 />
               </Panel>
 
               <Panel
-                title="New vs Returning User Acquisition"
-                note="New = created account that day · Click bar to inspect date"
+                title={
+                  effectiveGranularity === 'hourly'
+                    ? 'New vs Returning Users per Hour'
+                    : effectiveGranularity === 'weekly'
+                    ? 'New vs Returning Users (Week-wise)'
+                    : effectiveGranularity === 'monthly'
+                    ? 'New vs Returning Users (Month-wise)'
+                    : 'New vs Returning User Acquisition'
+                }
+                note={
+                  effectiveGranularity === 'hourly'
+                    ? 'New = registered that hour · Returning = existing account'
+                    : effectiveGranularity === 'weekly'
+                    ? 'Weekly ratio of new account creation vs returning engagement'
+                    : effectiveGranularity === 'monthly'
+                    ? 'Monthly acquisition vs returning retention trend'
+                    : 'New = created account that day · Click bar to inspect date'
+                }
               >
                 <StackedColumns
-                  points={d.series.map((s) => ({
-                    label: dayLabel(s.day),
+                  points={chartPoints.map((s) => ({
+                    label: s.label,
                     values: { returning: s.returning, newUsers: s.newUsers },
                   }))}
                   series={[
                     { key: 'returning', label: 'Returning Users', color: '#635BFF' },
                     { key: 'newUsers', label: 'New Signups', color: '#F59E0B' },
                   ]}
-                  activeLabel={dayLabel(d.day.day)}
+                  activeLabel={effectiveGranularity === 'daily' ? dayLabel(d.day.day) : undefined}
                   onSelect={(_label, idx) => {
-                    const selected = d.series[idx];
-                    if (selected) pick(selected.day);
+                    const selected = chartPoints[idx];
+                    if (selected?.dateKey) pick(selected.dateKey);
                   }}
                 />
               </Panel>

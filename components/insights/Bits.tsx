@@ -5,9 +5,17 @@ import { Check, X } from 'lucide-react';
 import type { InsightDays, ListingStep } from '@/lib/api/insights';
 import { STEP_LABELS } from '@/lib/api/insights';
 
-/** 7 / 30 / 90 / 365 days, for the insight pages. */
-export function DaysPicker({ value, onChange }: { value: InsightDays; onChange: (d: InsightDays) => void }) {
-  const options: InsightDays[] = [7, 30, 90, 365];
+/** 1 / 7 / 30 / 90 / 365 days, for the insight pages. */
+export function DaysPicker({
+  value,
+  onChange,
+  includeToday = false,
+}: {
+  value: InsightDays;
+  onChange: (d: InsightDays) => void;
+  includeToday?: boolean;
+}) {
+  const options: InsightDays[] = includeToday ? [1, 7, 30, 90, 365] : [7, 30, 90, 365];
   return (
     <div className="inline-flex rounded-lg border border-[#E2E8F0] bg-white p-0.5" role="group" aria-label="Period">
       {options.map((d) => (
@@ -17,7 +25,7 @@ export function DaysPicker({ value, onChange }: { value: InsightDays; onChange: 
           onClick={() => onChange(d)}
           aria-pressed={value === d}
           className={`rounded-md px-3 py-1.5 text-[12px] font-bold transition-colors ${value === d ? 'bg-[#635BFF] text-white' : 'text-[#64748B] hover:text-[#1E293B]'}`}>
-          {d === 365 ? '1 year' : `${d} days`}
+          {d === 1 ? 'Today (24h)' : d === 365 ? '1 year' : `${d} days`}
         </button>
       ))}
     </div>
@@ -230,7 +238,11 @@ export function StackedColumns({
 }) {
   const totals = points.map((p) => series.reduce((s, x) => s + (p.values[x.key] ?? 0), 0));
   const max = Math.max(1, ...totals);
-  const ticks = new Set([0, Math.floor((points.length - 1) / 2), points.length - 1]);
+  const isSmall = points.length <= 14;
+  const is24h = points.length === 24;
+  const ticks = is24h
+    ? new Set([0, 6, 12, 18, 23])
+    : new Set([0, Math.floor((points.length - 1) / 2), points.length - 1]);
   return (
     <div className="space-y-2">
       <div className="flex items-end gap-[2px]" style={{ height }} role="img" aria-label={`${points.length} columns, highest ${max}`}>
@@ -257,7 +269,13 @@ export function StackedColumns({
         })}
       </div>
       <div className="flex justify-between text-[10px] font-semibold text-[#94A3B8]">
-        {points.map((p, i) => (ticks.has(i) ? <span key={i}>{p.label}</span> : null))}
+        {isSmall
+          ? points.map((p, i) => (
+              <span key={i} className="flex-1 text-center truncate">
+                {p.label}
+              </span>
+            ))
+          : points.map((p, i) => (ticks.has(i) ? <span key={i}>{p.label}</span> : null))}
       </div>
       <Legend items={series.map((s) => ({ color: s.color, label: `${s.label} · ${points.reduce((n, p) => n + (p.values[s.key] ?? 0), 0)}` }))} />
     </div>
