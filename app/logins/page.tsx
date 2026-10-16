@@ -473,7 +473,7 @@ export default function LoginsPage() {
   const [search, setSearch] = useState('');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize, setPageSize] = useState(15);
 
   // Client-side quick filters on retrieved page data
   const [activityFilter, setActivityFilter] = useState<'ALL' | 'SIGNED_IN' | 'APP_OPEN' | 'NEW'>('ALL');
@@ -1387,10 +1387,11 @@ export default function LoginsPage() {
               </Panel>
 
               {/* People Directory Panel */}
-              <Panel
-                title="Active Users & Session Directory"
-                note={`Inspect sessions recorded on ${dayLong(d.day.day, d.today)} (Newest seen first)`}
-                flush
+              <div id="people-directory">
+                <Panel
+                  title="Active Users & Session Directory"
+                  note={`Inspect sessions recorded on ${dayLong(d.day.day, d.today)} (Newest seen first)`}
+                  flush
                 actions={
                   <div className="flex flex-wrap items-center gap-2">
                     {/* CSV Export for Day People */}
@@ -1484,6 +1485,7 @@ export default function LoginsPage() {
                         }}
                         className="rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-[12px] font-bold text-[#475569] shadow-sm hover:border-[#CBD5E1] focus:border-[#635BFF] focus:outline-none"
                       >
+                        <option value={15}>15 / page</option>
                         <option value={25}>25 / page</option>
                         <option value={50}>50 / page</option>
                         <option value={100}>100 / page</option>
@@ -1724,8 +1726,8 @@ export default function LoginsPage() {
                         <span>
                           Showing{' '}
                           <b className="text-[#1E293B]">
-                            {Math.min(d.day.total, (page - 1) * pageSize + 1)}–
-                            {Math.min(d.day.total, page * pageSize)}
+                            {d.day.total === 0 ? 0 : (page - 1) * pageSize + 1}–
+                            {Math.min(d.day.total, (page - 1) * pageSize + processedPeople.length)}
                           </b>{' '}
                           of <b className="text-[#1E293B]">{count(d.day.total)}</b> active people
                         </span>
@@ -1740,7 +1742,10 @@ export default function LoginsPage() {
                         <Button
                           variant="outline"
                           disabled={page <= 1}
-                          onClick={() => setPage((n) => Math.max(1, n - 1))}
+                          onClick={() => {
+                            setPage((n) => Math.max(1, n - 1));
+                            document.getElementById('people-directory')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                          }}
                           className="px-3 py-1 text-[12px]"
                         >
                           <ChevronLeft className="h-4 w-4" />
@@ -1752,7 +1757,10 @@ export default function LoginsPage() {
                         <Button
                           variant="outline"
                           disabled={page * pageSize >= d.day.total}
-                          onClick={() => setPage((n) => n + 1)}
+                          onClick={() => {
+                            setPage((n) => n + 1);
+                            document.getElementById('people-directory')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                          }}
                           className="px-3 py-1 text-[12px]"
                         >
                           Next
@@ -1763,6 +1771,7 @@ export default function LoginsPage() {
                   </>
                 )}
               </Panel>
+              </div>
             </section>
 
             {/* Global Recent Sign-in Stream */}
