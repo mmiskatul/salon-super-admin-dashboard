@@ -60,8 +60,37 @@ export interface Readiness {
 
 export interface ActiveCount { total: number; customers: number; partners: number }
 export interface Reach { users: number; withPush: number; percent: number | null }
+export interface ReferralPair {
+  id: string;
+  referrerId: string;
+  referrerName: string | null;
+  referredUserId: string;
+  referredUserName: string | null;
+  status: string;
+  createdAt: string;
+  completedAt: string | null;
+  hasBooked: boolean;
+  bookingCount: number;
+  firstBookingAt?: string | null;
+}
+
+export interface GrowthTimelineBucket {
+  key: string;
+  label: string;
+  shortLabel: string;
+  customers: number;
+  barbers: number;
+  owners: number;
+  total: number;
+}
+
 export interface Growth {
   days: number;
+  timeline?: {
+    unit: 'hour' | 'day' | 'week' | 'month';
+    unitLabel: string;
+    buckets: GrowthTimelineBucket[];
+  };
   totals: { users: number; customers: number; barbers: number; owners: number; unverified: number };
   funnel: {
     startedNotFinished: number;
@@ -84,6 +113,7 @@ export interface Growth {
     referredWithoutBooking: number;
     topReferrers: { userId: string; name: string | null; count: number }[];
     suspicious: { userId: string; name: string | null; day: string; count: number }[];
+    recentReferrals?: ReferralPair[];
   };
 }
 
