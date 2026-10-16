@@ -1,8 +1,39 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { RotateCw, Search } from 'lucide-react';
+import {
+  RotateCw,
+  Search,
+  Download,
+  Calendar,
+  Clock,
+  Users,
+  User,
+  Smartphone,
+  Globe,
+  ShieldCheck,
+  Activity,
+  TrendingUp,
+  Sparkles,
+  LogIn,
+  Crown,
+  Store,
+  Scissors,
+  Copy,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  ArrowUpDown,
+  Flame,
+  Radio,
+  X,
+  ExternalLink,
+  Laptop,
+  CheckCircle2,
+  Filter,
+} from 'lucide-react';
 import { useApi } from '@/lib/useApi';
 import {
   getLogins,
@@ -13,49 +44,141 @@ import {
   type InsightDays,
   type LoginMethod,
   type LoginRole,
+  type ActivePerson,
 } from '@/lib/api/insights';
-import { count, date } from '@/lib/format';
+import { count, date, initials, since } from '@/lib/format';
 import { Badge, Button, Canvas, Empty, Failed, Loading, PageHead, Panel, Stat } from '@/components/ui/primitives';
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Bars, Columns, DaysPicker, Donut, Heatmap, StackedColumns } from '@/components/insights/Bits';
 
 const ROLES = Object.keys(LOGIN_ROLE_LABELS) as LoginRole[];
-const ROLE_ONE: Record<string, string> = { CUSTOMER: 'Customer', BARBER: 'Barber', OWNER: 'Shop owner', STAFF: 'Shop staff', SUPER_ADMIN: 'Admin' };
-const METHOD_COLORS: Record<string, string> = { PASSWORD: '#635BFF', GOOGLE: '#16A34A', SIGN_UP: '#F59E0B' };
-const PLATFORM_COLORS: Record<string, string> = { ANDROID: '#16A34A', IOS: '#0F172A', WEB: '#0EA5E9', UNKNOWN: '#CBD5E1' };
+const ROLE_ONE: Record<string, string> = {
+  CUSTOMER: 'Customer',
+  BARBER: 'Barber',
+  OWNER: 'Shop Owner',
+  STAFF: 'Staff Barber',
+  SUPER_ADMIN: 'Super Admin',
+};
 
-/** Times on this page are Bangladesh time, wherever the console is opened. */
+const METHOD_COLORS: Record<string, string> = {
+  PASSWORD: '#635BFF',
+  GOOGLE: '#16A34A',
+};
+
+const PLATFORM_COLORS: Record<string, string> = {
+  ANDROID: '#16A34A',
+  IOS: '#0F172A',
+  WEB: '#0EA5E9',
+  UNKNOWN: '#94A3B8',
+};
+
+/** Times on this page are Bangladesh time (BST / UTC+6). */
 function bdTime(value: string | null | undefined): string {
   if (!value) return '—';
-  return new Date(value).toLocaleTimeString('en-GB', { timeZone: 'Asia/Dhaka', hour: 'numeric', minute: '2-digit', hour12: true });
+  return new Date(value).toLocaleTimeString('en-GB', {
+    timeZone: 'Asia/Dhaka',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
 }
+
 function bdDateTime(value: string | null | undefined): string {
   if (!value) return '—';
   const d = new Date(value);
   return `${d.toLocaleDateString('en-GB', { timeZone: 'Asia/Dhaka', day: '2-digit', month: 'short' })}, ${bdTime(value)}`;
 }
+
 /** "12 Oct" from a YYYY-MM-DD day. */
 function dayLabel(day: string): string {
-  return new Date(`${day}T00:00:00Z`).toLocaleDateString('en-GB', { timeZone: 'UTC', day: 'numeric', month: 'short' });
+  if (!day) return '—';
+  return new Date(`${day}T00:00:00Z`).toLocaleDateString('en-GB', {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'short',
+  });
 }
+
 function dayLong(day: string, today: string): string {
-  const label = new Date(`${day}T00:00:00Z`).toLocaleDateString('en-GB', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  if (day === today) return `today (${label})`;
+  if (!day) return '—';
+  const label = new Date(`${day}T00:00:00Z`).toLocaleDateString('en-GB', {
+    timeZone: 'UTC',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  if (day === today) return `Today (${label})`;
   const yesterday = new Date(Date.parse(`${today}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
-  return day === yesterday ? `yesterday (${label})` : label;
+  return day === yesterday ? `Yesterday (${label})` : label;
 }
+
 function change(now: number, before: number): string {
   if (!before) return now ? 'none yesterday' : 'same as yesterday';
   const diff = now - before;
   if (!diff) return 'same as yesterday';
   return `${diff > 0 ? '+' : ''}${diff} vs yesterday (${before})`;
 }
+
 const hourLabel = (h: number) => (h === 0 ? '12am' : h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h - 12}pm`);
 
-/**
- * Daily logins: how many people use SalunBD each day, and exactly who and when. A person counts
- * once per Bangladesh day, whether they signed in or opened an app they were already signed in to.
- */
+/** Custom role badge */
+function RoleBadge({ role }: { role?: string }) {
+  const norm = (role || '').toUpperCase();
+  switch (norm) {
+    case 'SUPER_ADMIN':
+      return (
+        <span className="inline-flex items-center gap-1 rounded-md bg-[#EDE9FE] px-2 py-0.5 text-[11px] font-extrabold text-[#6D28D9] border border-[#DDD6FE]">
+          <Crown className="h-3 w-3" />
+          Admin
+        </span>
+      );
+    case 'OWNER':
+      return (
+        <span className="inline-flex items-center gap-1 rounded-md bg-[#E0F2FE] px-2 py-0.5 text-[11px] font-extrabold text-[#0369A1] border border-[#BAE6FD]">
+          <Store className="h-3 w-3" />
+          Owner
+        </span>
+      );
+    case 'STAFF':
+      return (
+        <span className="inline-flex items-center gap-1 rounded-md bg-[#DCFCE7] px-2 py-0.5 text-[11px] font-extrabold text-[#15803D] border border-[#BBF7D0]">
+          <Scissors className="h-3 w-3" />
+          Staff
+        </span>
+      );
+    case 'BARBER':
+      return (
+        <span className="inline-flex items-center gap-1 rounded-md bg-[#FEF3C7] px-2 py-0.5 text-[11px] font-extrabold text-[#B45309] border border-[#FDE68A]">
+          <Scissors className="h-3 w-3" />
+          Barber
+        </span>
+      );
+    case 'CUSTOMER':
+      return (
+        <span className="inline-flex items-center gap-1 rounded-md bg-[#EEF2FF] px-2 py-0.5 text-[11px] font-extrabold text-[#4338CA] border border-[#E0E7FF]">
+          <User className="h-3 w-3" />
+          Customer
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center gap-1 rounded-md bg-[#F1F5F9] px-2 py-0.5 text-[11px] font-semibold text-[#64748B] border border-[#E2E8F0]">
+          {role || 'Unknown'}
+        </span>
+      );
+  }
+}
+
+/** Device platform icon */
+function PlatformIcon({ platform }: { platform?: string | null }) {
+  const p = (platform || '').toUpperCase();
+  if (p === 'ANDROID') return <Smartphone className="h-3.5 w-3.5 text-[#16A34A]" />;
+  if (p === 'IOS') return <Smartphone className="h-3.5 w-3.5 text-[#0F172A]" />;
+  if (p === 'WEB') return <Globe className="h-3.5 w-3.5 text-[#0EA5E9]" />;
+  return <Laptop className="h-3.5 w-3.5 text-[#94A3B8]" />;
+}
+
 export default function LoginsPage() {
   const [days, setDays] = useState<InsightDays>(30);
   const [day, setDay] = useState<string>('');
@@ -63,272 +186,1194 @@ export default function LoginsPage() {
   const [search, setSearch] = useState('');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
 
+  // Client-side quick filters on retrieved page data
+  const [activityFilter, setActivityFilter] = useState<'ALL' | 'SIGNED_IN' | 'APP_OPEN' | 'NEW'>('ALL');
+  const [platformFilter, setPlatformFilter] = useState<'ALL' | 'ANDROID' | 'IOS' | 'WEB'>('ALL');
+  const [sortBy, setSortBy] = useState<'lastSeen' | 'firstSeen' | 'renewals' | 'name'>('lastSeen');
+
+  // Inspection modal
+  const [inspectingPerson, setInspectingPerson] = useState<ActivePerson | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Live Auto-Refresh & Live Clock
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [liveBstTime, setLiveBstTime] = useState('');
+
+  // Update live clock every second
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setLiveBstTime(
+        now.toLocaleTimeString('en-GB', {
+          timeZone: 'Asia/Dhaka',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true,
+        })
+      );
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Search debounce
   useEffect(() => {
     const t = setTimeout(() => {
       setQ(search);
       setPage(1);
-    }, 400);
+    }, 350);
     return () => clearTimeout(t);
   }, [search]);
 
-  const data = useApi(() => getLogins({ days, day: day || undefined, role, q, page, pageSize: 50 }), [days, day, role, q, page], 'logins');
+  // Main data fetch
+  const data = useApi(
+    () => getLogins({ days, day: day || undefined, role, q, page, pageSize }),
+    [days, day, role, q, page, pageSize],
+    'logins'
+  );
   const d = data.data;
-  const pick = (next: string) => {
+
+  // Auto refresh interval
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = setInterval(() => {
+      data.refresh();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [autoRefresh, data]);
+
+  // Pick date helper
+  const pick = useCallback((next: string, scroll = true) => {
     setDay(next);
     setPage(1);
-    document.getElementById('who')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (scroll) {
+      document.getElementById('who')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
+
+  // Stepper helpers: previous and next day
+  const handlePrevDay = useCallback(() => {
+    const currentDay = d?.day.day || d?.today;
+    if (!currentDay) return;
+    const prev = new Date(Date.parse(`${currentDay}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+    pick(prev, false);
+  }, [d?.day.day, d?.today, pick]);
+
+  const handleNextDay = useCallback(() => {
+    const currentDay = d?.day.day || d?.today;
+    if (!currentDay || !d?.today || currentDay >= d.today) return;
+    const next = new Date(Date.parse(`${currentDay}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+    if (next <= d.today) {
+      pick(next, false);
+    }
+  }, [d?.day.day, d?.today, pick]);
+
+  // Copy helper
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
+
+  // Peak hour calculation for selected day
+  const peakHourInfo = useMemo(() => {
+    if (!d?.day.signInHours) return null;
+    let maxHour = 0;
+    let maxVal = 0;
+    d.day.signInHours.forEach((val, hour) => {
+      if (val > maxVal) {
+        maxVal = val;
+        maxHour = hour;
+      }
+    });
+    return maxVal > 0 ? { hour: maxHour, count: maxVal, label: hourLabel(maxHour) } : null;
+  }, [d?.day.signInHours]);
+
+  // Client filtered and sorted people
+  const processedPeople = useMemo(() => {
+    if (!d?.day.people) return [];
+    let list = [...d.day.people];
+
+    // Activity filter
+    if (activityFilter === 'SIGNED_IN') {
+      list = list.filter((p) => p.signInTimes.length > 0);
+    } else if (activityFilter === 'APP_OPEN') {
+      list = list.filter((p) => p.signInTimes.length === 0);
+    } else if (activityFilter === 'NEW') {
+      list = list.filter((p) => p.isNew);
+    }
+
+    // Platform filter
+    if (platformFilter !== 'ALL') {
+      list = list.filter((p) => (p.platform || '').toUpperCase() === platformFilter);
+    }
+
+    // Sort
+    list.sort((a, b) => {
+      if (sortBy === 'lastSeen') {
+        return new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime();
+      }
+      if (sortBy === 'firstSeen') {
+        return new Date(a.firstSeenAt).getTime() - new Date(b.firstSeenAt).getTime();
+      }
+      if (sortBy === 'renewals') {
+        return (b.renewals || 0) - (a.renewals || 0);
+      }
+      if (sortBy === 'name') {
+        const nameA = (a.name || a.email || '').toLowerCase();
+        const nameB = (b.name || b.email || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      }
+      return 0;
+    });
+
+    return list;
+  }, [d?.day.people, activityFilter, platformFilter, sortBy]);
+
+  // CSV Export for active people
+  const exportDayPeopleCsv = () => {
+    if (!d?.day.people || d.day.people.length === 0) return;
+    const currentDay = d.day.day;
+    const headers = [
+      'User ID',
+      'Name',
+      'Email',
+      'Phone',
+      'Role',
+      'First Seen (BST)',
+      'Last Seen (BST)',
+      'Sign Ins Today',
+      'App Opens / Renewals',
+      'Platform',
+      'Is New Account',
+      'Joined Date',
+      'Sign In Times Details',
+    ];
+
+    const rows = processedPeople.map((p) => [
+      `"${p.userId}"`,
+      `"${(p.name || '').replace(/"/g, '""')}"`,
+      `"${(p.email || '').replace(/"/g, '""')}"`,
+      `"${(p.phone || '').replace(/"/g, '""')}"`,
+      `"${p.role}"`,
+      `"${bdTime(p.firstSeenAt)}"`,
+      `"${bdTime(p.lastSeenAt)}"`,
+      p.signIns,
+      p.renewals,
+      `"${p.platform || 'Unknown'}"`,
+      p.isNew ? 'YES' : 'NO',
+      `"${date(p.joinedAt)}"`,
+      `"${p.signInTimes.map((s) => `${bdTime(s.at)} [${s.method}]`).join('; ')}"`,
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `salunbd_active_users_${currentDay}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // CSV Export for historical day-by-day series
+  const exportHistoricalSeriesCsv = () => {
+    if (!d?.series || d.series.length === 0) return;
+    const headers = [
+      'Day',
+      'Active Total',
+      'Signed In',
+      'New Accounts',
+      'Returning',
+      'Customers',
+      'Barbers',
+      'Shop Owners',
+      'Staff Barbers',
+      'Admins',
+    ];
+
+    const rows = d.series.map((s) => [
+      s.day,
+      s.active,
+      s.signedIn,
+      s.newUsers,
+      s.returning,
+      s.byRole['CUSTOMER'] || 0,
+      s.byRole['BARBER'] || 0,
+      s.byRole['OWNER'] || 0,
+      s.byRole['STAFF'] || 0,
+      s.byRole['SUPER_ADMIN'] || 0,
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `salunbd_daily_logins_history_${days}d.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const selectedDayIsToday = d ? d.day.day === d.today : false;
+  const isLatestDay = d ? d.day.day >= d.today : true;
 
   return (
     <>
       <PageHead
-        eyebrow="People"
-        title="Daily logins"
-        lede="How many people use SalunBD each day, who they are and when. Someone counts once a day: when they sign in, or when they open an app they're already signed in to. Times are Bangladesh time."
+        eyebrow="Super Admin Telemetry"
+        title="Daily Logins & Session Audits"
+        lede="Real-time user engagement, session activity, and device tracking across SalunBD. Every person counts once per Bangladesh day when they sign in or open the app."
         actions={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Live Bangladesh Time pill */}
+            <div className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-[12px] font-bold text-[#475569] shadow-sm">
+              <Clock className="h-3.5 w-3.5 text-[#635BFF]" />
+              <span className="text-[#94A3B8]">BST (UTC+6):</span>
+              <span className="tabular-nums font-mono text-[#1E293B]">{liveBstTime || '—'}</span>
+            </div>
+
+            {/* Auto-Refresh Toggle */}
+            <button
+              type="button"
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-bold transition-all ${
+                autoRefresh
+                  ? 'border-[#BBF7D0] bg-[#DCFCE7] text-[#16A34A] shadow-sm'
+                  : 'border-[#E2E8F0] bg-white text-[#64748B] hover:text-[#1E293B]'
+              }`}
+              title="Automatically refresh logins data every 30 seconds"
+            >
+              <Radio className={`h-3.5 w-3.5 ${autoRefresh ? 'animate-pulse text-[#16A34A]' : 'text-[#94A3B8]'}`} />
+              <span>{autoRefresh ? 'Live Radar (30s)' : 'Auto-refresh Off'}</span>
+            </button>
+
+            {/* Timeframe picker */}
             <DaysPicker value={days} onChange={setDays} />
-            <Button onClick={data.refresh} disabled={data.loading}><RotateCw className="h-4 w-4" /> Refresh</Button>
+
+            {/* Manual Refresh */}
+            <Button onClick={data.refresh} disabled={data.loading} className="shadow-sm">
+              <RotateCw className={`h-4 w-4 ${data.loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+
+            {/* Historical Series Export */}
+            {d && (
+              <Button
+                variant="outline"
+                onClick={exportHistoricalSeriesCsv}
+                title="Download CSV of daily login trends"
+                className="hidden md:inline-flex"
+              >
+                <Download className="h-4 w-4 text-[#635BFF]" />
+                Export Trends
+              </Button>
+            )}
           </div>
         }
       />
+
       <Canvas>
         {data.error ? (
           <Failed message={data.error} onRetry={data.refresh} />
         ) : !d ? (
-          <Loading label="Loading logins" />
+          <Loading label="Gathering session audits and daily telemetry..." />
         ) : (
           <>
-            {(!d.trackingSince || d.trackingSince > d.series[0].day) && (
-              <p className="rounded-lg border border-[#FDE68A] bg-[#FFFBEB] p-3 text-[13px] font-semibold text-[#92400E]">
-                {d.trackingSince
-                  ? `Recording started on ${dayLabel(d.trackingSince)}, so earlier days are empty. Averages only use the days since then.`
-                  : 'Recording has just started. The first numbers appear as soon as someone signs in or opens an app.'}
-              </p>
+            {/* Recording notice if applicable */}
+            {(!d.trackingSince || d.trackingSince > d.series[0]?.day) && (
+              <div className="flex items-center gap-2.5 rounded-xl border border-[#FDE68A] bg-[#FFFBEB] p-4 text-[13px] font-semibold text-[#92400E] shadow-sm">
+                <Sparkles className="h-4 w-4 shrink-0 text-[#D97706]" />
+                <p>
+                  {d.trackingSince
+                    ? `Telemetry recording began on ${dayLabel(d.trackingSince)}. Historical days prior to this date are empty, and rolling averages calculate from that starting point.`
+                    : 'Real-time telemetry recording has initialized. Numbers update as users authenticate or awaken background sessions.'}
+                </p>
+              </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <Stat label="Active today" value={count(d.summary.activeToday)} sub={change(d.summary.activeToday, d.summary.activeYesterday)} tone="live" />
-              <Stat label="Signed in today" value={count(d.summary.signedInToday)} sub={change(d.summary.signedInToday, d.summary.signedInYesterday)} />
+            {/* Top KPI Scorecards */}
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Stat
-                label="Online now"
-                value={count(d.summary.onlineNow)}
-                sub={d.summary.onlineByRole.length ? d.summary.onlineByRole.map((r) => `${r.count} ${(ROLE_ONE[r.key] ?? r.key).toLowerCase()}`).join(' · ') : 'Used an app in the last 15 minutes'}
+                label="Active Today"
+                value={count(d.summary.activeToday)}
+                sub={change(d.summary.activeToday, d.summary.activeYesterday)}
+                tone="live"
+                icon={<Activity className="h-5 w-5 text-[#16A34A]" />}
+                iconBg="bg-[#DCFCE7]"
               />
-              <Stat label="New accounts today" value={count(d.summary.newToday)} sub="Signed up and used the app today" />
-              <Stat label={`Different people, ${days} days`} value={count(d.summary.uniqueActive)} sub="Each person counted once" />
-              <Stat label="Average per day" value={d.summary.averageActive ?? '—'} sub={`${d.summary.averageSignedIn ?? '—'} signed in per day`} />
-              <Stat label="Busiest day" value={d.summary.peak ? count(d.summary.peak.active) : '—'} sub={d.summary.peak ? dayLabel(d.summary.peak.day) : 'No data yet'} />
-              <Stat label={`Sign-ins, ${days} days`} value={count(d.summary.signIns)} sub="Email, Google and new accounts" />
+
+              <Stat
+                label="Signed In Today"
+                value={count(d.summary.signedInToday)}
+                sub={change(d.summary.signedInToday, d.summary.signedInYesterday)}
+                icon={<LogIn className="h-5 w-5 text-[#635BFF]" />}
+                iconBg="bg-[#EEF2FF]"
+              />
+
+              <Stat
+                label="Online Right Now"
+                value={count(d.summary.onlineNow)}
+                sub={
+                  d.summary.onlineByRole.length
+                    ? d.summary.onlineByRole.map((r) => `${r.count} ${(ROLE_ONE[r.key] ?? r.key).toLowerCase()}`).join(' · ')
+                    : 'Active within the last 15 minutes'
+                }
+                tone="live"
+                icon={<Radio className="h-5 w-5 text-[#10B981] animate-pulse" />}
+                iconBg="bg-[#ECFDF5]"
+              />
+
+              <Stat
+                label="New Signups Today"
+                value={count(d.summary.newToday)}
+                sub="Accounts registered & active today"
+                icon={<Sparkles className="h-5 w-5 text-[#F59E0B]" />}
+                iconBg="bg-[#FEF3C7]"
+              />
+
+              <Stat
+                label={`Unique Users (${days}d)`}
+                value={count(d.summary.uniqueActive)}
+                sub="Each distinct person counted once"
+                icon={<ShieldCheck className="h-5 w-5 text-[#475569]" />}
+                iconBg="bg-[#F1F5F9]"
+              />
+
+              <Stat
+                label="Daily Average"
+                value={d.summary.averageActive ?? '—'}
+                sub={`${d.summary.averageSignedIn ?? '—'} signed in per day`}
+                icon={<TrendingUp className="h-5 w-5 text-[#0EA5E9]" />}
+                iconBg="bg-[#E0F2FE]"
+              />
+
+              <Stat
+                label="Busiest Peak Day"
+                value={d.summary.peak ? count(d.summary.peak.active) : '—'}
+                sub={d.summary.peak ? `${dayLabel(d.summary.peak.day)} (${d.summary.peak.active} active)` : 'No records yet'}
+                icon={<Flame className="h-5 w-5 text-[#EF4444]" />}
+                iconBg="bg-[#FEE2E2]"
+              />
+
+              <Stat
+                label={`Total Sign-Ins (${days}d)`}
+                value={count(d.summary.signIns)}
+                sub="Email/password and Google OAuth"
+                icon={<Users className="h-5 w-5 text-[#8B5CF6]" />}
+                iconBg="bg-[#EDE9FE]"
+              />
             </div>
 
+            {/* Interactive Date Scrubber & Quick Control Bar */}
+            <div className="rounded-xl border border-[#E2E8F0] bg-white p-4 shadow-sm">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                {/* Currently selected day title & badge */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EEF2FF] text-[#635BFF]">
+                      <Calendar className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-[16px] font-extrabold text-[#1E293B]">
+                          {dayLong(d.day.day, d.today)}
+                        </h2>
+                        {selectedDayIsToday && <Badge tone="live">Live Today</Badge>}
+                      </div>
+                      <p className="text-[12px] font-medium text-[#64748B]">
+                        <b className="text-[#1E293B]">{count(d.day.active)}</b> active people ·{' '}
+                        <b className="text-[#1E293B]">{count(d.day.signInCount)}</b> explicit sign-in
+                        {d.day.signInCount === 1 ? '' : 's'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Date Controls & Steppers */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Previous day */}
+                  <Button
+                    variant="outline"
+                    onClick={handlePrevDay}
+                    title="Jump to previous day"
+                    className="px-2.5 py-1.5 text-[12px]"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="hidden sm:inline">Prev Day</span>
+                  </Button>
+
+                  {/* Quick jumps */}
+                  <button
+                    type="button"
+                    onClick={() => pick('')}
+                    className={`rounded-lg px-3 py-1.5 text-[12px] font-bold transition-all ${
+                      selectedDayIsToday
+                        ? 'bg-[#635BFF] text-white shadow-sm'
+                        : 'border border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#1E293B]'
+                    }`}
+                  >
+                    Today
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const y = new Date(Date.parse(`${d.today}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+                      pick(y);
+                    }}
+                    className={`rounded-lg px-3 py-1.5 text-[12px] font-bold transition-all ${
+                      d.day.day === new Date(Date.parse(`${d.today}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10)
+                        ? 'bg-[#635BFF] text-white shadow-sm'
+                        : 'border border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#1E293B]'
+                    }`}
+                  >
+                    Yesterday
+                  </button>
+
+                  {d.summary.peak && (
+                    <button
+                      type="button"
+                      onClick={() => pick(d.summary.peak!.day)}
+                      className={`rounded-lg px-3 py-1.5 text-[12px] font-bold transition-all ${
+                        d.day.day === d.summary.peak.day
+                          ? 'bg-[#635BFF] text-white shadow-sm'
+                          : 'border border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#1E293B]'
+                      }`}
+                      title="Jump to highest traffic peak day"
+                    >
+                      Peak ({dayLabel(d.summary.peak.day)})
+                    </button>
+                  )}
+
+                  {/* Next day */}
+                  <Button
+                    variant="outline"
+                    onClick={handleNextDay}
+                    disabled={isLatestDay}
+                    title="Jump to next day"
+                    className="px-2.5 py-1.5 text-[12px] disabled:opacity-40"
+                  >
+                    <span className="hidden sm:inline">Next Day</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+
+                  {/* Native Date Picker */}
+                  <label className="relative ml-1 inline-flex items-center">
+                    <span className="sr-only">Choose date</span>
+                    <input
+                      type="date"
+                      value={d.day.day}
+                      max={d.today}
+                      onChange={(e) => e.target.value && pick(e.target.value)}
+                      className="cursor-pointer rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-[12px] font-bold text-[#1E293B] shadow-sm hover:border-[#CBD5E1] focus:border-[#635BFF] focus:outline-none"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Interactive Charts: Role Distribution & New/Returning Flow */}
             <div className="grid gap-5 xl:grid-cols-2">
-              <Panel title="Active people per day" note="By type of account">
+              <Panel
+                title="Active People per Day (By Account Type)"
+                note={`Click any bar to inspect that date · Showing last ${days} days`}
+              >
                 <StackedColumns
                   points={d.series.map((s) => ({ label: dayLabel(s.day), values: s.byRole }))}
                   series={ROLES.map((r) => ({ key: r, label: LOGIN_ROLE_LABELS[r], color: LOGIN_ROLE_COLORS[r] }))}
+                  activeLabel={dayLabel(d.day.day)}
+                  onSelect={(_label, idx) => {
+                    const selected = d.series[idx];
+                    if (selected) pick(selected.day);
+                  }}
                 />
               </Panel>
-              <Panel title="New and returning" note="New = the account was made that day">
+
+              <Panel
+                title="New vs Returning User Acquisition"
+                note="New = created account that day · Click bar to inspect date"
+              >
                 <StackedColumns
-                  points={d.series.map((s) => ({ label: dayLabel(s.day), values: { returning: s.returning, newUsers: s.newUsers } }))}
+                  points={d.series.map((s) => ({
+                    label: dayLabel(s.day),
+                    values: { returning: s.returning, newUsers: s.newUsers },
+                  }))}
                   series={[
-                    { key: 'returning', label: 'Returning', color: '#635BFF' },
-                    { key: 'newUsers', label: 'New', color: '#F59E0B' },
+                    { key: 'returning', label: 'Returning Users', color: '#635BFF' },
+                    { key: 'newUsers', label: 'New Signups', color: '#F59E0B' },
                   ]}
+                  activeLabel={dayLabel(d.day.day)}
+                  onSelect={(_label, idx) => {
+                    const selected = d.series[idx];
+                    if (selected) pick(selected.day);
+                  }}
                 />
               </Panel>
             </div>
 
+            {/* Trio Breakdown: Auth Method, Platform Devices, and Account Roles */}
             <div className="grid gap-5 lg:grid-cols-3">
-              <Panel title="How they signed in" note={`${days} days`}>
+              <Panel
+                title="Authentication Methods"
+                note={`${days} days total (${count(d.summary.signIns)} sign-ins)`}
+              >
                 <Donut
                   size={140}
                   centre={count(d.summary.signIns)}
-                  parts={d.methods.map((m) => ({ label: LOGIN_METHOD_LABELS[m.key as LoginMethod] ?? m.key, value: m.count, color: METHOD_COLORS[m.key] ?? '#CBD5E1' }))}
+                  parts={d.methods.map((m) => ({
+                    label: LOGIN_METHOD_LABELS[m.key as LoginMethod] ?? m.key,
+                    value: m.count,
+                    color: METHOD_COLORS[m.key] ?? '#CBD5E1',
+                  }))}
                 />
+                <div className="mt-4 grid grid-cols-2 gap-2 border-t border-[#F1F5F9] pt-3 text-center">
+                  {d.methods.map((m) => (
+                    <div key={m.key} className="rounded-lg bg-[#F8FAFC] p-2">
+                      <p className="text-[11px] font-bold text-[#64748B]">
+                        {LOGIN_METHOD_LABELS[m.key as LoginMethod] ?? m.key}
+                      </p>
+                      <p className="mt-0.5 text-[14px] font-extrabold text-[#1E293B] tabular-nums">
+                        {count(m.count)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </Panel>
-              <Panel title="Phone or computer" note="Sign-ins by device">
+
+              <Panel
+                title="Device & Platform Breakdown"
+                note="Client environments detected across sign-ins"
+              >
                 <Donut
                   size={140}
-                  parts={d.platforms.map((p) => ({ label: PLATFORM_LABELS[p.key] ?? p.key, value: p.count, color: PLATFORM_COLORS[p.key] ?? '#CBD5E1' }))}
+                  parts={d.platforms.map((p) => ({
+                    label: PLATFORM_LABELS[p.key] ?? p.key,
+                    value: p.count,
+                    color: PLATFORM_COLORS[p.key] ?? '#CBD5E1',
+                  }))}
                 />
+                <div className="mt-4 grid grid-cols-3 gap-2 border-t border-[#F1F5F9] pt-3 text-center">
+                  {d.platforms.map((p) => (
+                    <div key={p.key} className="flex flex-col items-center justify-center rounded-lg bg-[#F8FAFC] p-2">
+                      <div className="flex items-center gap-1">
+                        <PlatformIcon platform={p.key} />
+                        <span className="text-[11px] font-bold text-[#64748B]">{PLATFORM_LABELS[p.key] ?? p.key}</span>
+                      </div>
+                      <p className="mt-0.5 text-[14px] font-extrabold text-[#1E293B] tabular-nums">
+                        {count(p.count)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </Panel>
-              <Panel title="Who signed in" note="Sign-ins by account type">
-                <Bars rows={d.signInRoles.map((r) => ({ label: LOGIN_ROLE_LABELS[r.key as LoginRole] ?? r.key, value: r.count, color: LOGIN_ROLE_COLORS[r.key as LoginRole] }))} format={count} />
+
+              <Panel title="Sign-ins by Account Type" note="Distribution across roles">
+                <Bars
+                  rows={d.signInRoles.map((r) => ({
+                    label: LOGIN_ROLE_LABELS[r.key as LoginRole] ?? r.key,
+                    value: r.count,
+                    color: LOGIN_ROLE_COLORS[r.key as LoginRole],
+                  }))}
+                  format={count}
+                />
               </Panel>
             </div>
 
-            <Panel title="When people sign in" note={`Weekday and hour, Bangladesh time, last ${days} days`}>
+            {/* Peak Heatmap: 7 Days x 24 Hours */}
+            <Panel
+              title="When People Sign In (24/7 Peak Heatmap)"
+              note={`Weekday by hour of day (Bangladesh Time BST / UTC+6) across the past ${days} days`}
+              actions={
+                <div className="flex items-center gap-2 text-[11px] font-bold text-[#64748B]">
+                  <span>Less busy</span>
+                  <div className="flex items-center gap-0.5">
+                    <span className="h-3 w-3 rounded-[2px] bg-[#F1F5F9]" />
+                    <span className="h-3 w-3 rounded-[2px] bg-[rgba(99,91,255,0.25)]" />
+                    <span className="h-3 w-3 rounded-[2px] bg-[rgba(99,91,255,0.55)]" />
+                    <span className="h-3 w-3 rounded-[2px] bg-[rgba(99,91,255,0.85)]" />
+                    <span className="h-3 w-3 rounded-[2px] bg-[#635BFF]" />
+                  </div>
+                  <span>Peak rush</span>
+                </div>
+              }
+            >
               <Heatmap grid={d.weekHours} unit="sign-in" />
             </Panel>
 
-            <Panel title="Day by day" note="Choose a day to see everyone who was active on it" flush>
-              <div className="max-h-[440px] overflow-y-auto">
-              <Scroll>
-                <Table>
-                  <thead>
-                    <tr>
-                      <Th>Day</Th>
-                      <Th align="right">Active</Th>
-                      <Th align="right">Signed in</Th>
-                      <Th align="right">New</Th>
-                      <Th align="right">Returning</Th>
-                      {ROLES.map((r) => <Th key={r} align="right">{LOGIN_ROLE_LABELS[r]}</Th>)}
-                      <Th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...d.series].reverse().map((s) => (
-                      <Tr key={s.day}>
-                        <Td nowrap><b>{dayLabel(s.day)}</b>{s.day === d.today && <span className="ml-2"><Badge tone="live">Today</Badge></span>}</Td>
-                        <Td align="right"><b>{count(s.active)}</b></Td>
-                        <Td align="right">{count(s.signedIn)}</Td>
-                        <Td align="right">{count(s.newUsers)}</Td>
-                        <Td align="right">{count(s.returning)}</Td>
-                        {ROLES.map((r) => <Td key={r} align="right" muted>{s.byRole[r] ? count(s.byRole[r]) : '·'}</Td>)}
-                        <Td align="right">
-                          {s.day === d.day.day ? (
-                            <span className="text-[12px] font-bold text-[#635BFF]">Showing below</span>
-                          ) : (
-                            <button type="button" onClick={() => pick(s.day)} disabled={!s.active} className="text-[12px] font-bold text-[#635BFF] hover:underline disabled:text-[#CBD5E1] disabled:no-underline">
-                              See who
-                            </button>
-                          )}
-                        </Td>
-                      </Tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </Scroll>
+            {/* Historical Day-by-Day Audit Table */}
+            <Panel
+              title="Day-by-Day Historical Logins Matrix"
+              note="Select any date to view individual active sessions, device fingerprints, and authentication times"
+              flush
+              actions={
+                <Button
+                  variant="outline"
+                  onClick={exportHistoricalSeriesCsv}
+                  className="px-3 py-1.5 text-[12px]"
+                >
+                  <Download className="h-3.5 w-3.5 text-[#635BFF]" />
+                  Export CSV
+                </Button>
+              }
+            >
+              <div className="max-h-[380px] overflow-y-auto">
+                <Scroll>
+                  <Table>
+                    <thead>
+                      <tr>
+                        <Th>Date</Th>
+                        <Th align="right">Active People</Th>
+                        <Th align="right">Signed In</Th>
+                        <Th align="right">New Signups</Th>
+                        <Th align="right">Returning</Th>
+                        {ROLES.map((r) => (
+                          <Th key={r} align="right">
+                            {LOGIN_ROLE_LABELS[r]}
+                          </Th>
+                        ))}
+                        <Th align="right">Action</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...d.series].reverse().map((s) => {
+                        const isSelected = s.day === d.day.day;
+                        return (
+                          <Tr
+                            key={s.day}
+                            className={isSelected ? '!bg-[#F5F3FF] font-medium' : undefined}
+                          >
+                            <Td nowrap>
+                              <div className="flex items-center gap-2">
+                                <span className={isSelected ? 'font-extrabold text-[#635BFF]' : 'font-bold'}>
+                                  {dayLabel(s.day)}
+                                </span>
+                                {s.day === d.today && <Badge tone="live">Today</Badge>}
+                                {isSelected && (
+                                  <span className="rounded-full bg-[#635BFF]/10 px-2 py-0.5 text-[10px] font-extrabold text-[#635BFF]">
+                                    Inspecting
+                                  </span>
+                                )}
+                              </div>
+                            </Td>
+                            <Td align="right">
+                              <b className={isSelected ? 'text-[#635BFF]' : 'text-[#1E293B]'}>{count(s.active)}</b>
+                            </Td>
+                            <Td align="right">{count(s.signedIn)}</Td>
+                            <Td align="right">
+                              {s.newUsers > 0 ? (
+                                <span className="font-bold text-[#F59E0B]">+{count(s.newUsers)}</span>
+                              ) : (
+                                <span className="text-[#94A3B8]">0</span>
+                              )}
+                            </Td>
+                            <Td align="right">{count(s.returning)}</Td>
+                            {ROLES.map((r) => (
+                              <Td key={r} align="right" muted>
+                                {s.byRole[r] ? count(s.byRole[r]) : '·'}
+                              </Td>
+                            ))}
+                            <Td align="right">
+                              {isSelected ? (
+                                <span className="text-[12px] font-extrabold text-[#635BFF]">Active Selection</span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => pick(s.day)}
+                                  disabled={!s.active}
+                                  className="rounded-md border border-[#E2E8F0] bg-white px-2.5 py-1 text-[11px] font-bold text-[#635BFF] transition-all hover:border-[#635BFF] hover:bg-[#EEF2FF] disabled:border-transparent disabled:bg-transparent disabled:text-[#CBD5E1]"
+                                >
+                                  Inspect Day
+                                </button>
+                              )}
+                            </Td>
+                          </Tr>
+                        );
+                      })}
+                    </tbody>
+                  </Table>
+                </Scroll>
               </div>
             </Panel>
 
+            {/* Deep Active People Inspector */}
             <section id="who" className="space-y-5">
+              {/* Hourly Traffic Histogram for the selected day */}
               <Panel
-                title={`Who was active ${dayLong(d.day.day, d.today)}`}
-                note={`${count(d.day.active)} ${d.day.active === 1 ? 'person' : 'people'} · ${count(d.day.signInCount)} sign-in${d.day.signInCount === 1 ? '' : 's'}`}
+                title={`Hourly Sign-in Traffic — ${dayLong(d.day.day, d.today)}`}
+                note={`${count(d.day.active)} people active · ${count(d.day.signInCount)} total sign-ins`}
                 actions={
-                  <div className="flex flex-wrap items-center gap-2">
-                    <label className="text-[12px] font-semibold text-[#64748B]">
-                      <span className="sr-only">Day</span>
-                      <input
-                        type="date"
-                        value={d.day.day}
-                        max={d.today}
-                        onChange={(e) => e.target.value && pick(e.target.value)}
-                        className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-[12px] font-semibold"
-                      />
-                    </label>
-                    {d.day.day !== d.today && <Button variant="outline" onClick={() => pick('')}>Today</Button>}
-                  </div>
-                }>
-                <p className="mb-2 text-[12px] font-semibold text-[#64748B]">Sign-ins by hour</p>
-                <Columns points={d.day.signInHours.map((v, h) => ({ label: hourLabel(h), value: v }))} height={90} format={count} />
+                  peakHourInfo && (
+                    <div className="flex items-center gap-1.5 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] px-3 py-1 text-[12px] font-bold text-[#92400E]">
+                      <Flame className="h-3.5 w-3.5 text-[#D97706]" />
+                      <span>
+                        Peak Hour: {peakHourInfo.label} ({peakHourInfo.count} sign-ins)
+                      </span>
+                    </div>
+                  )
+                }
+              >
+                <div className="space-y-1">
+                  <Columns
+                    points={d.day.signInHours.map((v, h) => ({ label: hourLabel(h), value: v }))}
+                    height={100}
+                    format={count}
+                  />
+                </div>
               </Panel>
 
+              {/* People Directory Panel */}
               <Panel
-                title="People"
-                note="Most recently seen first"
+                title="Active Users & Session Directory"
+                note={`Inspect sessions recorded on ${dayLong(d.day.day, d.today)} (Newest seen first)`}
                 flush
                 actions={
-                  <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-                    <label className="relative w-full sm:w-64">
-                      <span className="sr-only">Search people</span>
-                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" aria-hidden />
-                      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name, email or phone" className="w-full rounded-lg border border-[#E2E8F0] py-1.5 pl-9 pr-3 text-[12px]" />
-                    </label>
-                    <select
-                      aria-label="Account type"
-                      value={role}
-                      onChange={(e) => {
-                        setRole(e.target.value as LoginRole | '');
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* CSV Export for Day People */}
+                    <Button
+                      variant="outline"
+                      onClick={exportDayPeopleCsv}
+                      disabled={processedPeople.length === 0}
+                      className="px-3 py-1.5 text-[12px]"
+                      title="Export this day's active users to CSV"
+                    >
+                      <Download className="h-3.5 w-3.5 text-[#635BFF]" />
+                      Export Active List
+                    </Button>
+                  </div>
+                }
+              >
+                {/* Advanced Filtering Toolbar */}
+                <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] p-4 space-y-3">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    {/* Search Input */}
+                    <div className="relative w-full md:w-80">
+                      <Search
+                        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]"
+                        aria-hidden
+                      />
+                      <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search by name, email, phone, or ID..."
+                        className="w-full rounded-lg border border-[#E2E8F0] bg-white py-1.5 pl-9 pr-8 text-[12px] font-medium text-[#1E293B] shadow-sm placeholder:text-[#94A3B8] focus:border-[#635BFF] focus:outline-none"
+                      />
+                      {search && (
+                        <button
+                          type="button"
+                          onClick={() => setSearch('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#1E293B]"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Secondary Filters: Platform, Activity Type, Sorting, Page Size */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Activity Status */}
+                      <select
+                        aria-label="Activity Filter"
+                        value={activityFilter}
+                        onChange={(e) => setActivityFilter(e.target.value as any)}
+                        className="rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-[12px] font-bold text-[#475569] shadow-sm hover:border-[#CBD5E1] focus:border-[#635BFF] focus:outline-none"
+                      >
+                        <option value="ALL">All Activity Types</option>
+                        <option value="SIGNED_IN">Explicit Sign-in Today</option>
+                        <option value="APP_OPEN">Session / App Open Only</option>
+                        <option value="NEW">Brand New Account</option>
+                      </select>
+
+                      {/* Platform */}
+                      <select
+                        aria-label="Platform Filter"
+                        value={platformFilter}
+                        onChange={(e) => setPlatformFilter(e.target.value as any)}
+                        className="rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-[12px] font-bold text-[#475569] shadow-sm hover:border-[#CBD5E1] focus:border-[#635BFF] focus:outline-none"
+                      >
+                        <option value="ALL">All Platforms</option>
+                        <option value="ANDROID">Android</option>
+                        <option value="IOS">iPhone / iOS</option>
+                        <option value="WEB">Web Browser</option>
+                      </select>
+
+                      {/* Sort By */}
+                      <select
+                        aria-label="Sort users"
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                        className="rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-[12px] font-bold text-[#475569] shadow-sm hover:border-[#CBD5E1] focus:border-[#635BFF] focus:outline-none"
+                      >
+                        <option value="lastSeen">Sort: Last Seen (Newest)</option>
+                        <option value="firstSeen">Sort: First Seen (Earliest)</option>
+                        <option value="renewals">Sort: Most App Opens</option>
+                        <option value="name">Sort: Name (A to Z)</option>
+                      </select>
+
+                      {/* Page Size */}
+                      <select
+                        aria-label="Page Size"
+                        value={pageSize}
+                        onChange={(e) => {
+                          setPageSize(Number(e.target.value));
+                          setPage(1);
+                        }}
+                        className="rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-[12px] font-bold text-[#475569] shadow-sm hover:border-[#CBD5E1] focus:border-[#635BFF] focus:outline-none"
+                      >
+                        <option value={25}>25 / page</option>
+                        <option value={50}>50 / page</option>
+                        <option value={100}>100 / page</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Role Filter Pills */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[11px] font-bold text-[#94A3B8] uppercase mr-1">Role:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRole('');
                         setPage(1);
                       }}
-                      className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-[12px] font-semibold sm:w-auto">
-                      <option value="">Every account type</option>
-                      {ROLES.map((r) => <option key={r} value={r}>{LOGIN_ROLE_LABELS[r]}</option>)}
-                    </select>
+                      className={`rounded-full px-3 py-1 text-[11px] font-bold transition-all ${
+                        role === ''
+                          ? 'bg-[#1E293B] text-white shadow-sm'
+                          : 'border border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#CBD5E1]'
+                      }`}
+                    >
+                      All Roles
+                    </button>
+                    {ROLES.map((r) => {
+                      const isSelected = role === r;
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => {
+                            setRole(r);
+                            setPage(1);
+                          }}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold transition-all ${
+                            isSelected
+                              ? 'bg-[#635BFF] text-white shadow-sm'
+                              : 'border border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#CBD5E1]'
+                          }`}
+                        >
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: LOGIN_ROLE_COLORS[r] }}
+                            aria-hidden
+                          />
+                          {LOGIN_ROLE_LABELS[r]}
+                        </button>
+                      );
+                    })}
                   </div>
-                }>
+                </div>
+
+                {/* Main People Directory Content */}
                 {d.day.people.length === 0 ? (
-                  <Empty title={q || role ? 'Nobody matches' : 'Nobody was active on this day'} hint={q || role ? 'Clear the search or account type.' : 'Pick another day above.'} />
+                  <Empty
+                    title={q || role ? 'No users match criteria' : 'Nobody was active on this day'}
+                    hint={
+                      q || role
+                        ? 'Try clearing the search query or changing role filters.'
+                        : 'Pick another day from the calendar or timeline above.'
+                    }
+                    action={
+                      (q || role) && (
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSearch('');
+                            setRole('');
+                            setActivityFilter('ALL');
+                            setPlatformFilter('ALL');
+                          }}
+                        >
+                          Clear All Filters
+                        </Button>
+                      )
+                    }
+                  />
+                ) : processedPeople.length === 0 ? (
+                  <Empty
+                    title="No users match the secondary filters"
+                    hint="Adjust your Activity Status or Platform filter above."
+                    action={
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setActivityFilter('ALL');
+                          setPlatformFilter('ALL');
+                        }}
+                      >
+                        Reset Secondary Filters
+                      </Button>
+                    }
+                  />
                 ) : (
                   <>
                     <Scroll>
                       <Table>
                         <thead>
                           <tr>
-                            <Th>Person</Th>
-                            <Th>Account</Th>
-                            <Th>Signed in at</Th>
-                            <Th align="right">First seen</Th>
-                            <Th align="right">Last seen</Th>
-                            <Th align="right">App opens</Th>
-                            <Th>Device</Th>
-                            <Th align="right">Joined</Th>
+                            <Th>Person / User</Th>
+                            <Th>Account Role</Th>
+                            <Th>Authentication Actions</Th>
+                            <Th align="right">First Seen (BST)</Th>
+                            <Th align="right">Last Seen (BST)</Th>
+                            <Th align="right">App Opens / Renewals</Th>
+                            <Th>Platform</Th>
+                            <Th align="right">Registered</Th>
+                            <Th align="right">Action</Th>
                           </tr>
                         </thead>
                         <tbody>
-                          {d.day.people.map((p) => (
-                            <Tr key={p.userId}>
-                              <Td>
-                                <Link href={`/users/${p.userId}`} className="font-bold hover:text-[#635BFF]">{p.name || p.email || p.userId.slice(0, 8)}</Link>
-                                {p.isNew && <span className="ml-2"><Badge tone="warning">New</Badge></span>}
-                                <p className="text-[12px] text-[#94A3B8]">{[p.email, p.phone].filter(Boolean).join(' · ') || '—'}</p>
-                              </Td>
-                              <Td nowrap><span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: LOGIN_ROLE_COLORS[p.role as LoginRole] ?? '#CBD5E1' }} aria-hidden />{ROLE_ONE[p.role] ?? p.role}</span></Td>
-                              <Td>
-                                {p.signInTimes.length === 0 ? (
-                                  <span className="text-[12px] text-[#94A3B8]">Already signed in</span>
-                                ) : (
-                                  <ul className="space-y-0.5">
-                                    {p.signInTimes.map((s, i) => (
-                                      <li key={i} className="whitespace-nowrap text-[12px]">
-                                        <b>{bdTime(s.at)}</b> <span className="text-[#64748B]">{LOGIN_METHOD_LABELS[s.method] ?? s.method}{s.platform ? `, ${PLATFORM_LABELS[s.platform] ?? s.platform}` : ''}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </Td>
-                              <Td align="right" nowrap>{bdTime(p.firstSeenAt)}</Td>
-                              <Td align="right" nowrap>{bdTime(p.lastSeenAt)}</Td>
-                              <Td align="right" muted>{count(p.renewals)}</Td>
-                              <Td muted>{p.platform ? PLATFORM_LABELS[p.platform] ?? p.platform : '—'}</Td>
-                              <Td align="right" nowrap muted>{date(p.joinedAt)}</Td>
-                            </Tr>
-                          ))}
+                          {processedPeople.map((p) => {
+                            const userInitial = initials(p.name || p.email || 'User');
+                            return (
+                              <Tr key={p.userId}>
+                                <Td>
+                                  <div className="flex items-center gap-3">
+                                    {/* Avatar circle */}
+                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EEF2FF] text-[12px] font-extrabold text-[#635BFF] border border-[#DDD6FE]">
+                                      {userInitial}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5">
+                                        <Link
+                                          href={`/users/${p.userId}`}
+                                          className="font-extrabold text-[#1E293B] hover:text-[#635BFF] hover:underline"
+                                        >
+                                          {p.name || p.email || p.userId.slice(0, 8)}
+                                        </Link>
+                                        {p.isNew && <Badge tone="warning">New Account</Badge>}
+                                      </div>
+                                      <div className="flex items-center gap-2 text-[11px] text-[#94A3B8]">
+                                        <span>{p.email || 'No email'}</span>
+                                        {p.phone && <span>· {p.phone}</span>}
+                                        <button
+                                          type="button"
+                                          onClick={() => copyToClipboard(p.userId, p.userId)}
+                                          title="Copy user ID"
+                                          className="text-[#94A3B8] hover:text-[#1E293B]"
+                                        >
+                                          {copiedId === p.userId ? (
+                                            <Check className="h-3 w-3 text-[#16A34A]" />
+                                          ) : (
+                                            <Copy className="h-3 w-3" />
+                                          )}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </Td>
+
+                                <Td nowrap>
+                                  <RoleBadge role={p.role} />
+                                </Td>
+
+                                <Td>
+                                  {p.signInTimes.length === 0 ? (
+                                    <span className="inline-flex items-center gap-1 text-[12px] font-medium text-[#94A3B8]">
+                                      <CheckCircle2 className="h-3.5 w-3.5 text-[#10B981]" />
+                                      Already signed in
+                                    </span>
+                                  ) : (
+                                    <ul className="space-y-1">
+                                      {p.signInTimes.map((s, idx) => (
+                                        <li key={idx} className="flex items-center gap-1.5 whitespace-nowrap text-[12px]">
+                                          <b className="font-mono text-[#1E293B]">{bdTime(s.at)}</b>
+                                          <span className="rounded bg-[#F1F5F9] px-1.5 py-0.5 text-[11px] font-bold text-[#475569]">
+                                            {LOGIN_METHOD_LABELS[s.method] ?? s.method}
+                                          </span>
+                                          {s.platform && (
+                                            <span className="flex items-center gap-0.5 text-[11px] text-[#64748B]">
+                                              <PlatformIcon platform={s.platform} />
+                                              {PLATFORM_LABELS[s.platform] ?? s.platform}
+                                            </span>
+                                          )}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </Td>
+
+                                <Td align="right" nowrap>
+                                  <span className="font-mono font-semibold text-[#1E293B]">{bdTime(p.firstSeenAt)}</span>
+                                </Td>
+
+                                <Td align="right" nowrap>
+                                  <div className="text-right">
+                                    <span className="font-mono font-semibold text-[#1E293B]">{bdTime(p.lastSeenAt)}</span>
+                                    <p className="text-[11px] text-[#94A3B8]">{since(p.lastSeenAt)}</p>
+                                  </div>
+                                </Td>
+
+                                <Td align="right">
+                                  <span className="inline-flex items-center rounded-md bg-[#F8FAFC] px-2 py-0.5 font-mono text-[12px] font-bold text-[#1E293B] border border-[#E2E8F0]">
+                                    {count(p.renewals)}
+                                  </span>
+                                </Td>
+
+                                <Td nowrap>
+                                  <div className="flex items-center gap-1.5 font-medium text-[#475569]">
+                                    <PlatformIcon platform={p.platform} />
+                                    <span>{p.platform ? PLATFORM_LABELS[p.platform] ?? p.platform : '—'}</span>
+                                  </div>
+                                </Td>
+
+                                <Td align="right" nowrap muted>
+                                  {date(p.joinedAt)}
+                                </Td>
+
+                                <Td align="right" nowrap>
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => setInspectingPerson(p)}
+                                      className="rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1 text-[11px] font-bold text-[#635BFF] transition-all hover:border-[#635BFF] hover:bg-[#EEF2FF]"
+                                    >
+                                      Inspect
+                                    </button>
+                                    <Link
+                                      href={`/users/${p.userId}`}
+                                      className="rounded-lg p-1 text-[#94A3B8] transition-all hover:bg-[#F1F5F9] hover:text-[#1E293B]"
+                                      title="Open full user profile"
+                                    >
+                                      <ExternalLink className="h-3.5 w-3.5" />
+                                    </Link>
+                                  </div>
+                                </Td>
+                              </Tr>
+                            );
+                          })}
                         </tbody>
                       </Table>
                     </Scroll>
-                    {d.day.total > d.day.pageSize && (
-                      <div className="flex items-center justify-end gap-3 border-t border-[#F1F5F9] px-5 py-3 text-[12px] font-semibold text-[#64748B]">
-                        <Button variant="outline" disabled={page <= 1} onClick={() => setPage((n) => Math.max(1, n - 1))}>Previous</Button>
-                        <span>Page {page} of {Math.ceil(d.day.total / d.day.pageSize)}</span>
-                        <Button variant="outline" disabled={page * d.day.pageSize >= d.day.total} onClick={() => setPage((n) => n + 1)}>Next</Button>
+
+                    {/* Pagination Bar */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-[#F1F5F9] px-5 py-4 text-[12px] font-semibold text-[#64748B]">
+                      <div className="flex items-center gap-2">
+                        <span>
+                          Showing{' '}
+                          <b className="text-[#1E293B]">
+                            {Math.min(d.day.total, (page - 1) * pageSize + 1)}–
+                            {Math.min(d.day.total, page * pageSize)}
+                          </b>{' '}
+                          of <b className="text-[#1E293B]">{count(d.day.total)}</b> active people
+                        </span>
+                        {processedPeople.length !== d.day.people.length && (
+                          <span className="text-[#94A3B8]">
+                            ({processedPeople.length} matched current client filters)
+                          </span>
+                        )}
                       </div>
-                    )}
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          disabled={page <= 1}
+                          onClick={() => setPage((n) => Math.max(1, n - 1))}
+                          className="px-3 py-1 text-[12px]"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Previous
+                        </Button>
+                        <span className="px-2 font-bold text-[#1E293B]">
+                          Page {page} of {Math.max(1, Math.ceil(d.day.total / pageSize))}
+                        </span>
+                        <Button
+                          variant="outline"
+                          disabled={page * pageSize >= d.day.total}
+                          onClick={() => setPage((n) => n + 1)}
+                          className="px-3 py-1 text-[12px]"
+                        >
+                          Next
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
                   </>
                 )}
               </Panel>
             </section>
 
-            <Panel title="Latest sign-ins" note="Across SalunBD, newest first" flush>
+            {/* Global Recent Sign-in Stream */}
+            <Panel
+              title="Live Sign-in Audit Stream"
+              note="Most recent authentication events across all accounts in SalunBD (Newest first)"
+              flush
+            >
               {d.recent.length === 0 ? (
-                <Empty title="No sign-ins recorded yet" />
+                <Empty title="No sign-in events recorded yet" />
               ) : (
                 <Scroll>
                   <Table>
-                    <thead><tr><Th>When</Th><Th>Person</Th><Th>Account</Th><Th>How</Th><Th>Device</Th></tr></thead>
+                    <thead>
+                      <tr>
+                        <Th>Timestamp (BST)</Th>
+                        <Th>Person / User</Th>
+                        <Th>Account Role</Th>
+                        <Th>Auth Method</Th>
+                        <Th>Platform</Th>
+                        <Th align="right">Action</Th>
+                      </tr>
+                    </thead>
                     <tbody>
                       {d.recent.map((e, i) => (
                         <Tr key={`${e.userId}-${i}`}>
-                          <Td nowrap>{bdDateTime(e.at)}</Td>
-                          <Td><Link href={`/users/${e.userId}`} className="font-bold hover:text-[#635BFF]">{e.name || e.email || e.userId.slice(0, 8)}</Link>{e.name && e.email && <span className="ml-2 text-[12px] text-[#94A3B8]">{e.email}</span>}</Td>
-                          <Td nowrap>{ROLE_ONE[e.role] ?? e.role}</Td>
-                          <Td nowrap>{LOGIN_METHOD_LABELS[e.method] ?? e.method}</Td>
-                          <Td muted>{e.platform ? PLATFORM_LABELS[e.platform] ?? e.platform : '—'}</Td>
+                          <Td nowrap>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-semibold text-[#1E293B]">
+                                {bdDateTime(e.at)}
+                              </span>
+                              <span className="text-[11px] text-[#94A3B8]">({since(e.at)})</span>
+                            </div>
+                          </Td>
+                          <Td>
+                            <div className="flex items-center gap-2">
+                              <Link
+                                href={`/users/${e.userId}`}
+                                className="font-bold text-[#1E293B] hover:text-[#635BFF] hover:underline"
+                              >
+                                {e.name || e.email || e.userId.slice(0, 8)}
+                              </Link>
+                              {e.email && <span className="text-[12px] text-[#94A3B8]">{e.email}</span>}
+                            </div>
+                          </Td>
+                          <Td nowrap>
+                            <RoleBadge role={e.role} />
+                          </Td>
+                          <Td nowrap>
+                            <span className="inline-flex items-center gap-1.5 rounded bg-[#F1F5F9] px-2 py-0.5 text-[12px] font-bold text-[#475569]">
+                              <span
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: METHOD_COLORS[e.method] ?? '#94A3B8' }}
+                              />
+                              {LOGIN_METHOD_LABELS[e.method] ?? e.method}
+                            </span>
+                          </Td>
+                          <Td nowrap>
+                            <div className="flex items-center gap-1.5 font-medium text-[#64748B]">
+                              <PlatformIcon platform={e.platform} />
+                              <span>{e.platform ? PLATFORM_LABELS[e.platform] ?? e.platform : '—'}</span>
+                            </div>
+                          </Td>
+                          <Td align="right">
+                            <Link
+                              href={`/users/${e.userId}`}
+                              className="text-[12px] font-bold text-[#635BFF] hover:underline"
+                            >
+                              View User
+                            </Link>
+                          </Td>
                         </Tr>
                       ))}
                     </tbody>
@@ -339,6 +1384,169 @@ export default function LoginsPage() {
           </>
         )}
       </Canvas>
+
+      {/* Inspect Person Modal */}
+      {inspectingPerson && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs font-manrope animate-in fade-in duration-150"
+        >
+          <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-[#E2E8F0] p-6 bg-[#F8FAFC]">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#635BFF] text-[16px] font-extrabold text-white shadow-sm">
+                  {initials(inspectingPerson.name || inspectingPerson.email || 'User')}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-[17px] font-extrabold text-[#1E293B]">
+                      {inspectingPerson.name || inspectingPerson.email || 'Unnamed User'}
+                    </h3>
+                    {inspectingPerson.isNew && <Badge tone="warning">New Account</Badge>}
+                  </div>
+                  <p className="text-[12px] font-medium text-[#64748B]">
+                    {inspectingPerson.email || 'No email attached'} · {inspectingPerson.phone || 'No phone'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInspectingPerson(null)}
+                className="rounded-lg p-1.5 text-[#94A3B8] transition-all hover:bg-[#E2E8F0] hover:text-[#1E293B]"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="space-y-5 p-6">
+              {/* Profile metadata chips */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-xl border border-[#E2E8F0] bg-white p-3">
+                  <p className="text-[11px] font-bold text-[#94A3B8] uppercase">Account Role</p>
+                  <div className="mt-1">
+                    <RoleBadge role={inspectingPerson.role} />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-[#E2E8F0] bg-white p-3">
+                  <p className="text-[11px] font-bold text-[#94A3B8] uppercase">Primary Device</p>
+                  <div className="mt-1 flex items-center gap-1 text-[13px] font-bold text-[#1E293B]">
+                    <PlatformIcon platform={inspectingPerson.platform} />
+                    <span>{inspectingPerson.platform ? PLATFORM_LABELS[inspectingPerson.platform] ?? inspectingPerson.platform : 'Unknown'}</span>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-[#E2E8F0] bg-white p-3">
+                  <p className="text-[11px] font-bold text-[#94A3B8] uppercase">App Opens</p>
+                  <p className="mt-1 text-[15px] font-extrabold text-[#1E293B] tabular-nums">
+                    {count(inspectingPerson.renewals)}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-[#E2E8F0] bg-white p-3">
+                  <p className="text-[11px] font-bold text-[#94A3B8] uppercase">Member Since</p>
+                  <p className="mt-1 text-[13px] font-bold text-[#1E293B]">
+                    {date(inspectingPerson.joinedAt)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Day Session Activity Timestamps */}
+              <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[13px] font-extrabold text-[#1E293B]">
+                    Session Activity on {d ? dayLong(d.day.day, d.today) : 'Selected Day'}
+                  </h4>
+                  <span className="text-[11px] font-bold text-[#64748B]">
+                    Times are Bangladesh BST
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-[12px]">
+                  <div className="rounded-lg bg-white p-3 border border-[#E2E8F0]">
+                    <p className="text-[11px] font-bold text-[#94A3B8] uppercase">First Seen</p>
+                    <p className="mt-1 font-mono text-[14px] font-extrabold text-[#1E293B]">
+                      {bdTime(inspectingPerson.firstSeenAt)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-white p-3 border border-[#E2E8F0]">
+                    <p className="text-[11px] font-bold text-[#94A3B8] uppercase">Last Seen</p>
+                    <p className="mt-1 font-mono text-[14px] font-extrabold text-[#1E293B]">
+                      {bdTime(inspectingPerson.lastSeenAt)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Explicit Sign-in Events */}
+              <div>
+                <h4 className="mb-2 text-[13px] font-extrabold text-[#1E293B]">
+                  Authentication Events ({inspectingPerson.signInTimes.length})
+                </h4>
+                {inspectingPerson.signInTimes.length === 0 ? (
+                  <p className="rounded-lg border border-[#E2E8F0] bg-white p-3 text-[12px] font-medium text-[#64748B]">
+                    No explicit sign-ins on this date. The user resumed existing active sessions or opened the mobile app.
+                  </p>
+                ) : (
+                  <div className="max-h-40 overflow-y-auto rounded-lg border border-[#E2E8F0] bg-white divide-y divide-[#F1F5F9]">
+                    {inspectingPerson.signInTimes.map((s, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 text-[12px]">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-extrabold text-[#1E293B]">{bdTime(s.at)}</span>
+                          <span className="rounded bg-[#EEF2FF] px-2 py-0.5 text-[11px] font-extrabold text-[#635BFF]">
+                            {LOGIN_METHOD_LABELS[s.method] ?? s.method}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[11px] text-[#64748B]">
+                          <PlatformIcon platform={s.platform} />
+                          <span>{s.platform ? PLATFORM_LABELS[s.platform] ?? s.platform : 'Unknown'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between border-t border-[#E2E8F0] bg-[#F8FAFC] px-6 py-4">
+              <button
+                type="button"
+                onClick={() => copyToClipboard(inspectingPerson.userId, 'modal-id')}
+                className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#64748B] hover:text-[#1E293B]"
+              >
+                {copiedId === 'modal-id' ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 text-[#16A34A]" />
+                    <span className="text-[#16A34A]">User ID Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3.5 w-3.5" />
+                    <span>Copy User ID</span>
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setInspectingPerson(null)}>
+                  Close
+                </Button>
+                <Link
+                  href={`/users/${inspectingPerson.userId}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#635BFF] px-4 py-2 text-[13px] font-bold text-white shadow-sm hover:bg-[#524be0]"
+                >
+                  View Full Profile
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

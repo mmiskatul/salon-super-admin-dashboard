@@ -379,7 +379,7 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                               </p>
                               <div className="flex items-center gap-1 text-[10px] text-[#64748B] mt-0.5">
                                 <span className="font-semibold text-[#7C3AED] truncate max-w-[70px]">
-                                  {barber.shopName || (barber.isIndependent ? 'Freelance' : 'Shop')}
+                                  {barber.shopName || (barber.isIndependent ? 'Individual' : 'Shop')}
                                 </span>
                                 <span>·</span>
                                 <span className="font-semibold text-[#15803D]">{barber.completed} done</span>

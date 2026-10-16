@@ -628,7 +628,7 @@ export default function OverviewPage() {
                         {count(o.places.teamMembers + o.places.independentBarbers)}
                       </p>
                       <span className="text-[11px] font-semibold text-[#7C3AED]">
-                        {o.places.teamMembers} in shops · {o.places.independentBarbers} freelance
+                        {o.places.teamMembers} in shops · {o.places.independentBarbers} individual
                       </span>
                     </div>
 
@@ -659,7 +659,7 @@ export default function OverviewPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-[#64748B] flex items-center gap-1.5">
                         <UserCheck className="h-4 w-4 text-[#0EA5E9]" />
-                        Listed Freelance Barbers
+                        Listed Individual Barbers
                       </span>
                       <span className="font-bold text-[#1E293B] tabular-nums">{o.places.barbersVisible}</span>
                     </div>

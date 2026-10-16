@@ -202,7 +202,7 @@ export function CancellationRiskWatchlist({ overview, periodLabel }: Cancellatio
                               ) : (
                                 <>
                                   <Scissors className="h-3 w-3 text-[#94A3B8]" />
-                                  <span className="text-[#475569]">Freelance / Independent</span>
+                                  <span className="text-[#475569]">Individual Barber</span>
                                 </>
                               )}
                             </span>

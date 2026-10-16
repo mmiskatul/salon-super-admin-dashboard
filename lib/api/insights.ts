@@ -540,7 +540,7 @@ export const CANCEL_GROUP_LABELS: Record<CancelGroup, string> = {
 /* ── Daily logins (GET /admin/insights/logins) ─────────────────────────── */
 
 export type LoginRole = 'CUSTOMER' | 'BARBER' | 'OWNER' | 'STAFF' | 'SUPER_ADMIN';
-export type LoginMethod = 'PASSWORD' | 'GOOGLE' | 'SIGN_UP';
+export type LoginMethod = 'PASSWORD' | 'GOOGLE';
 
 export interface LoginDay {
   day: string;
@@ -640,7 +640,6 @@ export const LOGIN_ROLE_COLORS: Record<LoginRole, string> = {
 export const LOGIN_METHOD_LABELS: Record<LoginMethod, string> = {
   PASSWORD: 'Email & password',
   GOOGLE: 'Google',
-  SIGN_UP: 'New account',
 };
 export const PLATFORM_LABELS: Record<string, string> = {
   ANDROID: 'Android',

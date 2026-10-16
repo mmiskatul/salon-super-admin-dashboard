@@ -408,7 +408,7 @@ function MoneyLedgerContent() {
               )}
             </Panel>
 
-            {/* Entity Settlements: Cash by Salon Shop & Freelance Barber */}
+            {/* Entity Settlements: Cash by Salon Shop & Individual Barber */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               {/* Cash by Salon Shop / Barber */}
               <Panel
