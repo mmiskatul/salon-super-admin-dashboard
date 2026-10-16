@@ -193,7 +193,7 @@ export default function OverviewPage() {
               </Link>
 
               {/* Cash Recorded */}
-              <Link href="/money" className="block focus-visible:outline-2 focus-visible:outline-[#635BFF]">
+              <Link href={`/money?days=${days}&date=${selectedDate}`} className="block focus-visible:outline-2 focus-visible:outline-[#635BFF]">
                 <div className="rounded-xl border border-[#E2E8F0] bg-white p-4.5 shadow-xs transition-all hover:border-[#16A34A]/40 hover:shadow-sm">
                   <div className="flex items-center justify-between text-[#64748B]">
                     <span className="text-[11px] font-bold uppercase tracking-wider">Cash Recorded ({periodShort})</span>
@@ -421,7 +421,7 @@ export default function OverviewPage() {
                           <span className="rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[10px] font-bold text-[#15803D]">
                             {granularityBadge}
                           </span>
-                          <Link href="/money" className="text-[12px] font-bold text-[#16A34A] hover:underline">
+                          <Link href={`/money?days=${days}&date=${selectedDate}`} className="text-[12px] font-bold text-[#16A34A] hover:underline">
                             View Ledger <ArrowUpRight className="inline h-3 w-3" />
                           </Link>
                         </div>
