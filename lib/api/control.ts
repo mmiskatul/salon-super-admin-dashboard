@@ -23,7 +23,12 @@ export interface DeletionRequest {
   ticketId: string;
   status: 'PENDING' | 'CLOSED' | 'DONE';
   requestedAt: string;
-  owner: { id: string; name: string | null; email: string; phone: string | null; deletedAt: string | null };
+  expiresAt?: string;
+  daysRemaining?: number;
+  isOverdue?: boolean;
+  reason?: string;
+  user?: { id: string; name: string | null; email: string; phone: string | null; role: string; deletedAt: string | null };
+  owner: { id: string; name: string | null; email: string; phone: string | null; role?: string; deletedAt: string | null };
   shop: { id: string; name: string; listed: boolean; suspended: boolean } | null;
   upcomingBookings: number;
   teamMembers: number;
@@ -50,6 +55,8 @@ export interface AdminService {
 const json = (method: string, body?: unknown) => ({ method, body: body === undefined ? undefined : JSON.stringify(body) });
 
 export const getDeletions = () => apiFetch<Deletions>('/admin/control/deletions');
+export const purgeExpiredDeletions = () =>
+  apiFetch<{ purgedCount: number; purgedUserIds: string[] }>('/admin/control/deletions/purge-expired', json('POST'));
 export const adminDeleteAccount = (userId: string, note?: string) =>
   apiFetch<{ status: 'DELETED'; shopClosed: string | null; bookingsCancelled: number }>(`/admin/control/users/${encodeURIComponent(userId)}/delete`, json('POST', { note }));
 export const declineDeletion = (ticketId: string, message: string) =>

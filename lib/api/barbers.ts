@@ -8,6 +8,7 @@ import { listAppointments, listReviews, type Appointment, type Review } from './
 import { getScheduleRange, type ScheduleDay } from './schedule';
 import { getWorkingHoursFor, type WorkingHours } from './workingHours';
 import { listServices, type ServiceItem } from './catalog';
+import type { Readiness } from './insights';
 
 export interface BarberSummary {
   id: string;
@@ -25,6 +26,12 @@ export interface BarberSummary {
   ratingCount: number;
   servicesCount: number;
   appointmentsCount: number;
+  completedBookings?: number;
+  totalRevenue?: number;
+  openSlots7d?: number;
+  lastBookingAt?: string | null;
+  isListed?: boolean;
+  missingSteps?: string[];
   walletBalance: number;
   createdAt: string;
 }
@@ -100,15 +107,40 @@ function inDaysIso(days: number): string {
  * Combines shop-linked staff with role BARBER and independent solo barbers.
  */
 export async function listAllBarbers(): Promise<BarberSummary[]> {
-  const [usersPage, allTenants, soloBarbers] = await Promise.all([
+  const [usersPage, allTenants, soloBarbers, allAppointments, readinessData] = await Promise.all([
     listUsers({ role: 'BARBER', limit: 200 }).catch(() => ({ data: [] as PlatformUser[], total: 0, page: 1, limit: 200 })),
     listTenants().catch(() => [] as Tenant[]),
     listSoloBarbers().catch(() => [] as SoloBarber[]),
+    listAppointments().catch(() => [] as Appointment[]),
+    apiFetch<Readiness>('/admin/insights/readiness').catch(() => null),
   ]);
 
   const tenantMap = new Map<string, Tenant>();
   for (const t of allTenants) {
     tenantMap.set(t.id, t);
+  }
+
+  // Index appointments by staff ID
+  const appointmentsByStaff = new Map<string, Appointment[]>();
+  for (const a of allAppointments) {
+    if (a.staffId) {
+      const list = appointmentsByStaff.get(a.staffId) || [];
+      list.push(a);
+      appointmentsByStaff.set(a.staffId, list);
+    }
+  }
+
+  // Index readiness rows by id
+  const readinessMap = new Map<string, { services: number; openSlots7d: number; listed: boolean; missing: string[] }>();
+  if (readinessData?.rows) {
+    for (const r of readinessData.rows) {
+      readinessMap.set(r.id, {
+        services: r.services,
+        openSlots7d: r.openSlots7d,
+        listed: r.listed,
+        missing: r.missing as string[],
+      });
+    }
   }
 
   // Also collect staff records from all tenants in parallel to catch staff records whose User.role might differ
@@ -168,6 +200,23 @@ export async function listAllBarbers(): Promise<BarberSummary[]> {
     const ratingAvg = profile?.ratingAvg || staffEntry?.staff.rating || 0;
     const ratingCount = profile?.ratingCount || staffEntry?.staff.reviewCount || 0;
 
+    // Resolve appointments
+    const barberAppts = appointmentsByStaff.get(userId) || (staffEntry ? appointmentsByStaff.get(staffEntry.staff.id) : null) || [];
+    const completedBookings = barberAppts.filter((a) => a.status === 'COMPLETED').length;
+    const totalRevenue = barberAppts
+      .filter((a) => a.status === 'COMPLETED')
+      .reduce((acc, a) => acc + Number(a.price || 0), 0);
+
+    const sortedAppts = [...barberAppts].sort((a, b) => (b.startAt || b.createdAt).localeCompare(a.startAt || a.createdAt));
+    const lastBookingAt = sortedAppts[0]?.startAt || sortedAppts[0]?.createdAt || null;
+
+    // Resolve readiness and services
+    const rInfo = readinessMap.get(userId) || (tenantId ? readinessMap.get(tenantId) : null);
+    const servicesCount = rInfo?.services || 0;
+    const openSlots7d = rInfo?.openSlots7d || 0;
+    const isListed = rInfo ? rInfo.listed : true;
+    const missingSteps = rInfo?.missing || [];
+
     summaries.push({
       id: userId,
       name,
@@ -182,8 +231,14 @@ export async function listAllBarbers(): Promise<BarberSummary[]> {
       bannedReason,
       ratingAvg,
       ratingCount,
-      servicesCount: 0,
-      appointmentsCount: 0,
+      servicesCount,
+      appointmentsCount: barberAppts.length,
+      completedBookings,
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      openSlots7d,
+      lastBookingAt,
+      isListed,
+      missingSteps,
       walletBalance: 0,
       createdAt: user?.createdAt || profile?.createdAt || new Date().toISOString(),
     });
