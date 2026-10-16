@@ -295,6 +295,13 @@ export interface Overview {
     byDay: { day: string; completed: number; upcoming: number; cancelled: number; noShow: number }[];
   };
   today: { total: number; waiting: number; inChair: number; done: number; cancelled: number };
+  dateStats?: {
+    date: string;
+    scheduled: { total: number; waiting: number; inChair: number; done: number; cancelled: number };
+    created: { total: number; completed: number; upcoming: number; cancelled: number; noShow: number };
+    cashAmount: number;
+    signups: { day: string; customers: number; partners: number };
+  };
   money: { cash: number; payments: number; averageTicket: number; allTime: number; couponDiscounts: number; giftCardsOwed: number; byDay: { day: string; amount: number }[] };
   signups: { day: string; customers: number; partners: number }[];
   engagement: {

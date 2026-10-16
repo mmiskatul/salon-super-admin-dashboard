@@ -121,6 +121,20 @@ export default function OverviewPage() {
   // Compute breakdown for the focused date in the "Today / Date" panel
   const focusedDateBreakdown = useMemo(() => {
     if (!o) return { total: 0, waiting: 0, inChair: 0, done: 0, cancelled: 0 };
+    if (o.dateStats && o.dateStats.date === selectedDate) {
+      if (o.dateStats.scheduled.total > 0) {
+        return o.dateStats.scheduled;
+      }
+      if (o.dateStats.created.total > 0) {
+        return {
+          total: o.dateStats.created.total,
+          waiting: o.dateStats.created.upcoming,
+          inChair: 0,
+          done: o.dateStats.created.completed,
+          cancelled: o.dateStats.created.cancelled + o.dateStats.created.noShow,
+        };
+      }
+    }
     if (selectedDate === todayIso) {
       return o.today;
     }

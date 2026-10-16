@@ -105,6 +105,11 @@ export function DateWiseProgressFilter({
   const dateStats = useMemo(() => {
     if (!overviewData || !selectedDate) return null;
 
+    const backendStats =
+      overviewData.dateStats && overviewData.dateStats.date === selectedDate
+        ? overviewData.dateStats
+        : null;
+
     const bDay = overviewData.bookings.byDay.find((d) => d.day === selectedDate);
     const cDay = overviewData.money.byDay.find((d) => d.day === selectedDate);
     const sDay = overviewData.signups.find((d) => d.day === selectedDate);
@@ -112,20 +117,28 @@ export function DateWiseProgressFilter({
     // If it's today, we also have live today stats
     const isTargetToday = selectedDate === todayIso;
 
-    const totalBookings = bDay
-      ? bDay.completed + bDay.upcoming + bDay.cancelled + bDay.noShow
-      : isTargetToday
-      ? overviewData.today.total
-      : 0;
+    const totalBookings =
+      backendStats?.created.total ??
+      (bDay
+        ? bDay.completed + bDay.upcoming + bDay.cancelled + bDay.noShow
+        : isTargetToday
+        ? overviewData.today.total
+        : 0);
 
-    const completed = bDay ? bDay.completed : isTargetToday ? overviewData.today.done : 0;
-    const upcoming = bDay ? bDay.upcoming : isTargetToday ? overviewData.today.waiting + overviewData.today.inChair : 0;
-    const cancelled = bDay ? bDay.cancelled : isTargetToday ? overviewData.today.cancelled : 0;
-    const noShow = bDay ? bDay.noShow : 0;
+    const completed =
+      backendStats?.created.completed ??
+      (bDay ? bDay.completed : isTargetToday ? overviewData.today.done : 0);
+    const upcoming =
+      backendStats?.created.upcoming ??
+      (bDay ? bDay.upcoming : isTargetToday ? overviewData.today.waiting + overviewData.today.inChair : 0);
+    const cancelled =
+      backendStats?.created.cancelled ??
+      (bDay ? bDay.cancelled : isTargetToday ? overviewData.today.cancelled : 0);
+    const noShow = backendStats?.created.noShow ?? (bDay ? bDay.noShow : 0);
 
-    const cashAmount = cDay?.amount ?? 0;
-    const customersSignup = sDay?.customers ?? 0;
-    const partnersSignup = sDay?.partners ?? 0;
+    const cashAmount = backendStats?.cashAmount ?? (cDay?.amount ?? 0);
+    const customersSignup = backendStats?.signups.customers ?? (sDay?.customers ?? 0);
+    const partnersSignup = backendStats?.signups.partners ?? (sDay?.partners ?? 0);
     const totalSignups = customersSignup + partnersSignup;
 
     const completionRate = totalBookings > 0 ? Math.round((completed / totalBookings) * 100) : null;
