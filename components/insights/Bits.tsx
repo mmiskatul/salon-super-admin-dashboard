@@ -72,10 +72,10 @@ export function Columns({
               } ${isActive ? 'ring-2 ring-[#635BFF] ring-offset-1 z-10' : ''}`}
               title={`${p.label}: ${format(p.value)}${onSelect ? ' (Click to select date)' : ''}`}
               style={{
-                height: `${Math.max(p.value > 0 ? 3 : 0, (p.value / max) * 100)}%`,
-                backgroundColor: isActive ? '#4F46E5' : color,
+                height: `${Math.max(isActive ? 8 : p.value > 0 ? 3 : 0, (p.value / max) * 100)}%`,
+                backgroundColor: isActive ? '#635BFF' : color,
                 opacity: p.value > 0 || isActive ? 1 : 0.15,
-                minHeight: isActive ? 4 : 1,
+                minHeight: isActive ? 8 : 1,
               }}
             />
           );
@@ -244,8 +244,9 @@ export function StackedColumns({
                 onSelect ? 'cursor-pointer hover:brightness-110' : ''
               } ${isActive ? 'ring-2 ring-[#635BFF] ring-offset-1 z-10' : ''}`}
               style={{
-                height: `${(totals[i] / max) * 100}%`,
-                minHeight: totals[i] ? 2 : isActive ? 4 : 0,
+                height: `${Math.max(isActive ? 8 : totals[i] > 0 ? 3 : 0, (totals[i] / max) * 100)}%`,
+                minHeight: isActive ? 8 : totals[i] ? 2 : 1,
+                backgroundColor: isActive && totals[i] === 0 ? '#635BFF' : undefined,
               }}
               title={`${p.label}: ${series.map((s) => `${s.label} ${p.values[s.key] ?? 0}`).join(', ')}${onSelect ? ' (Click to select date)' : ''}`}>
               {series.map((s) =>

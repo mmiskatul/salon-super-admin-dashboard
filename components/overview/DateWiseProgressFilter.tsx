@@ -16,12 +16,11 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
+  BarChart3,
 } from 'lucide-react';
 import type { InsightDays, InsightPeriod, Overview } from '@/lib/api/insights';
-import { PERIOD_TO_DAYS } from '@/lib/api/insights';
 import { money, count } from '@/lib/format';
 import { percent } from '@/components/insights/Bits';
-import { Badge, Button } from '@/components/ui/primitives';
 
 interface DateWiseProgressFilterProps {
   days: InsightDays;
@@ -61,8 +60,16 @@ export function DateWiseProgressFilter({
     return `${y.getFullYear()}-${pad(y.getMonth() + 1)}-${pad(y.getDate())}`;
   }, []);
 
+  // 7 days ago ISO
+  const sevenDaysAgoIso = useMemo(() => {
+    const d = new Date(Date.now() - 7 * 86400000);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }, []);
+
   const isToday = selectedDate === todayIso;
   const isYesterday = selectedDate === yesterdayIso;
+  const is7dAgo = selectedDate === sevenDaysAgoIso;
 
   // Active period name
   const activePeriod = useMemo(() => {
@@ -124,6 +131,16 @@ export function DateWiseProgressFilter({
     const completionRate = totalBookings > 0 ? Math.round((completed / totalBookings) * 100) : null;
     const cancelRate = totalBookings > 0 ? Math.round(((cancelled + noShow) / totalBookings) * 100) : null;
 
+    // Relative share of overall period
+    const bookingShare =
+      overviewData.bookings.total > 0
+        ? Math.round((totalBookings / overviewData.bookings.total) * 100)
+        : 0;
+    const cashShare =
+      overviewData.money.cash > 0
+        ? Math.round((cashAmount / overviewData.money.cash) * 100)
+        : 0;
+
     return {
       totalBookings,
       completed,
@@ -136,22 +153,24 @@ export function DateWiseProgressFilter({
       totalSignups,
       completionRate,
       cancelRate,
+      bookingShare,
+      cashShare,
       isTargetToday,
     };
   }, [overviewData, selectedDate, todayIso]);
 
   return (
-    <div className="space-y-3">
-      {/* Top Filter Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] bg-white p-2.5 shadow-xs">
-        {/* Left: Day / Weekly / Monthly / Yearly Filter */}
-        <div className="flex flex-wrap items-center gap-2">
+    <div className="space-y-3 font-manrope">
+      {/* Top Filter Controls Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] bg-white p-3 shadow-xs">
+        {/* Left: Day / Weekly / Monthly / Yearly Period Switcher */}
+        <div className="flex flex-wrap items-center gap-2.5">
           <div className="flex items-center gap-1.5 text-xs font-bold text-[#64748B]">
             <Calendar className="h-4 w-4 text-[#635BFF]" />
-            <span className="hidden sm:inline">Filter:</span>
+            <span className="hidden sm:inline">Timeframe:</span>
           </div>
 
-          {/* Day / Weekly / Monthly / Yearly Toggle Group */}
+          {/* Toggle Group */}
           <div
             className="inline-flex rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-0.5"
             role="tablist"
@@ -180,46 +199,57 @@ export function DateWiseProgressFilter({
           </div>
 
           {/* Quick Date Presets */}
-          <div className="hidden items-center gap-1 md:flex">
-            <span className="text-[11px] font-medium text-[#94A3B8]">·</span>
+          <div className="flex items-center gap-1">
+            <span className="hidden text-[11px] font-medium text-[#94A3B8] sm:inline">·</span>
             <button
               type="button"
-              onClick={() => {
-                onDateChange(todayIso);
-                if (days !== 1 && activePeriod !== 'Day') {
-                  // Keep current period or jump to day
-                }
-              }}
-              className={`rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${
+              onClick={() => onDateChange(todayIso)}
+              className={`cursor-pointer rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${
                 isToday
                   ? 'bg-[#DCFCE7] text-[#15803D]'
                   : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#1E293B]'
               }`}
+              title="Jump to today"
             >
               Today
             </button>
+
             <button
               type="button"
               onClick={() => onDateChange(yesterdayIso)}
-              className={`rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${
+              className={`cursor-pointer rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${
                 isYesterday
                   ? 'bg-[#E0E7FF] text-[#4338CA]'
                   : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#1E293B]'
               }`}
+              title="Jump to yesterday"
             >
               Yesterday
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onDateChange(sevenDaysAgoIso)}
+              className={`hidden cursor-pointer rounded-md px-2 py-1 text-[11px] font-bold transition-colors sm:inline-block ${
+                is7dAgo
+                  ? 'bg-[#FEF3C7] text-[#92400E]'
+                  : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#1E293B]'
+              }`}
+              title="Jump to 7 days ago"
+            >
+              7d Ago
             </button>
           </div>
         </div>
 
-        {/* Right: Date Picker & Stepper */}
+        {/* Right: Interactive Date Stepper & Picker */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center rounded-lg border border-[#CBD5E1] bg-[#F8FAFC] p-1 shadow-2xs">
             <button
               type="button"
               onClick={() => stepDate(-1)}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-[#64748B] transition-colors hover:bg-white hover:text-[#1E293B]"
-              title="Previous day"
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-[#64748B] transition-colors hover:bg-white hover:text-[#1E293B]"
+              title="Step backward 1 day"
               aria-label="Previous day"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -240,8 +270,8 @@ export function DateWiseProgressFilter({
             <button
               type="button"
               onClick={() => stepDate(1)}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-[#64748B] transition-colors hover:bg-white hover:text-[#1E293B]"
-              title="Next day"
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-[#64748B] transition-colors hover:bg-white hover:text-[#1E293B]"
+              title="Step forward 1 day"
               aria-label="Next day"
             >
               <ChevronRight className="h-4 w-4" />
@@ -258,11 +288,11 @@ export function DateWiseProgressFilter({
                   onDateChange(todayIso);
                 }
               }}
-              className="flex items-center gap-1 rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-[12px] font-semibold text-[#64748B] transition-all hover:border-[#CBD5E1] hover:text-[#1E293B]"
+              className="flex cursor-pointer items-center gap-1 rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-[12px] font-semibold text-[#64748B] transition-all hover:border-[#CBD5E1] hover:text-[#1E293B]"
               title="Snap back to today"
             >
               <RotateCcw className="h-3.5 w-3.5" />
-              <span>Today</span>
+              <span>Reset</span>
             </button>
           )}
         </div>
@@ -270,57 +300,82 @@ export function DateWiseProgressFilter({
 
       {/* Date Progress Spotlight Banner */}
       {selectedDate && dateStats && (
-        <div className="overflow-hidden rounded-xl border border-[#C7D2FE] bg-gradient-to-r from-[#EEF2FF] via-[#F8FAFC] to-[#F0FDF4] p-4 shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E0E7FF] pb-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#635BFF] text-white shadow-2xs">
-                <CalendarCheck className="h-4 w-4" />
+        <div className="overflow-hidden rounded-xl border border-[#C7D2FE] bg-gradient-to-r from-[#EEF2FF] via-[#F8FAFC] to-[#F0FDF4] p-4.5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E0E7FF] pb-3.5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#635BFF] text-white shadow-sm">
+                <CalendarCheck className="h-5 w-5" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-[15px] font-bold text-[#1E293B]">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-[16px] font-extrabold text-[#1E293B]">
                     Date Progress: {formattedDateLabel}
                   </h3>
-                  <span className="rounded-full bg-[#635BFF]/10 px-2 py-0.5 text-[10px] font-extrabold tracking-wide text-[#635BFF] uppercase">
-                    {activePeriod} View
+                  <span className="rounded-full bg-[#635BFF]/10 px-2.5 py-0.5 text-[10px] font-extrabold tracking-wide text-[#635BFF] uppercase">
+                    {activePeriod} Period
                   </span>
                   {isToday ? (
-                    <span className="rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[10px] font-extrabold tracking-wide text-[#15803D] uppercase">
-                      Today (Live)
+                    <span className="rounded-full bg-[#DCFCE7] px-2.5 py-0.5 text-[10px] font-extrabold tracking-wide text-[#15803D] uppercase">
+                      Live Today
                     </span>
                   ) : isYesterday ? (
-                    <span className="rounded-full bg-[#E0E7FF] px-2 py-0.5 text-[10px] font-extrabold tracking-wide text-[#4338CA] uppercase">
+                    <span className="rounded-full bg-[#E0E7FF] px-2.5 py-0.5 text-[10px] font-extrabold tracking-wide text-[#4338CA] uppercase">
                       Yesterday
                     </span>
-                  ) : null}
+                  ) : (
+                    <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[10px] font-bold tracking-wide text-[#64748B]">
+                      {selectedDate}
+                    </span>
+                  )}
                 </div>
-                <p className="text-[12px] text-[#64748B]">
+                <p className="mt-0.5 text-[12px] font-medium text-[#64748B]">
                   Exact bookings, cash recorded, and signups for this date across all salons and barbers
+                  {overviewData && (
+                    <span className="hidden sm:inline">
+                      {' '}· Period covers {overviewData.days} days ({overviewData.bookings.total} total bookings)
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
 
-            <Link
-              href={`/bookings`}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#635BFF]/30 bg-white px-3 py-1.5 text-[12px] font-bold text-[#635BFF] transition-all hover:bg-[#635BFF] hover:text-white"
-            >
-              <span>Manage Bookings</span>
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href={`/bookings`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#635BFF]/30 bg-white px-3 py-1.5 text-[12px] font-bold text-[#635BFF] transition-all hover:bg-[#635BFF] hover:text-white"
+              >
+                <span>Manage Bookings</span>
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+              <Link
+                href={`/money`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#16A34A]/30 bg-white px-3 py-1.5 text-[12px] font-bold text-[#16A34A] transition-all hover:bg-[#16A34A] hover:text-white"
+              >
+                <span>View Cash Ledger</span>
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </div>
 
-          {/* Quick Metrics for Selected Date */}
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {/* Quick Metrics Grid for Selected Date */}
+          <div className="mt-3.5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {/* Bookings on this date */}
-            <div className="rounded-lg border border-white/60 bg-white/80 p-2.5 backdrop-blur-xs">
-              <div className="flex items-center gap-1 text-[11px] font-bold text-[#64748B]">
-                <CalendarCheck className="h-3.5 w-3.5 text-[#635BFF]" />
-                <span>Bookings</span>
+            <div className="rounded-xl border border-white/80 bg-white/90 p-3 shadow-2xs backdrop-blur-xs">
+              <div className="flex items-center justify-between text-[11px] font-bold text-[#64748B]">
+                <span className="flex items-center gap-1">
+                  <CalendarCheck className="h-3.5 w-3.5 text-[#635BFF]" />
+                  Bookings
+                </span>
+                {dateStats.bookingShare > 0 && (
+                  <span className="text-[10px] font-semibold text-[#635BFF]">
+                    {dateStats.bookingShare}% share
+                  </span>
+                )}
               </div>
-              <p className="mt-1 text-[18px] font-extrabold text-[#1E293B]">
+              <p className="mt-1 text-[20px] font-extrabold tracking-tight text-[#1E293B]">
                 {count(dateStats.totalBookings)}
               </p>
-              <p className="text-[11px] text-[#64748B]">
+              <p className="text-[11px] font-medium text-[#64748B]">
                 {dateStats.completionRate !== null
                   ? `${dateStats.completionRate}% completion`
                   : 'Total scheduled'}
@@ -328,65 +383,72 @@ export function DateWiseProgressFilter({
             </div>
 
             {/* Completed */}
-            <div className="rounded-lg border border-[#BBF7D0]/40 bg-[#F0FDF4]/90 p-2.5">
+            <div className="rounded-xl border border-[#BBF7D0]/60 bg-[#F0FDF4]/90 p-3 shadow-2xs">
               <div className="flex items-center gap-1 text-[11px] font-bold text-[#16A34A]">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 <span>Completed</span>
               </div>
-              <p className="mt-1 text-[18px] font-extrabold text-[#15803D]">
+              <p className="mt-1 text-[20px] font-extrabold tracking-tight text-[#15803D]">
                 {count(dateStats.completed)}
               </p>
-              <p className="text-[11px] text-[#16A34A]">Finished & paid</p>
+              <p className="text-[11px] font-medium text-[#16A34A]">Finished & paid</p>
             </div>
 
             {/* In chair / Open */}
-            <div className="rounded-lg border border-[#BAE6FD]/40 bg-[#F0F9FF]/90 p-2.5">
+            <div className="rounded-xl border border-[#BAE6FD]/60 bg-[#F0F9FF]/90 p-3 shadow-2xs">
               <div className="flex items-center gap-1 text-[11px] font-bold text-[#0284C7]">
                 <Clock className="h-3.5 w-3.5" />
                 <span>Open / Chair</span>
               </div>
-              <p className="mt-1 text-[18px] font-extrabold text-[#0369A1]">
+              <p className="mt-1 text-[20px] font-extrabold tracking-tight text-[#0369A1]">
                 {count(dateStats.upcoming)}
               </p>
-              <p className="text-[11px] text-[#0284C7]">Waiting / in progress</p>
+              <p className="text-[11px] font-medium text-[#0284C7]">Waiting / in chair</p>
             </div>
 
             {/* Cancelled / No-show */}
-            <div className="rounded-lg border border-[#FECDD3]/40 bg-[#FFF1F2]/90 p-2.5">
+            <div className="rounded-xl border border-[#FECDD3]/60 bg-[#FFF1F2]/90 p-3 shadow-2xs">
               <div className="flex items-center gap-1 text-[11px] font-bold text-[#E11D48]">
                 <XCircle className="h-3.5 w-3.5" />
                 <span>Cancelled</span>
               </div>
-              <p className="mt-1 text-[18px] font-extrabold text-[#BE123C]">
+              <p className="mt-1 text-[20px] font-extrabold tracking-tight text-[#BE123C]">
                 {count(dateStats.cancelled + dateStats.noShow)}
               </p>
-              <p className="text-[11px] text-[#E11D48]">
+              <p className="text-[11px] font-medium text-[#E11D48]">
                 {dateStats.cancelRate !== null ? `${dateStats.cancelRate}% rate` : 'Called off'}
               </p>
             </div>
 
             {/* Cash on this date */}
-            <div className="rounded-lg border border-[#BBF7D0]/50 bg-[#F0FDF4]/90 p-2.5">
-              <div className="flex items-center gap-1 text-[11px] font-bold text-[#16A34A]">
-                <Wallet className="h-3.5 w-3.5" />
-                <span>Cash Recorded</span>
+            <div className="rounded-xl border border-[#BBF7D0]/70 bg-[#F0FDF4]/90 p-3 shadow-2xs">
+              <div className="flex items-center justify-between text-[11px] font-bold text-[#16A34A]">
+                <span className="flex items-center gap-1">
+                  <Wallet className="h-3.5 w-3.5" />
+                  Cash Recorded
+                </span>
+                {dateStats.cashShare > 0 && (
+                  <span className="text-[10px] font-semibold text-[#15803D]">
+                    {dateStats.cashShare}% share
+                  </span>
+                )}
               </div>
-              <p className="mt-1 text-[18px] font-extrabold text-[#15803D]">
+              <p className="mt-1 text-[20px] font-extrabold tracking-tight text-[#15803D]">
                 {money(dateStats.cashAmount)}
               </p>
-              <p className="text-[11px] text-[#16A34A]">Paid at counter</p>
+              <p className="text-[11px] font-medium text-[#16A34A]">Paid at counter</p>
             </div>
 
             {/* Signups on this date */}
-            <div className="rounded-lg border border-[#DDD6FE]/50 bg-[#F5F3FF]/90 p-2.5">
+            <div className="rounded-xl border border-[#DDD6FE]/70 bg-[#F5F3FF]/90 p-3 shadow-2xs">
               <div className="flex items-center gap-1 text-[11px] font-bold text-[#7C3AED]">
                 <Users className="h-3.5 w-3.5" />
                 <span>New Signups</span>
               </div>
-              <p className="mt-1 text-[18px] font-extrabold text-[#6D28D9]">
+              <p className="mt-1 text-[20px] font-extrabold tracking-tight text-[#6D28D9]">
                 +{count(dateStats.totalSignups)}
               </p>
-              <p className="text-[11px] text-[#7C3AED]">
+              <p className="text-[11px] font-medium text-[#7C3AED]">
                 {dateStats.customersSignup} cust · {dateStats.partnersSignup} part
               </p>
             </div>
