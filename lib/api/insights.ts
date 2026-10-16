@@ -185,9 +185,19 @@ export interface JobRun {
 
 export interface SystemHealth {
   checkedAt: string;
-  database: { status: string; latencyMs: number };
+  database: { status: string; latencyMs: number; engine?: string };
   redis: { status: string; latencyMs: number | null };
-  process: { startedAt: string; uptimeSeconds: number; memoryMb: number; heapUsedMb: number; node: string };
+  process: {
+    startedAt: string;
+    uptimeSeconds: number;
+    memoryMb: number;
+    heapUsedMb: number;
+    heapTotalMb?: number;
+    externalMb?: number;
+    node: string;
+    platform?: string;
+    pid?: number;
+  };
   requests: {
     total: number;
     lastHour: number;
@@ -202,7 +212,7 @@ export interface SystemHealth {
   cache: { hits: number; misses: number; hitRate: number | null };
   jobs: JobRun[];
   security: { passwordResets24h: number; passwordResets7d: number; activeSessions: number; signedInAccounts: number };
-  rows: { users: number; shops: number; bookings: number; chatMessages: number; notifications: number };
+  rows: Record<string, number>;
 }
 
 export interface CustomerInsight {
