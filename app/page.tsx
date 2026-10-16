@@ -7,7 +7,6 @@ import {
   ArrowUpRight,
   Megaphone,
   RotateCw,
-  Calendar,
   Users,
   Store,
   CalendarCheck,
@@ -21,6 +20,18 @@ import {
   TrendingUp,
   BarChart3,
   Layers,
+  MessageSquare,
+  Bell,
+  Heart,
+  Scissors,
+  Award,
+  Smartphone,
+  Building2,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  UserCheck,
+  Sparkles,
 } from 'lucide-react';
 import { useApi } from '@/lib/useApi';
 import { getOverview, type InsightDays } from '@/lib/api/insights';
@@ -78,7 +89,7 @@ export default function OverviewPage() {
       <PageHead
         eyebrow="Command centre"
         title="Platform overview"
-        lede="Real-time network analytics across all customers, partner salons, appointments, daily progress, and revenue settlements."
+        lede="Real-time 360° multi-tenant analytics across accounts, salon supply, booking channels, revenue velocity, and customer engagement."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Link href="/broadcasts">
@@ -100,13 +111,12 @@ export default function OverviewPage() {
           <Loading label="Reading the whole platform..." />
         ) : (
           <div className="space-y-6 font-manrope">
-            {/* Top Date Filter & Focused Date Status Ribbon */}
+            {/* Top Date Filter Toolbar */}
             <DateWiseProgressFilter
               days={days}
               onDaysChange={setDays}
               selectedDate={selectedDate}
               onDateChange={handleDateChange}
-              overviewData={o}
               onClearDateFilter={handleClearDate}
             />
 
@@ -266,7 +276,7 @@ export default function OverviewPage() {
               </Link>
             </div>
 
-            {/* Micro-Metrics Bar */}
+            {/* Micro-Metrics Bar: Whole Platform Footprint */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-xl border border-[#E2E8F0] bg-[#FAFBFD] p-3 text-[12px]">
               <div className="flex items-center justify-between px-2">
                 <span className="text-[#64748B] font-semibold">Total Accounts:</span>
@@ -277,8 +287,8 @@ export default function OverviewPage() {
                 <b className="text-[#1E293B] tabular-nums">{o.engagement.averageRating ? `${o.engagement.averageRating} ★` : '—'} ({o.engagement.reviews} rev)</b>
               </div>
               <div className="flex items-center justify-between px-2 sm:border-l sm:border-[#E2E8F0]">
-                <span className="text-[#64748B] font-semibold">Coupons Given:</span>
-                <b className="text-[#1E293B] tabular-nums">{money(o.money.couponDiscounts)}</b>
+                <span className="text-[#64748B] font-semibold">Catalog Services:</span>
+                <b className="text-[#1E293B] tabular-nums">{count(o.places.activeServices)} across {o.places.shops} shops</b>
               </div>
               <div className="flex items-center justify-between px-2 sm:border-l sm:border-[#E2E8F0]">
                 <span className="text-[#64748B] font-semibold">All-Time Cash:</span>
@@ -287,7 +297,6 @@ export default function OverviewPage() {
             </div>
 
             {/* Visual Analytics Row 1: Bookings Trajectory & Outcomes */}
-            {/* Visual Analytics Row 1: Bookings Trajectory & Outcomes (Filter-wise: Hour, Day, Week, Month) */}
             {(() => {
               const timelineUnit = o.timeline?.unit ?? (days === 1 ? 'hour' : days === 7 ? 'day' : days <= 90 ? 'week' : 'month');
               const bookingsData = o.timeline?.bookings ?? o.bookings.timeline ?? o.bookings.byDay;
@@ -340,6 +349,7 @@ export default function OverviewPage() {
 
               return (
                 <>
+                  {/* Bookings Section */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                     <Panel
                       title={bookingsTitle}
@@ -365,24 +375,41 @@ export default function OverviewPage() {
                       />
                     </Panel>
 
+                    {/* Booking Channels & Fulfillment */}
                     <Panel
-                      title={`Appointment Outcomes (${periodShort} View)`}
-                      note={`${count(o.bookings.total)} bookings across network in ${periodLabel}`}
+                      title={`Booking Channels (${periodShort} View)`}
+                      note={`${count(o.bookings.total)} total bookings across app & salon walk-ins`}
                     >
-                      <DonutBreakdownChart
-                        centreLabel="Bookings"
-                        total={o.bookings.total}
-                        parts={[
-                          { name: 'Completed', value: o.bookings.completed, color: '#16A34A' },
-                          { name: 'Open / Upcoming', value: o.bookings.open, color: '#635BFF' },
-                          { name: 'Cancelled', value: o.bookings.cancelled, color: '#F59E0B' },
-                          { name: 'No-Show', value: o.bookings.noShow, color: '#EF4444' },
-                        ]}
-                      />
+                      <div className="space-y-4">
+                        <DonutBreakdownChart
+                          centreLabel="Bookings"
+                          total={o.bookings.total}
+                          parts={[
+                            { name: 'Mobile In-App', value: o.bookings.app, color: '#635BFF' },
+                            { name: 'Counter Walk-Ins', value: o.bookings.walkIns, color: '#0EA5E9' },
+                          ]}
+                        />
+
+                        {/* Status Pills */}
+                        <div className="grid grid-cols-3 gap-2 border-t border-[#F1F5F9] pt-3 text-center">
+                          <div className="rounded-lg bg-[#DCFCE7]/60 p-2">
+                            <span className="block text-[10px] font-bold text-[#15803D] uppercase">Completed</span>
+                            <span className="text-base font-extrabold text-[#15803D] tabular-nums">{count(o.bookings.completed)}</span>
+                          </div>
+                          <div className="rounded-lg bg-[#EEF2FF] p-2">
+                            <span className="block text-[10px] font-bold text-[#4338CA] uppercase">In Chair/Open</span>
+                            <span className="text-base font-extrabold text-[#4338CA] tabular-nums">{count(o.bookings.open)}</span>
+                          </div>
+                          <div className="rounded-lg bg-[#FFE4E6] p-2">
+                            <span className="block text-[10px] font-bold text-[#BE123C] uppercase">Cancelled</span>
+                            <span className="text-base font-extrabold text-[#BE123C] tabular-nums">{count(o.bookings.cancelled + o.bookings.noShow)}</span>
+                          </div>
+                        </div>
+                      </div>
                     </Panel>
                   </div>
 
-                  {/* Visual Analytics Row 2: Revenue Velocity & Financial Overview (Filter-wise) */}
+                  {/* Revenue Velocity & Financial Overview */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                     <Panel
                       title={cashTitle}
@@ -446,25 +473,50 @@ export default function OverviewPage() {
               );
             })()}
 
-            {/* Visual Analytics Row 3: User Ecosystem & Signups Trajectory */}
+            {/* Visual Analytics Row 3: User Ecosystem, Accounts Breakdown & Signups */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              {/* Account Composition (Role Breakdown Donut Requested) */}
               <Panel
-                title="Account Composition"
-                note={`${count(o.people.total)} registered users across platform`}
+                title="Account Breakdown"
+                note={`${count(o.people.total)} registered accounts across all roles`}
+                actions={
+                  <Link href="/users" className="text-[11px] font-bold text-[#635BFF] hover:underline">
+                    Users Directory <ArrowUpRight className="inline h-3 w-3" />
+                  </Link>
+                }
               >
-                <DonutBreakdownChart
-                  centreLabel="Accounts"
-                  total={o.people.total}
-                  parts={[
-                    { name: 'Customers', value: o.people.customers, color: '#635BFF' },
-                    { name: 'Shop Owners', value: o.people.owners, color: '#0EA5E9' },
-                    { name: 'Barbers in Shop', value: o.people.shopBarbers, color: '#16A34A' },
-                    { name: 'Independent Barbers', value: o.people.independentBarbers, color: '#F59E0B' },
-                    { name: 'Admins', value: o.people.admins, color: '#94A3B8' },
-                  ]}
-                />
+                <div className="space-y-3.5">
+                  <DonutBreakdownChart
+                    centreLabel="Accounts"
+                    total={o.people.total}
+                    parts={[
+                      { name: 'Customers', value: o.people.customers, color: '#635BFF' },
+                      { name: 'Shop Owners', value: o.people.owners, color: '#0EA5E9' },
+                      { name: 'Shop Barbers', value: o.people.shopBarbers, color: '#16A34A' },
+                      { name: 'Independent Barbers', value: o.people.independentBarbers, color: '#F59E0B' },
+                      { name: 'Admins', value: o.people.admins, color: '#94A3B8' },
+                    ]}
+                  />
+
+                  {/* Account Quality & Status Tags */}
+                  <div className="grid grid-cols-3 gap-2 border-t border-[#F1F5F9] pt-3 text-center text-[11px]">
+                    <div className="rounded-lg bg-[#FAFBFD] p-2 border border-[#F1F5F9]">
+                      <span className="block text-[10px] font-bold text-[#64748B] uppercase">New ({periodShort})</span>
+                      <span className="text-sm font-extrabold text-[#635BFF] tabular-nums">+{count(o.people.newInPeriod)}</span>
+                    </div>
+                    <div className="rounded-lg bg-[#FAFBFD] p-2 border border-[#F1F5F9]">
+                      <span className="block text-[10px] font-bold text-[#64748B] uppercase">Unverified</span>
+                      <span className="text-sm font-extrabold text-[#F59E0B] tabular-nums">{count(o.people.unverified)}</span>
+                    </div>
+                    <div className="rounded-lg bg-[#FAFBFD] p-2 border border-[#F1F5F9]">
+                      <span className="block text-[10px] font-bold text-[#64748B] uppercase">Banned</span>
+                      <span className="text-sm font-extrabold text-[#EF4444] tabular-nums">{count(o.people.banned)}</span>
+                    </div>
+                  </div>
+                </div>
               </Panel>
 
+              {/* New Signups Trajectory (Filter-wise) */}
               {(() => {
                 const timelineUnit = o.timeline?.unit ?? (days === 1 ? 'hour' : days === 7 ? 'day' : days <= 90 ? 'week' : 'month');
                 const signupsData = o.timeline?.signups ?? o.signups;
@@ -527,15 +579,250 @@ export default function OverviewPage() {
               })()}
             </div>
 
-            {/* Visual Analytics Row 4: Operational Quality & Demographics */}
+            {/* Visual Analytics Row 4: Salon Network Health & Customer Satisfaction */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {/* Salon Network & Marketplace Supply Health */}
+              <Panel
+                title="Salon Network & Supply Health"
+                note={`${o.places.shops + o.places.independentBarbers} total partner businesses active in network`}
+                actions={
+                  <Link href="/readiness" className="text-[11px] font-bold text-[#635BFF] hover:underline">
+                    Readiness Pipeline <ArrowUpRight className="inline h-3 w-3" />
+                  </Link>
+                }
+              >
+                <div className="space-y-4 font-manrope">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {/* Listed Shops */}
+                    <div className="rounded-xl border border-[#DCFCE7] bg-[#F0FDF4] p-3.5">
+                      <div className="flex items-center justify-between text-[#15803D]">
+                        <span className="text-[11px] font-bold uppercase">Public Salons</span>
+                        <Store className="h-4 w-4" />
+                      </div>
+                      <p className="mt-2 text-2xl font-extrabold text-[#15803D] tabular-nums">
+                        {count(o.places.shopsVisible)}
+                      </p>
+                      <span className="text-[11px] font-semibold text-[#16A34A]">
+                        of {o.places.shops} registered
+                      </span>
+                    </div>
+
+                    {/* Barber Force */}
+                    <div className="rounded-xl border border-[#EDE9FE] bg-[#FAF5FF] p-3.5">
+                      <div className="flex items-center justify-between text-[#6D28D9]">
+                        <span className="text-[11px] font-bold uppercase">Barbers Onboard</span>
+                        <Scissors className="h-4 w-4" />
+                      </div>
+                      <p className="mt-2 text-2xl font-extrabold text-[#6D28D9] tabular-nums">
+                        {count(o.places.teamMembers + o.places.independentBarbers)}
+                      </p>
+                      <span className="text-[11px] font-semibold text-[#7C3AED]">
+                        {o.places.teamMembers} in shops · {o.places.independentBarbers} freelance
+                      </span>
+                    </div>
+
+                    {/* Catalog Services */}
+                    <div className="rounded-xl border border-[#E0F2FE] bg-[#F0F9FF] p-3.5 col-span-2 sm:col-span-1">
+                      <div className="flex items-center justify-between text-[#0369A1]">
+                        <span className="text-[11px] font-bold uppercase">Active Catalog</span>
+                        <Tag className="h-4 w-4" />
+                      </div>
+                      <p className="mt-2 text-2xl font-extrabold text-[#0369A1] tabular-nums">
+                        {count(o.places.activeServices)}
+                      </p>
+                      <span className="text-[11px] font-semibold text-[#0284C7]">
+                        bookable services
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Supply Status Breakdown */}
+                  <div className="rounded-xl bg-[#FAFBFD] border border-[#F1F5F9] p-3.5 space-y-2 text-[12px]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#64748B] flex items-center gap-1.5">
+                        <CheckCircle2 className="h-4 w-4 text-[#16A34A]" />
+                        Publicly Listed Salons
+                      </span>
+                      <span className="font-bold text-[#1E293B] tabular-nums">{o.places.shopsVisible}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#64748B] flex items-center gap-1.5">
+                        <UserCheck className="h-4 w-4 text-[#0EA5E9]" />
+                        Listed Freelance Barbers
+                      </span>
+                      <span className="font-bold text-[#1E293B] tabular-nums">{o.places.barbersVisible}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#64748B] flex items-center gap-1.5">
+                        <XCircle className="h-4 w-4 text-[#EF4444]" />
+                        Suspended / Inactive Shops
+                      </span>
+                      <span className="font-bold text-[#EF4444] tabular-nums">{o.places.shopsSuspended}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-[#F1F5F9] pt-2">
+                      <span className="text-[#64748B] flex items-center gap-1.5">
+                        <Sparkles className="h-4 w-4 text-[#635BFF]" />
+                        New Salons Joined ({periodShort})
+                      </span>
+                      <span className="font-bold text-[#635BFF] tabular-nums">+{o.places.newShops}</span>
+                    </div>
+                  </div>
+                </div>
+              </Panel>
+
+              {/* Customer Satisfaction & Real-time Engagement */}
+              <Panel
+                title="Customer Satisfaction & Engagement"
+                note={`${o.engagement.reviews} verified reviews recorded · ${o.engagement.chatMessages} chats`}
+                actions={
+                  <Link href="/reviews" className="text-[11px] font-bold text-[#635BFF] hover:underline">
+                    All Reviews <ArrowUpRight className="inline h-3 w-3" />
+                  </Link>
+                }
+              >
+                <div className="space-y-4 font-manrope">
+                  {/* Top Rating Summary Row */}
+                  <div className="flex items-center justify-between rounded-xl bg-[#FAFBFD] border border-[#F1F5F9] p-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#FEF3C7] text-[#D97706]">
+                        <Star className="h-6 w-6 fill-[#D97706]" />
+                      </div>
+                      <div>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-3xl font-extrabold text-[#1E293B] tabular-nums">
+                            {o.engagement.averageRating ? o.engagement.averageRating.toFixed(1) : '—'}
+                          </span>
+                          <span className="text-sm font-bold text-[#64748B]">/ 5.0</span>
+                        </div>
+                        <p className="text-[11px] font-medium text-[#64748B]">
+                          Based on {count(o.engagement.reviews)} customer ratings
+                        </p>
+                      </div>
+                    </div>
+
+                    {o.engagement.unansweredReviews > 0 ? (
+                      <span className="rounded-full bg-[#FEF3C7] px-3 py-1 text-[11px] font-bold text-[#B45309]">
+                        {o.engagement.unansweredReviews} unreplied
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-[#DCFCE7] px-3 py-1 text-[11px] font-bold text-[#15803D]">
+                        All replied
+                      </span>
+                    )}
+                  </div>
+
+                  {/* 5-Star Distribution Bars */}
+                  <div className="space-y-1.5">
+                    {[5, 4, 3, 2, 1].map((stars) => {
+                      const match = o.engagement.ratingDistribution.find((r) => r.stars === stars);
+                      const starCount = match?.count ?? 0;
+                      const pct = o.engagement.reviews > 0 ? Math.round((starCount / o.engagement.reviews) * 100) : 0;
+                      return (
+                        <div key={stars} className="flex items-center gap-2 text-[12px]">
+                          <span className="w-8 font-bold text-[#64748B] flex items-center gap-0.5">
+                            {stars} <Star className="h-3 w-3 fill-[#F59E0B] text-[#F59E0B]" />
+                          </span>
+                          <div className="h-2 flex-1 rounded-full bg-[#F1F5F9] overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: `${pct}%`,
+                                backgroundColor: stars >= 4 ? '#16A34A' : stars === 3 ? '#F59E0B' : '#EF4444',
+                              }}
+                            />
+                          </div>
+                          <span className="w-10 text-right font-bold text-[#1E293B] tabular-nums">
+                            {starCount}
+                          </span>
+                          <span className="w-9 text-right text-[11px] text-[#94A3B8] tabular-nums">
+                            {pct}%
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Real-time Interaction Metrics Strip */}
+                  <div className="grid grid-cols-3 gap-2 border-t border-[#F1F5F9] pt-3 text-center text-[11px]">
+                    <div className="rounded-lg bg-[#FAFBFD] p-2">
+                      <span className="flex items-center justify-center gap-1 text-[10px] font-bold text-[#64748B] uppercase">
+                        <MessageSquare className="h-3 w-3 text-[#635BFF]" /> Chats
+                      </span>
+                      <span className="text-sm font-extrabold text-[#1E293B] tabular-nums">{count(o.engagement.chatMessages)}</span>
+                    </div>
+                    <div className="rounded-lg bg-[#FAFBFD] p-2">
+                      <span className="flex items-center justify-center gap-1 text-[10px] font-bold text-[#64748B] uppercase">
+                        <Bell className="h-3 w-3 text-[#0EA5E9]" /> Push Sent
+                      </span>
+                      <span className="text-sm font-extrabold text-[#1E293B] tabular-nums">{count(o.engagement.notificationsSent)}</span>
+                    </div>
+                    <div className="rounded-lg bg-[#FAFBFD] p-2">
+                      <span className="flex items-center justify-center gap-1 text-[10px] font-bold text-[#64748B] uppercase">
+                        <Heart className="h-3 w-3 text-[#EC4899]" /> Favorites
+                      </span>
+                      <span className="text-sm font-extrabold text-[#1E293B] tabular-nums">{count(o.engagement.favoritesAdded)}</span>
+                    </div>
+                  </div>
+                </div>
+              </Panel>
+            </div>
+
+            {/* Visual Analytics Row 5: Platform Leaderboards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {/* Busiest Salons & Barbers */}
+              <Panel
+                title="Top Performing Places"
+                note="Appointments booked in this period"
+              >
+                <RankingHorizontalChart
+                  items={o.top.places.map((p) => ({
+                    name: p.name,
+                    value: p.bookings,
+                    href: placeHref(p.key),
+                  }))}
+                  color="#635BFF"
+                />
+              </Panel>
+
+              {/* Top Booked Services */}
+              <Panel
+                title="Top Booked Services"
+                note="Most popular treatments in this period"
+              >
+                <RankingHorizontalChart
+                  items={o.top.services.map((s) => ({
+                    name: s.name,
+                    value: s.bookings,
+                  }))}
+                  color="#16A34A"
+                />
+              </Panel>
+
+              {/* Top VIP Customers */}
+              <Panel
+                title="Top Repeat Customers"
+                note="Most frequent visitors across network"
+              >
+                <RankingHorizontalChart
+                  items={o.top.customers.map((c) => ({
+                    name: c.name || `User #${c.userId.slice(-6)}`,
+                    value: c.bookings,
+                    href: `/customers/${encodeURIComponent(c.userId)}`,
+                  }))}
+                  color="#0EA5E9"
+                />
+              </Panel>
+            </div>
+
+            {/* Visual Analytics Row 6: Operational Quality & Demographics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Cancellation Root Causes */}
               <Panel
                 title="Cancellation Attribution"
-                note={`${percent(o.bookings.cancelRate)} cancellation rate`}
+                note={`${percent(o.bookings.cancelRate)} cancellation rate across network`}
                 actions={
                   <Link href="/bookings" className="text-[11px] font-bold text-[#635BFF] hover:underline">
-                    Bookings <ArrowUpRight className="inline h-3 w-3" />
+                    View in Bookings <ArrowUpRight className="inline h-3 w-3" />
                   </Link>
                 }
               >
@@ -550,25 +837,15 @@ export default function OverviewPage() {
                 />
               </Panel>
 
-              {/* Busiest Salons & Barbers */}
-              <Panel
-                title="Top Performing Places"
-                note="Appointments in this period"
-              >
-                <RankingHorizontalChart
-                  items={o.top.places.map((p) => ({
-                    name: p.name,
-                    value: p.bookings,
-                    href: placeHref(p.key),
-                  }))}
-                  color="#635BFF"
-                />
-              </Panel>
-
               {/* Geographic Demand */}
               <Panel
                 title="Geographic Customer Demand"
                 note="Saved customer addresses by city"
+                actions={
+                  <Link href="/map" className="text-[11px] font-bold text-[#0EA5E9] hover:underline">
+                    Live Map View <ArrowUpRight className="inline h-3 w-3" />
+                  </Link>
+                }
               >
                 <RankingHorizontalChart
                   items={o.engagement.customersByCity.map((c) => ({
