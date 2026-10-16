@@ -11,6 +11,7 @@ import { Badge, Button, Empty, Failed, Loading, Panel, Stat } from '@/components
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Modal } from '@/components/ui/Form';
 import { Bars, Donut, OUTCOME_COLORS, OutcomeBar, percent, StackedColumns } from '@/components/insights/Bits';
+import { BookingsBoardAnalytics } from './BookingsBoardAnalytics';
 
 const STATUSES = ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'] as const;
 const STATUS_LABEL: Record<string, string> = {
@@ -201,65 +202,11 @@ export default function BookingsBoard({ initialCancelledBy }: { initialCancelled
             <Stat label="Cash (completed)" value={money(b.summary.cashCompleted)} tone="live" />
           </div>
 
-          {/* Graph 1 + 2 */}
-          <div className="grid gap-5 lg:grid-cols-3">
-            <Panel title="Bookings by visit day" note="What happened to each day's bookings" className="lg:col-span-2">
-              <StackedColumns
-                points={b.byDay.map(({ day, ...values }) => ({ label: day.slice(5), values }))}
-                series={[
-                  { key: 'completed', label: 'Completed', color: OUTCOME_COLORS.completed },
-                  { key: 'open', label: 'Open / upcoming', color: OUTCOME_COLORS.open },
-                  { key: 'cancelled', label: 'Cancelled', color: OUTCOME_COLORS.cancelled },
-                  { key: 'noShow', label: 'No-show', color: OUTCOME_COLORS.noShow },
-                ]}
-              />
-            </Panel>
-            <Panel title="Completed vs cancelled" note="Share of every outcome">
-              <Donut
-                centre={count(b.summary.total)}
-                parts={[
-                  { label: 'Completed', value: b.summary.completed, color: OUTCOME_COLORS.completed },
-                  { label: 'Open / upcoming', value: b.summary.open, color: OUTCOME_COLORS.open },
-                  { label: 'Cancelled', value: b.summary.cancelled, color: OUTCOME_COLORS.cancelled },
-                  { label: 'No-show', value: b.summary.noShow, color: OUTCOME_COLORS.noShow },
-                ]}
-              />
-            </Panel>
-          </div>
-
-          {/* Graph 3: cancellations */}
-          <div className="grid gap-5 lg:grid-cols-3">
-            <Panel title="Who cancelled" note={`${b.summary.cancelled} cancellations`}>
-              <Bars rows={b.cancellations.byWho.map((w) => ({ label: CANCEL_GROUP_LABELS[w.key], value: w.count, color: w.key === 'CUSTOMER' ? '#F59E0B' : w.key === 'SHOP' ? '#FB7185' : w.key === 'SYSTEM' ? '#94A3B8' : '#635BFF' }))} />
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {b.cancellations.byWho.filter((w) => w.count).map((w) => (
-                  <button key={w.key} type="button" onClick={() => choose(setCancelledBy)(w.key)} className="rounded-md border border-[#E2E8F0] px-2 py-1 text-[11px] font-bold text-[#635BFF] hover:bg-[#EEF2FF]">
-                    Show {CANCEL_GROUP_LABELS[w.key].toLowerCase()} cancellations
-                  </button>
-                ))}
-              </div>
-            </Panel>
-            <Panel title="When they cancelled" note="How long before the booked time">
-              <Bars rows={b.cancellations.leadTime.map((l) => ({ label: l.label, value: l.count, color: l.key === 'after' || l.key === 'lt2h' ? '#E11D48' : l.key === 'lt24h' ? '#F59E0B' : '#16A34A' }))} />
-            </Panel>
-            <Panel title="Why they cancelled" note="Reasons given">
-              <Bars rows={b.cancellations.reasons.map((r) => ({ label: r.key, value: r.count, color: '#F59E0B' }))} />
-            </Panel>
-          </div>
-
-          {/* Graph 4: weekdays */}
-          <Panel title="By day of the week" note="Completed, open, cancelled and no-show by the weekday of the visit">
-            <StackedColumns
-              height={140}
-              points={b.weekdays.map(({ name, ...values }) => ({ label: name, values }))}
-              series={[
-                { key: 'completed', label: 'Completed', color: OUTCOME_COLORS.completed },
-                { key: 'open', label: 'Open / upcoming', color: OUTCOME_COLORS.open },
-                { key: 'cancelled', label: 'Cancelled', color: OUTCOME_COLORS.cancelled },
-                { key: 'noShow', label: 'No-show', color: OUTCOME_COLORS.noShow },
-              ]}
-            />
-          </Panel>
+          {/* Recharts Analytics Suite */}
+          <BookingsBoardAnalytics
+            data={b}
+            onSelectCancelledBy={(grp) => choose(setCancelledBy)(grp)}
+          />
 
           {/* Comparisons */}
           <div className="grid gap-5 xl:grid-cols-5">

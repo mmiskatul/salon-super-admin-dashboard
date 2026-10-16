@@ -1,141 +1,344 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { RotateCw } from 'lucide-react';
+import {
+  RotateCw,
+  Search,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Scissors,
+  Store,
+  Users,
+  Calendar,
+  ExternalLink,
+  ShieldAlert,
+  TrendingUp,
+} from 'lucide-react';
 import { useApi } from '@/lib/useApi';
 import { getBookingQuality, type InsightDays } from '@/lib/api/insights';
 import { placeHref } from '@/lib/placeHref';
 import { count } from '@/lib/format';
-import { Badge, Button, Canvas, Empty, Failed, Loading, PageHead, Panel, Stat } from '@/components/ui/primitives';
+import {
+  Badge,
+  Button,
+  Canvas,
+  Empty,
+  Failed,
+  Loading,
+  PageHead,
+  Panel,
+  Stat,
+} from '@/components/ui/primitives';
 import { Scroll, Table, Td, Th, Tr } from '@/components/ui/Table';
-import { Split } from '@/components/chart/Chart';
 import { DaysPicker, duration, Heatmap, percent } from '@/components/insights/Bits';
+import { BookingQualityAnalytics } from '@/components/bookings/BookingQualityAnalytics';
 
-/** From request to finished visit: acceptance, cancellations, no-shows, punctuality, busy hours. */
 export default function BookingQualityPage() {
   const [days, setDays] = useState<InsightDays>(30);
   const data = useApi(() => getBookingQuality(days), [days], 'insights-bookings');
   const b = data.data;
+
+  const [search, setSearch] = useState('');
+  const [filterMode, setFilterMode] = useState<'all' | 'high_cancel' | 'high_noshow'>('all');
+
+  // Filtered and sorted places
+  const places = useMemo(() => {
+    if (!b?.places) return [];
+    const q = search.trim().toLowerCase();
+
+    return b.places.filter((p) => {
+      if (q && !p.name.toLowerCase().includes(q)) return false;
+      if (filterMode === 'high_cancel' && (p.cancelRate ?? 0) < 15) return false;
+      if (filterMode === 'high_noshow' && (p.noShowRate ?? 0) < 10) return false;
+      return true;
+    });
+  }, [b?.places, search, filterMode]);
+
   return (
     <>
       <PageHead
-        eyebrow="Insights"
-        title="Booking quality"
-        lede="What happens to booking requests: how many are accepted and completed, how fast shops accept, why people cancel, who has late-cancel strikes, whether sessions start on time, and the busiest hours."
+        eyebrow="Market Quality & Operations"
+        title="Booking Quality & Punctuality"
+        lede="In-depth analysis of the booking lifecycle from initial request to chair completion: response latency, acceptance and cancellation causes, session punctuality, customer strikes, and peak studio hours."
         actions={
-          <>
+          <div className="flex flex-wrap items-center gap-2">
             <DaysPicker value={days} onChange={setDays} />
-            <Button onClick={data.refresh} disabled={data.loading}><RotateCw className="h-4 w-4" /> Refresh</Button>
-          </>
+            <Button onClick={data.refresh} disabled={data.loading}>
+              <RotateCw className="h-4 w-4" /> Refresh
+            </Button>
+          </div>
         }
       />
+
       <Canvas>
         {data.error ? (
           <Failed message={data.error} onRetry={data.refresh} />
         ) : !b ? (
-          <Loading label="Reading bookings" />
+          <Loading label="Analyzing booking conversion, punctuality, and cancellation forensics..." />
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <Stat label="Booking requests" value={count(b.funnel.requested)} sub="App bookings, not walk-ins" />
-              <Stat label="Accepted" value={percent(b.funnel.acceptRate)} sub={`${b.funnel.accepted} accepted`} tone="live" />
-              <Stat label="Completed" value={percent(b.funnel.completionRate)} sub={`${b.funnel.completed} of the accepted`} />
-              <Stat label="Median time to accept" value={duration(b.acceptance.medianMinutes)} sub={b.acceptance.measured ? `${percent(b.acceptance.within15min)} within 15 min` : 'Recorded from 12 Oct 2026'} />
-            </div>
-
-            <Panel title="What happened to the requests" note={`Created in the last ${days} days`}>
-              <Split
-                segments={[
-                  { key: 'c', value: b.funnel.completed, color: '#16A34A', label: 'Completed' },
-                  { key: 'w', value: b.funnel.stillWaiting, color: '#635BFF', label: 'Waiting to be accepted' },
-                  { key: 'a', value: Math.max(0, b.funnel.accepted - b.funnel.completed - b.funnel.noShow), color: '#38BDF8', label: 'Accepted, not done yet' },
-                  { key: 'cc', value: b.funnel.cancelledByCustomer, color: '#F59E0B', label: 'Cancelled by customer' },
-                  { key: 'cs', value: b.funnel.cancelledByShop, color: '#FB7185', label: 'Cancelled or declined by shop' },
-                  { key: 'e', value: b.funnel.expiredUnaccepted, color: '#94A3B8', label: 'Expired, never accepted' },
-                  { key: 'n', value: b.funnel.noShow, color: '#E11D48', label: 'No-show' },
-                ]}
-                height={14}
+            {/* Executive 6-Stat KPI Strip */}
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 font-manrope">
+              <Stat
+                label="Booking Requests"
+                value={count(b.funnel.requested)}
+                sub="App appointments"
+                pending={data.loading}
               />
-            </Panel>
-
-            <div className="grid gap-5 lg:grid-cols-2">
-              <Panel title="Session timing" note="From when barbers press Start and Finish (recorded from 10 Oct 2026)">
-                <div className="grid grid-cols-2 gap-4">
-                  <Stat label="Median start vs booked time" value={duration(b.sessions.medianLateMinutes)} sub={`${b.sessions.started} sessions · ${b.sessions.startedEarly} started early`} />
-                  <Stat label="Started on time" value={percent(b.sessions.onTime)} sub="Within 5 minutes" tone="live" />
-                  <Stat label="Median overrun" value={duration(b.sessions.medianOverrunMinutes)} sub={`${b.sessions.finished} finished sessions`} />
-                  <Stat label="Ran 15+ min over" value={count(b.sessions.overranBy15)} tone={b.sessions.overranBy15 ? 'signal' : 'plain'} />
-                </div>
-              </Panel>
-              <Panel title="Cancellation reasons" note={`${b.cancellations.total} cancelled · ${b.cancellations.late} late (within 24 hours of the visit)`}>
-                {b.cancellations.reasons.length === 0 ? (
-                  <Empty title="No cancellations" />
-                ) : (
-                  <ol className="space-y-1.5 text-[13px]">
-                    {b.cancellations.reasons.map((r) => (
-                      <li key={r.key} className="flex justify-between gap-3"><span className="truncate">{r.key}</span><b className="tabular-nums">{r.count}</b></li>
-                    ))}
-                  </ol>
-                )}
-              </Panel>
+              <Stat
+                label="Accepted Rate"
+                value={percent(b.funnel.acceptRate)}
+                sub={`${b.funnel.accepted} accepted`}
+                pending={data.loading}
+                tone="live"
+              />
+              <Stat
+                label="Completed Visits"
+                value={percent(b.funnel.completionRate)}
+                sub={`${b.funnel.completed} serviced`}
+                pending={data.loading}
+                tone="live"
+              />
+              <Stat
+                label="Median Acceptance"
+                value={duration(b.acceptance.medianMinutes)}
+                sub={
+                  b.acceptance.measured
+                    ? `${percent(b.acceptance.within15min)} within 15 min`
+                    : 'Recorded recently'
+                }
+                pending={data.loading}
+              />
+              <Stat
+                label="Session On-Time"
+                value={percent(b.sessions.onTime)}
+                sub="Started within 5m"
+                pending={data.loading}
+                tone="live"
+              />
+              <Stat
+                label="Overran 15+ Min"
+                value={count(b.sessions.overranBy15)}
+                sub="Delayed subsequent visits"
+                pending={data.loading}
+                tone={b.sessions.overranBy15 > 0 ? 'signal' : 'plain'}
+              />
             </div>
 
-            <Panel title="Busy hours" note="Booked start times by day and hour (darker = more bookings)">
+            {/* Recharts Analytics Suite */}
+            <BookingQualityAnalytics
+              data={b}
+              onSelectPlace={(placeKey) => {
+                setSearch(placeKey);
+              }}
+            />
+
+            {/* Heatmap Panel: Peak Hours */}
+            <Panel
+              title="Busiest Operating Hours Heatmap"
+              note="Scheduled client start times by day of week and hour of day (darker purple = peak chair demand)"
+            >
               <Heatmap grid={b.heatmap} />
             </Panel>
 
-            <div className="grid gap-5 lg:grid-cols-2">
-              <Panel title="Slowest to accept" note="Median minutes from request to accepted">
-                {b.acceptance.slowest.length === 0 ? (
-                  <Empty title="Nothing measured yet" hint="Acceptance times are recorded from 12 Oct 2026." />
+            {/* Split Forensics Panels: Reasons & Customer Strikes */}
+            <div className="grid gap-6 lg:grid-cols-2 font-manrope">
+              {/* Cancellation Reasons Breakdown */}
+              <Panel
+                title="Cancellation Reasons Forensics"
+                note={`${b.cancellations.total} total cancellations · ${b.cancellations.late} late within 24h`}
+              >
+                {b.cancellations.reasons.length === 0 ? (
+                  <Empty title="No cancellations recorded in this period" />
                 ) : (
-                  <ol className="space-y-1.5 text-[13px]">
-                    {b.acceptance.slowest.map((s) => (
-                      <li key={s.key} className="flex justify-between gap-3">
-                        <Link href={placeHref(s.key)} className="truncate font-semibold hover:text-[#635BFF]">{s.name}</Link>
-                        <span className="tabular-nums font-bold">{duration(s.medianMinutes)} <span className="text-[#94A3B8]">· {s.bookings}</span></span>
-                      </li>
-                    ))}
-                  </ol>
+                  <div className="space-y-2">
+                    {b.cancellations.reasons.map((r) => {
+                      const share = b.cancellations.total
+                        ? Math.round((r.count / b.cancellations.total) * 100)
+                        : 0;
+                      return (
+                        <div
+                          key={r.key}
+                          className="p-3 rounded-xl border border-[#F1F5F9] bg-[#F8FAFC] flex flex-col gap-1.5"
+                        >
+                          <div className="flex items-center justify-between text-[12px]">
+                            <span className="font-bold text-[#1E293B] truncate">{r.key}</span>
+                            <span className="font-extrabold text-[#1E293B] tabular-nums">
+                              {r.count} <span className="text-[#94A3B8] font-semibold">({share}%)</span>
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-[#F59E0B]"
+                              style={{ width: `${share}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </Panel>
-              <Panel title="Customers with late-cancel strikes" note={`${b.cancellations.strikeLimit} late cancellations in ${b.cancellations.strikeWindowDays} days limits them to 1 upcoming booking`}>
+
+              {/* Customer Late Cancellation Strikes */}
+              <Panel
+                title="Customers with Late-Cancel Strikes"
+                note={`Limit: ${b.cancellations.strikeLimit} strikes in ${b.cancellations.strikeWindowDays} days restricts to 1 concurrent booking`}
+              >
                 {b.cancellations.customersWithStrikes.length === 0 ? (
-                  <Empty title="No one close to the limit" />
+                  <Empty title="No clients currently near or at the strike limit" />
                 ) : (
-                  <ul className="space-y-1.5 text-[13px]">
+                  <div className="space-y-2">
                     {b.cancellations.customersWithStrikes.map((c) => (
-                      <li key={c.userId} className="flex justify-between gap-3">
-                        <Link href={`/users/${c.userId}`} className="font-semibold hover:text-[#635BFF]">{c.name ?? c.userId.slice(0, 8)}</Link>
-                        <span>{c.restricted ? <Badge tone="signal">{c.lateCancels} strikes · restricted</Badge> : <Badge tone="warning">{c.lateCancels} strikes</Badge>}</span>
-                      </li>
+                      <div
+                        key={c.userId}
+                        className="p-3 rounded-xl border border-[#E2E8F0] bg-white flex items-center justify-between gap-3 hover:border-indigo-200 transition-colors"
+                      >
+                        <div className="min-w-0">
+                          <Link
+                            href={`/users/${c.userId}`}
+                            className="font-bold text-[13px] text-[#1E293B] hover:text-[#635BFF] transition-colors truncate block"
+                          >
+                            {c.name || `User #${c.userId.slice(0, 8)}`}
+                          </Link>
+                          <p className="text-[11px] text-[#94A3B8] mt-0.5">ID: {c.userId}</p>
+                        </div>
+                        <div className="shrink-0">
+                          {c.restricted ? (
+                            <Badge tone="signal">{c.lateCancels} strikes · Restricted</Badge>
+                          ) : (
+                            <Badge tone="warning">{c.lateCancels} late strikes</Badge>
+                          )}
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 )}
               </Panel>
             </div>
 
-            <Panel title="By shop and barber" note="No-show and cancellation rates" flush>
-              {b.places.length === 0 ? (
-                <Empty title="No bookings in this period" />
+            {/* Venue Quality Registry Table */}
+            <Panel
+              title="Venue Quality & Reliability Comparison"
+              note="Benchmarked no-show and cancellation rates across studios and independent stylists"
+              actions={
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative w-48">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94A3B8]" />
+                    <input
+                      type="text"
+                      placeholder="Search venue..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="w-full pl-8 pr-2.5 py-1 text-[12px] rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#635BFF]"
+                    />
+                  </div>
+
+                  <div className="inline-flex rounded-lg border border-[#E2E8F0] bg-white p-0.5 text-[11px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setFilterMode('all')}
+                      className={`px-2 py-1 rounded-md transition-colors ${
+                        filterMode === 'all' ? 'bg-[#635BFF] text-white' : 'text-[#64748B]'
+                      }`}
+                    >
+                      All Venues
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFilterMode('high_cancel')}
+                      className={`px-2 py-1 rounded-md transition-colors ${
+                        filterMode === 'high_cancel' ? 'bg-[#F59E0B] text-white' : 'text-[#64748B]'
+                      }`}
+                    >
+                      Cancel &gt; 15%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFilterMode('high_noshow')}
+                      className={`px-2 py-1 rounded-md transition-colors ${
+                        filterMode === 'high_noshow' ? 'bg-[#EF4444] text-white' : 'text-[#64748B]'
+                      }`}
+                    >
+                      No-Show &gt; 10%
+                    </button>
+                  </div>
+                </div>
+              }
+              flush
+            >
+              {places.length === 0 ? (
+                <Empty title="No bookings recorded for this filter" hint="Try switching periods or clearing filters." />
               ) : (
                 <Scroll>
                   <Table>
                     <thead>
-                      <tr><Th>Shop / barber</Th><Th align="right">Requests</Th><Th align="right">No-shows</Th><Th align="right">No-show rate</Th><Th align="right">Cancelled</Th><Th align="right">Cancel rate</Th></tr>
+                      <tr>
+                        <Th>Studio / Stylist</Th>
+                        <Th align="right">Requests</Th>
+                        <Th align="right">No-Shows</Th>
+                        <Th align="right">No-Show Rate</Th>
+                        <Th align="right">Cancelled</Th>
+                        <Th align="right">Cancel Rate</Th>
+                        <Th align="right">Action</Th>
+                      </tr>
                     </thead>
                     <tbody>
-                      {b.places.map((p) => (
-                        <Tr key={p.key}>
-                          <Td><Link href={placeHref(p.key)} className="font-bold hover:text-[#635BFF]">{p.name}</Link></Td>
-                          <Td align="right">{p.total}</Td>
-                          <Td align="right">{p.noShow}</Td>
-                          <Td align="right">{percent(p.noShowRate)}</Td>
-                          <Td align="right">{p.cancelled}</Td>
-                          <Td align="right">{percent(p.cancelRate)}</Td>
-                        </Tr>
-                      ))}
+                      {places.map((p) => {
+                        const href = placeHref(p.key);
+                        const isHighCancel = (p.cancelRate ?? 0) >= 20;
+                        const isHighNoShow = (p.noShowRate ?? 0) >= 15;
+
+                        return (
+                          <Tr key={p.key}>
+                            <Td>
+                              <Link
+                                href={href}
+                                className="font-bold text-[#1E293B] hover:text-[#635BFF] transition-colors"
+                              >
+                                {p.name}
+                              </Link>
+                            </Td>
+                            <Td align="right" nowrap className="font-extrabold text-[#1E293B]">
+                              {p.total}
+                            </Td>
+                            <Td align="right" nowrap className="tabular-nums text-[#64748B]">
+                              {p.noShow}
+                            </Td>
+                            <Td align="right" nowrap>
+                              <span
+                                className={`font-bold tabular-nums ${
+                                  isHighNoShow ? 'text-[#EF4444]' : 'text-[#64748B]'
+                                }`}
+                              >
+                                {percent(p.noShowRate)}
+                              </span>
+                            </Td>
+                            <Td align="right" nowrap className="tabular-nums text-[#64748B]">
+                              {p.cancelled}
+                            </Td>
+                            <Td align="right" nowrap>
+                              <span
+                                className={`font-bold tabular-nums ${
+                                  isHighCancel ? 'text-[#F59E0B]' : 'text-[#64748B]'
+                                }`}
+                              >
+                                {percent(p.cancelRate)}
+                              </span>
+                            </Td>
+                            <Td align="right" nowrap>
+                              <Link
+                                href={href}
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#635BFF] hover:underline"
+                              >
+                                View <ExternalLink className="h-3 w-3" />
+                              </Link>
+                            </Td>
+                          </Tr>
+                        );
+                      })}
                     </tbody>
                   </Table>
                 </Scroll>
