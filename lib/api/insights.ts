@@ -364,6 +364,24 @@ export interface Overview {
   };
   attention: { openReports: number; openTickets: number; hiddenListings: number };
   top: {
+    shops?: {
+      id: string;
+      name: string;
+      bookings: number;
+      completed: number;
+      revenue: number;
+      lastBookingAt: string | null;
+    }[];
+    barbers?: {
+      id: string;
+      name: string;
+      shopName: string | null;
+      isIndependent: boolean;
+      bookings: number;
+      completed: number;
+      revenue: number;
+      lastBookingAt: string | null;
+    }[];
     places: {
       key: string;
       name: string;
@@ -371,12 +389,14 @@ export interface Overview {
       completed?: number;
       revenue?: number;
       kind?: 'shop' | 'barber';
+      lastBookingAt?: string | null;
     }[];
     services: {
       name: string;
       bookings: number;
       completed?: number;
       revenue?: number;
+      lastBookingAt?: string | null;
     }[];
     customers: {
       userId: string;
@@ -386,6 +406,7 @@ export interface Overview {
       bookings: number;
       completed?: number;
       spent?: number;
+      lastBookingAt?: string | null;
     }[];
   };
 }
