@@ -473,7 +473,7 @@ export default function LoginsPage() {
   const [search, setSearch] = useState('');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(10);
 
   // Client-side quick filters on retrieved page data
   const [activityFilter, setActivityFilter] = useState<'ALL' | 'SIGNED_IN' | 'APP_OPEN' | 'NEW'>('ALL');
@@ -483,7 +483,7 @@ export default function LoginsPage() {
   // Live Sign-in Audit Stream search and pagination
   const [auditSearch, setAuditSearch] = useState('');
   const [auditPage, setAuditPage] = useState(1);
-  const AUDIT_PAGE_SIZE = 15;
+  const AUDIT_PAGE_SIZE = 10;
 
   // Chart time-scale granularity: auto (1d->hourly, 7d->daily, 30d->weekly, 90d/365d->monthly)
   const [chartGranularity, setChartGranularity] = useState<'auto' | 'hourly' | 'daily' | 'weekly' | 'monthly'>('auto');
@@ -1520,6 +1520,7 @@ export default function LoginsPage() {
                         }}
                         className="rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-[12px] font-bold text-[#475569] shadow-sm hover:border-[#CBD5E1] focus:border-[#635BFF] focus:outline-none"
                       >
+                        <option value={10}>10 / page</option>
                         <option value={15}>15 / page</option>
                         <option value={25}>25 / page</option>
                         <option value={50}>50 / page</option>
