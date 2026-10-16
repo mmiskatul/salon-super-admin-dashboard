@@ -140,7 +140,25 @@ export default function OverviewPage() {
               </div>
             )}
 
-            {/* Core Platform KPIs (4 Hero Cards) */}
+            {/* Platform Vital Signs Header */}
+            <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-2 pt-1">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#635BFF]/10 text-[#635BFF]">
+                  <TrendingUp className="h-4 w-4" />
+                </div>
+                <div>
+                  <h2 className="text-[15px] font-bold text-[#1E293B]">Platform Vital Signs</h2>
+                  <p className="text-[11px] font-medium text-[#64748B]">
+                    Key performance indicators dynamically filtered for {periodLabel}
+                  </p>
+                </div>
+              </div>
+              <span className="rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-[10px] font-bold text-[#635BFF] uppercase tracking-wider">
+                {periodShort} View Active
+              </span>
+            </div>
+
+            {/* Core Platform KPIs (4 Hero Cards - Filter-wise) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Bookings */}
               <Link href="/bookings" className="block focus-visible:outline-2 focus-visible:outline-[#635BFF]">
@@ -184,24 +202,44 @@ export default function OverviewPage() {
                 </div>
               </Link>
 
-              {/* Active Users */}
+              {/* Active Users - Dynamic according to filter */}
               <Link href="/growth" className="block focus-visible:outline-2 focus-visible:outline-[#635BFF]">
                 <div className="rounded-xl border border-[#E2E8F0] bg-white p-4.5 shadow-xs transition-all hover:border-[#10B981]/40 hover:shadow-sm">
                   <div className="flex items-center justify-between text-[#64748B]">
-                    <span className="text-[11px] font-bold uppercase tracking-wider">Active This Week</span>
+                    <span className="text-[11px] font-bold uppercase tracking-wider">
+                      {days === 1
+                        ? 'Active Today'
+                        : days === 7
+                        ? 'Active This Week'
+                        : days === 30 || days === 90
+                        ? 'Active This Month'
+                        : 'Active Users (Annual)'}
+                    </span>
                     <div className="h-8 w-8 rounded-lg bg-[#10B981]/10 text-[#10B981] flex items-center justify-center">
                       <Activity className="h-4 w-4" />
                     </div>
                   </div>
                   <p className="mt-2 text-2xl md:text-3xl font-extrabold text-[#1E293B] tabular-nums">
-                    {count(o.active.week.total)}
+                    {count(
+                      days === 1
+                        ? o.active.day.total
+                        : days === 7
+                        ? o.active.week.total
+                        : o.active.month.total,
+                    )}
                   </p>
                   <div className="mt-2 flex items-center gap-1.5 text-[12px]">
                     <span className="inline-flex items-center gap-1 font-bold text-[#10B981]">
                       <span className="h-2 w-2 rounded-full bg-[#10B981]" />
-                      {o.active.day.total} online today
+                      {days === 1
+                        ? `${o.active.day.customers} cust · ${o.active.day.partners} part`
+                        : days === 7
+                        ? `${o.active.day.total} online today`
+                        : `${o.active.week.total} active this week`}
                     </span>
-                    <span className="text-[#94A3B8]">· {o.active.month.total} monthly</span>
+                    <span className="text-[#94A3B8]">
+                      · {days === 1 ? 'Live today' : days === 7 ? `${o.active.week.customers} customers` : `${o.active.month.customers} customers`}
+                    </span>
                   </div>
                 </div>
               </Link>
