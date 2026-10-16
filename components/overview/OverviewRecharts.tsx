@@ -52,16 +52,29 @@ export function BookingsTrendChart({
   data,
   selectedDate,
   onSelectDate,
+  days = 30,
 }: {
   data: { day: string; completed: number; upcoming: number; cancelled: number; noShow: number }[];
   selectedDate?: string;
   onSelectDate?: (day: string) => void;
+  days?: number;
 }) {
   const formattedData = data.map((d) => ({
     ...d,
     shortDay: d.day.slice(5),
     total: d.completed + d.upcoming + d.cancelled + d.noShow,
   }));
+
+  const tickInterval =
+    days === 365
+      ? Math.max(1, Math.floor(data.length / 12))
+      : days === 90
+      ? Math.max(1, Math.floor(data.length / 8))
+      : days === 30
+      ? Math.max(1, Math.floor(data.length / 7))
+      : 0;
+
+  const barSize = days === 1 ? 48 : days === 7 ? 24 : undefined;
 
   return (
     <div className="h-[220px] w-full font-manrope">
@@ -83,6 +96,7 @@ export function BookingsTrendChart({
             fontSize={11}
             tickLine={false}
             axisLine={false}
+            interval={tickInterval}
           />
           <YAxis
             stroke="#94A3B8"
@@ -95,10 +109,10 @@ export function BookingsTrendChart({
             content={<GlassTooltip label="Bookings on date" />}
             cursor={{ fill: '#F8FAFC', opacity: 0.8 }}
           />
-          <Bar dataKey="completed" name="Completed" stackId="a" fill="#16A34A" radius={[0, 0, 0, 0]} />
-          <Bar dataKey="upcoming" name="Open / Upcoming" stackId="a" fill="#635BFF" radius={[0, 0, 0, 0]} />
-          <Bar dataKey="cancelled" name="Cancelled" stackId="a" fill="#F59E0B" radius={[0, 0, 0, 0]} />
-          <Bar dataKey="noShow" name="No-Show" stackId="a" fill="#EF4444" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="completed" name="Completed" stackId="a" fill="#16A34A" maxBarSize={barSize} radius={[0, 0, 0, 0]} />
+          <Bar dataKey="upcoming" name="Open / Upcoming" stackId="a" fill="#635BFF" maxBarSize={barSize} radius={[0, 0, 0, 0]} />
+          <Bar dataKey="cancelled" name="Cancelled" stackId="a" fill="#F59E0B" maxBarSize={barSize} radius={[0, 0, 0, 0]} />
+          <Bar dataKey="noShow" name="No-Show" stackId="a" fill="#EF4444" maxBarSize={barSize} radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -110,15 +124,51 @@ export function RevenueTrendChart({
   data,
   selectedDate,
   onSelectDate,
+  days = 30,
 }: {
   data: { day: string; amount: number }[];
   selectedDate?: string;
   onSelectDate?: (day: string) => void;
+  days?: number;
 }) {
   const formattedData = data.map((d) => ({
     ...d,
     shortDay: d.day.slice(5),
   }));
+
+  const tickInterval =
+    days === 365
+      ? Math.max(1, Math.floor(data.length / 12))
+      : days === 90
+      ? Math.max(1, Math.floor(data.length / 8))
+      : days === 30
+      ? Math.max(1, Math.floor(data.length / 7))
+      : 0;
+
+  if (days === 1 || formattedData.length === 1) {
+    return (
+      <div className="h-[220px] w-full font-manrope">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={formattedData}
+            margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+            <XAxis dataKey="shortDay" stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
+            <YAxis
+              stroke="#94A3B8"
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(val) => `৳${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
+            />
+            <Tooltip content={<GlassTooltip label="Cash Collected" formatValue={money} />} />
+            <Bar dataKey="amount" name="Cash Recorded" fill="#16A34A" maxBarSize={48} radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  }
 
   return (
     <div className="h-[220px] w-full font-manrope">
@@ -146,6 +196,7 @@ export function RevenueTrendChart({
             fontSize={11}
             tickLine={false}
             axisLine={false}
+            interval={tickInterval}
           />
           <YAxis
             stroke="#94A3B8"

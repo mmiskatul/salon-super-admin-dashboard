@@ -287,13 +287,25 @@ export default function OverviewPage() {
             </div>
 
             {/* Visual Analytics Row 1: Bookings Trajectory & Outcomes */}
+            {/* Visual Analytics Row 1: Bookings Trajectory & Outcomes (Filter-wise) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               <Panel
-                title="Bookings Made Per Day"
-                note={`Daily appointment volume by status · Click any bar to focus date`}
+                title={
+                  days === 1
+                    ? `Bookings on ${selectedDate} (Day View)`
+                    : `Bookings Made Per Day (${periodShort} View)`
+                }
+                note={
+                  days === 1
+                    ? `Total of ${count(o.bookings.total)} appointments recorded on this date · ${percent(o.bookings.completionRate)} completed`
+                    : `Daily appointment volume by status for ${periodLabel} (${count(o.bookings.total)} total) · Click bar to focus date`
+                }
                 className="lg:col-span-2"
                 actions={
-                  <div className="flex items-center gap-3 text-[11px] font-bold">
+                  <div className="flex items-center gap-2.5 text-[11px] font-bold">
+                    <span className="rounded-full bg-[#EEF2FF] px-2 py-0.5 text-[10px] font-bold text-[#4338CA]">
+                      {periodShort} View
+                    </span>
                     <span className="flex items-center gap-1 text-[#16A34A]"><span className="h-2 w-2 rounded-full bg-[#16A34A]" /> Completed</span>
                     <span className="flex items-center gap-1 text-[#635BFF]"><span className="h-2 w-2 rounded-full bg-[#635BFF]" /> Open</span>
                     <span className="flex items-center gap-1 text-[#F59E0B]"><span className="h-2 w-2 rounded-full bg-[#F59E0B]" /> Cancelled</span>
@@ -304,12 +316,13 @@ export default function OverviewPage() {
                   data={o.bookings.byDay}
                   selectedDate={selectedDate}
                   onSelectDate={handleDateChange}
+                  days={days}
                 />
               </Panel>
 
               <Panel
-                title="Appointment Outcomes"
-                note={`${count(o.bookings.total)} bookings across network`}
+                title={`Appointment Outcomes (${periodShort} View)`}
+                note={`${count(o.bookings.total)} bookings across network in ${periodLabel}`}
               >
                 <DonutBreakdownChart
                   centreLabel="Bookings"
@@ -324,26 +337,40 @@ export default function OverviewPage() {
               </Panel>
             </div>
 
-            {/* Visual Analytics Row 2: Revenue Velocity & Financial Overview */}
+            {/* Visual Analytics Row 2: Revenue Velocity & Financial Overview (Filter-wise) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               <Panel
-                title="Cash Collected Per Day"
-                note={`Settled payments recorded at shop counters · Click any date to focus`}
+                title={
+                  days === 1
+                    ? `Cash Collected on ${selectedDate} (Day View)`
+                    : `Cash Collected Per Day (${periodShort} View)`
+                }
+                note={
+                  days === 1
+                    ? `Settled counter receipts recorded for ${selectedDate} (${money(o.money.cash)} total) · ${o.money.payments} payments`
+                    : `Settled payments recorded at shop counters for ${periodLabel} (${money(o.money.cash)} total) · Click date to focus`
+                }
                 className="lg:col-span-2"
                 actions={
-                  <Link href="/money" className="text-[12px] font-bold text-[#16A34A] hover:underline">
-                    View Ledger <ArrowUpRight className="inline h-3 w-3" />
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[10px] font-bold text-[#15803D]">
+                      {periodShort} Settled
+                    </span>
+                    <Link href="/money" className="text-[12px] font-bold text-[#16A34A] hover:underline">
+                      View Ledger <ArrowUpRight className="inline h-3 w-3" />
+                    </Link>
+                  </div>
                 }
               >
                 <RevenueTrendChart
                   data={o.money.byDay}
                   selectedDate={selectedDate}
                   onSelectDate={handleDateChange}
+                  days={days}
                 />
               </Panel>
 
-              <Panel title="Financial Pulse" note="Settlements and platform velocity">
+              <Panel title={`Financial Pulse (${periodShort} View)`} note={`Settlements and platform velocity in ${periodLabel}`}>
                 <div className="space-y-3 font-manrope">
                   <div className="rounded-lg bg-[#F8FAFC] p-3 flex items-center justify-between">
                     <div>
@@ -382,7 +409,7 @@ export default function OverviewPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               <Panel
                 title="Account Composition"
-                note={`${count(o.people.total)} registered users`}
+                note={`${count(o.people.total)} registered users across platform`}
               >
                 <DonutBreakdownChart
                   centreLabel="Accounts"
@@ -398,8 +425,8 @@ export default function OverviewPage() {
               </Panel>
 
               <Panel
-                title="New Sign-ups Per Day"
-                note={`Customer vs Partner registrations over ${periodLabel}`}
+                title={`New Sign-ups Per Day (${periodShort} View)`}
+                note={`Customer vs Partner registrations over ${periodLabel} (${o.people.newInPeriod} new total)`}
                 className="lg:col-span-2"
                 actions={
                   <div className="flex items-center gap-3 text-[11px] font-bold">
