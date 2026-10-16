@@ -262,9 +262,35 @@ export const STEP_LABELS: Record<ListingStep, string> = { service: 'Service', ho
 
 // ---------------------------------------------------------------- Overview, navigation, bookings board
 
+export interface TimelineBookingBucket {
+  key: string;
+  label: string;
+  shortLabel: string;
+  completed: number;
+  upcoming: number;
+  cancelled: number;
+  noShow: number;
+  total: number;
+}
+
+export interface TimelineMoneyBucket {
+  key: string;
+  label: string;
+  shortLabel: string;
+  amount: number;
+  payments: number;
+}
+
+export interface OverviewTimeline {
+  unit: 'hour' | 'day' | 'week' | 'month';
+  unitLabel: string;
+  bookings: TimelineBookingBucket[];
+  money: TimelineMoneyBucket[];
+}
+
 export interface Overview {
   days: number;
-  selectedDate?: string;
+  selectedDate: string;
   generatedAt: string;
   people: {
     total: number;
@@ -293,6 +319,7 @@ export interface Overview {
     completionRate: number | null;
     cancelRate: number | null;
     byDay: { day: string; completed: number; upcoming: number; cancelled: number; noShow: number }[];
+    timeline?: TimelineBookingBucket[];
   };
   today: { total: number; waiting: number; inChair: number; done: number; cancelled: number };
   dateStats?: {
@@ -302,7 +329,17 @@ export interface Overview {
     cashAmount: number;
     signups: { day: string; customers: number; partners: number };
   };
-  money: { cash: number; payments: number; averageTicket: number; allTime: number; couponDiscounts: number; giftCardsOwed: number; byDay: { day: string; amount: number }[] };
+  timeline?: OverviewTimeline;
+  money: {
+    cash: number;
+    payments: number;
+    averageTicket: number;
+    allTime: number;
+    couponDiscounts: number;
+    giftCardsOwed: number;
+    byDay: { day: string; amount: number }[];
+    timeline?: TimelineMoneyBucket[];
+  };
   signups: { day: string; customers: number; partners: number }[];
   engagement: {
     reviews: number;

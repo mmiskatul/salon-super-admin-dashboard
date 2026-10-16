@@ -21,15 +21,23 @@ interface CustomTooltipProps {
   active?: boolean;
   payload?: any[];
   label?: string;
+  labelProp?: string;
   formatValue?: (val: number) => string;
 }
 
-function GlassTooltip({ active, payload, label, formatValue }: CustomTooltipProps) {
+function GlassTooltip({ active, payload, label, labelProp, formatValue }: CustomTooltipProps) {
   if (!active || !payload || !payload.length) return null;
+
+  const itemPayload = payload[0]?.payload;
+  const headerText =
+    (labelProp && itemPayload && itemPayload[labelProp]) ||
+    label ||
+    itemPayload?.label ||
+    itemPayload?.xLabel;
 
   return (
     <div className="rounded-xl border border-[#E2E8F0] bg-white/95 p-3 shadow-lg backdrop-blur-md font-manrope text-[12px] min-w-[160px]">
-      {label && <p className="font-bold text-[#1E293B] border-b border-[#F1F5F9] pb-1.5 mb-2">{label}</p>}
+      {headerText && <p className="font-bold text-[#1E293B] border-b border-[#F1F5F9] pb-1.5 mb-2">{headerText}</p>}
       <div className="space-y-1.5">
         {payload.map((entry, index) => (
           <div key={`item-${index}`} className="flex items-center justify-between gap-3">
@@ -47,26 +55,57 @@ function GlassTooltip({ active, payload, label, formatValue }: CustomTooltipProp
   );
 }
 
-/** 1. Interactive Bookings Trajectory Chart */
+export interface TrendBookingItem {
+  key?: string;
+  label?: string;
+  shortLabel?: string;
+  day?: string;
+  completed: number;
+  upcoming: number;
+  cancelled: number;
+  noShow: number;
+}
+
+export interface TrendMoneyItem {
+  key?: string;
+  label?: string;
+  shortLabel?: string;
+  day?: string;
+  amount: number;
+  payments?: number;
+}
+
+/** 1. Interactive Bookings Trajectory Chart (Supports Hour, Day, Week, Month granularities) */
 export function BookingsTrendChart({
   data,
   selectedDate,
   onSelectDate,
   days = 30,
+  unit = 'day',
 }: {
-  data: { day: string; completed: number; upcoming: number; cancelled: number; noShow: number }[];
+  data: TrendBookingItem[];
   selectedDate?: string;
   onSelectDate?: (day: string) => void;
   days?: number;
+  unit?: 'hour' | 'day' | 'week' | 'month';
 }) {
-  const formattedData = data.map((d) => ({
-    ...d,
-    shortDay: d.day.slice(5),
-    total: d.completed + d.upcoming + d.cancelled + d.noShow,
-  }));
+  const formattedData = data.map((d) => {
+    const xLabel = d.shortLabel ?? (d.day ? d.day.slice(5) : d.key ?? '');
+    const fullLabel = d.label ?? (d.day ? d.day : d.key ?? '');
+    return {
+      ...d,
+      xLabel,
+      fullLabel,
+      total: d.completed + d.upcoming + d.cancelled + d.noShow,
+    };
+  });
 
   const tickInterval =
-    days === 365
+    unit === 'hour'
+      ? 2 // show every 3rd hour: 12 AM, 3 AM, 6 AM, 9 AM, 12 PM, 3 PM, 6 PM, 9 PM
+      : unit === 'month' || unit === 'week' || days === 7
+      ? 0
+      : days === 365
       ? Math.max(1, Math.floor(data.length / 12))
       : days === 90
       ? Math.max(1, Math.floor(data.length / 8))
@@ -74,7 +113,18 @@ export function BookingsTrendChart({
       ? Math.max(1, Math.floor(data.length / 7))
       : 0;
 
-  const barSize = days === 1 ? 48 : days === 7 ? 24 : undefined;
+  const barSize =
+    unit === 'hour'
+      ? 12
+      : unit === 'week'
+      ? 36
+      : unit === 'month'
+      ? 28
+      : days === 1
+      ? 48
+      : days === 7
+      ? 24
+      : undefined;
 
   return (
     <div className="h-[220px] w-full font-manrope">
@@ -84,14 +134,17 @@ export function BookingsTrendChart({
           margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
           onClick={(state: any) => {
             if (state && state.activePayload && state.activePayload.length) {
-              const clicked = state.activePayload[0].payload as { day: string };
-              if (clicked && onSelectDate) onSelectDate(clicked.day);
+              const clicked = state.activePayload[0].payload as { day?: string; key?: string };
+              const target = clicked?.day ?? clicked?.key;
+              if (target && onSelectDate && /^\d{4}-\d{2}-\d{2}$/.test(target)) {
+                onSelectDate(target);
+              }
             }
           }}
         >
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
           <XAxis
-            dataKey="shortDay"
+            dataKey="xLabel"
             stroke="#94A3B8"
             fontSize={11}
             tickLine={false}
@@ -106,7 +159,7 @@ export function BookingsTrendChart({
             allowDecimals={false}
           />
           <Tooltip
-            content={<GlassTooltip label="Bookings on date" />}
+            content={<GlassTooltip labelProp="fullLabel" />}
             cursor={{ fill: '#F8FAFC', opacity: 0.8 }}
           />
           <Bar dataKey="completed" name="Completed" stackId="a" fill="#16A34A" maxBarSize={barSize} radius={[0, 0, 0, 0]} />
@@ -119,25 +172,36 @@ export function BookingsTrendChart({
   );
 }
 
-/** 2. Interactive Cash Revenue Area Chart */
+/** 2. Interactive Cash Revenue Area/Bar Chart (Supports Hour, Day, Week, Month granularities) */
 export function RevenueTrendChart({
   data,
   selectedDate,
   onSelectDate,
   days = 30,
+  unit = 'day',
 }: {
-  data: { day: string; amount: number }[];
+  data: TrendMoneyItem[];
   selectedDate?: string;
   onSelectDate?: (day: string) => void;
   days?: number;
+  unit?: 'hour' | 'day' | 'week' | 'month';
 }) {
-  const formattedData = data.map((d) => ({
-    ...d,
-    shortDay: d.day.slice(5),
-  }));
+  const formattedData = data.map((d) => {
+    const xLabel = d.shortLabel ?? (d.day ? d.day.slice(5) : d.key ?? '');
+    const fullLabel = d.label ?? (d.day ? d.day : d.key ?? '');
+    return {
+      ...d,
+      xLabel,
+      fullLabel,
+    };
+  });
 
   const tickInterval =
-    days === 365
+    unit === 'hour'
+      ? 2
+      : unit === 'month' || unit === 'week' || days === 7
+      ? 0
+      : days === 365
       ? Math.max(1, Math.floor(data.length / 12))
       : days === 90
       ? Math.max(1, Math.floor(data.length / 8))
@@ -145,7 +209,10 @@ export function RevenueTrendChart({
       ? Math.max(1, Math.floor(data.length / 7))
       : 0;
 
-  if (days === 1 || formattedData.length === 1) {
+  const useBarChart = unit === 'hour' || formattedData.length <= 1;
+  const barSize = unit === 'hour' ? 12 : 48;
+
+  if (useBarChart) {
     return (
       <div className="h-[220px] w-full font-manrope">
         <ResponsiveContainer width="100%" height="100%">
@@ -154,7 +221,7 @@ export function RevenueTrendChart({
             margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
           >
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-            <XAxis dataKey="shortDay" stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
+            <XAxis dataKey="xLabel" stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} interval={tickInterval} />
             <YAxis
               stroke="#94A3B8"
               fontSize={11}
@@ -162,8 +229,8 @@ export function RevenueTrendChart({
               axisLine={false}
               tickFormatter={(val) => `৳${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
             />
-            <Tooltip content={<GlassTooltip label="Cash Collected" formatValue={money} />} />
-            <Bar dataKey="amount" name="Cash Recorded" fill="#16A34A" maxBarSize={48} radius={[4, 4, 0, 0]} />
+            <Tooltip content={<GlassTooltip labelProp="fullLabel" formatValue={money} />} />
+            <Bar dataKey="amount" name="Cash Recorded" fill="#16A34A" maxBarSize={barSize} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -178,8 +245,11 @@ export function RevenueTrendChart({
           margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
           onClick={(state: any) => {
             if (state && state.activePayload && state.activePayload.length) {
-              const clicked = state.activePayload[0].payload as { day: string };
-              if (clicked && onSelectDate) onSelectDate(clicked.day);
+              const clicked = state.activePayload[0].payload as { day?: string; key?: string };
+              const target = clicked?.day ?? clicked?.key;
+              if (target && onSelectDate && /^\d{4}-\d{2}-\d{2}$/.test(target)) {
+                onSelectDate(target);
+              }
             }
           }}
         >
@@ -191,7 +261,7 @@ export function RevenueTrendChart({
           </defs>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
           <XAxis
-            dataKey="shortDay"
+            dataKey="xLabel"
             stroke="#94A3B8"
             fontSize={11}
             tickLine={false}
@@ -206,7 +276,7 @@ export function RevenueTrendChart({
             tickFormatter={(val) => `৳${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
           />
           <Tooltip
-            content={<GlassTooltip label="Cash Collected" formatValue={money} />}
+            content={<GlassTooltip labelProp="fullLabel" formatValue={money} />}
           />
           <Area
             type="monotone"

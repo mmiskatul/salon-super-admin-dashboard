@@ -287,123 +287,164 @@ export default function OverviewPage() {
             </div>
 
             {/* Visual Analytics Row 1: Bookings Trajectory & Outcomes */}
-            {/* Visual Analytics Row 1: Bookings Trajectory & Outcomes (Filter-wise) */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              <Panel
-                title={
-                  days === 1
-                    ? `Bookings on ${selectedDate} (Day View)`
-                    : `Bookings Made Per Day (${periodShort} View)`
-                }
-                note={
-                  days === 1
-                    ? `Total of ${count(o.bookings.total)} appointments recorded on this date · ${percent(o.bookings.completionRate)} completed`
-                    : `Daily appointment volume by status for ${periodLabel} (${count(o.bookings.total)} total) · Click bar to focus date`
-                }
-                className="lg:col-span-2"
-                actions={
-                  <div className="flex items-center gap-2.5 text-[11px] font-bold">
-                    <span className="rounded-full bg-[#EEF2FF] px-2 py-0.5 text-[10px] font-bold text-[#4338CA]">
-                      {periodShort} View
-                    </span>
-                    <span className="flex items-center gap-1 text-[#16A34A]"><span className="h-2 w-2 rounded-full bg-[#16A34A]" /> Completed</span>
-                    <span className="flex items-center gap-1 text-[#635BFF]"><span className="h-2 w-2 rounded-full bg-[#635BFF]" /> Open</span>
-                    <span className="flex items-center gap-1 text-[#F59E0B]"><span className="h-2 w-2 rounded-full bg-[#F59E0B]" /> Cancelled</span>
-                  </div>
-                }
-              >
-                <BookingsTrendChart
-                  data={o.bookings.byDay}
-                  selectedDate={selectedDate}
-                  onSelectDate={handleDateChange}
-                  days={days}
-                />
-              </Panel>
+            {/* Visual Analytics Row 1: Bookings Trajectory & Outcomes (Filter-wise: Hour, Day, Week, Month) */}
+            {(() => {
+              const timelineUnit = o.timeline?.unit ?? (days === 1 ? 'hour' : days === 7 ? 'day' : days <= 90 ? 'week' : 'month');
+              const bookingsData = o.timeline?.bookings ?? o.bookings.timeline ?? o.bookings.byDay;
+              const moneyData = o.timeline?.money ?? o.money.timeline ?? o.money.byDay;
 
-              <Panel
-                title={`Appointment Outcomes (${periodShort} View)`}
-                note={`${count(o.bookings.total)} bookings across network in ${periodLabel}`}
-              >
-                <DonutBreakdownChart
-                  centreLabel="Bookings"
-                  total={o.bookings.total}
-                  parts={[
-                    { name: 'Completed', value: o.bookings.completed, color: '#16A34A' },
-                    { name: 'Open / Upcoming', value: o.bookings.open, color: '#635BFF' },
-                    { name: 'Cancelled', value: o.bookings.cancelled, color: '#F59E0B' },
-                    { name: 'No-Show', value: o.bookings.noShow, color: '#EF4444' },
-                  ]}
-                />
-              </Panel>
-            </div>
+              const bookingsTitle =
+                timelineUnit === 'hour'
+                  ? `Bookings on ${selectedDate} (Hourly View)`
+                  : timelineUnit === 'day'
+                  ? `Bookings Made Per Day (Weekly View)`
+                  : timelineUnit === 'week'
+                  ? `Bookings Made Per Week (Monthly View)`
+                  : `Bookings Made Per Month (Annual View)`;
 
-            {/* Visual Analytics Row 2: Revenue Velocity & Financial Overview (Filter-wise) */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              <Panel
-                title={
-                  days === 1
-                    ? `Cash Collected on ${selectedDate} (Day View)`
-                    : `Cash Collected Per Day (${periodShort} View)`
-                }
-                note={
-                  days === 1
-                    ? `Settled counter receipts recorded for ${selectedDate} (${money(o.money.cash)} total) · ${o.money.payments} payments`
-                    : `Settled payments recorded at shop counters for ${periodLabel} (${money(o.money.cash)} total) · Click date to focus`
-                }
-                className="lg:col-span-2"
-                actions={
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[10px] font-bold text-[#15803D]">
-                      {periodShort} Settled
-                    </span>
-                    <Link href="/money" className="text-[12px] font-bold text-[#16A34A] hover:underline">
-                      View Ledger <ArrowUpRight className="inline h-3 w-3" />
-                    </Link>
-                  </div>
-                }
-              >
-                <RevenueTrendChart
-                  data={o.money.byDay}
-                  selectedDate={selectedDate}
-                  onSelectDate={handleDateChange}
-                  days={days}
-                />
-              </Panel>
+              const bookingsNote =
+                timelineUnit === 'hour'
+                  ? `Hourly appointment distribution for ${selectedDate} (${count(o.bookings.total)} total) · ${percent(o.bookings.completionRate)} completed`
+                  : timelineUnit === 'day'
+                  ? `Daily appointment volume for ${periodLabel} (${count(o.bookings.total)} total) · Click bar to focus date`
+                  : timelineUnit === 'week'
+                  ? `Weekly appointment trajectory across ${periodLabel} (${count(o.bookings.total)} total)`
+                  : `Monthly appointment trajectory over the past year (${count(o.bookings.total)} total)`;
 
-              <Panel title={`Financial Pulse (${periodShort} View)`} note={`Settlements and platform velocity in ${periodLabel}`}>
-                <div className="space-y-3 font-manrope">
-                  <div className="rounded-lg bg-[#F8FAFC] p-3 flex items-center justify-between">
-                    <div>
-                      <span className="text-[11px] font-bold text-[#64748B] uppercase">Total Cash ({periodShort})</span>
-                      <p className="text-xl font-extrabold text-[#15803D] tabular-nums">{money(o.money.cash)}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[11px] font-bold text-[#64748B] uppercase">Transactions</span>
-                      <p className="text-lg font-bold text-[#1E293B] tabular-nums">{count(o.money.payments)}</p>
-                    </div>
+              const cashTitle =
+                timelineUnit === 'hour'
+                  ? `Cash Collected on ${selectedDate} (Hourly View)`
+                  : timelineUnit === 'day'
+                  ? `Cash Collected Per Day (Weekly View)`
+                  : timelineUnit === 'week'
+                  ? `Cash Collected Per Week (Monthly View)`
+                  : `Cash Collected Per Month (Annual View)`;
+
+              const cashNote =
+                timelineUnit === 'hour'
+                  ? `Hourly counter receipts recorded for ${selectedDate} (${money(o.money.cash)} total · ${count(o.money.payments)} payments)`
+                  : timelineUnit === 'day'
+                  ? `Daily settled payments recorded for ${periodLabel} (${money(o.money.cash)} total · Click date to focus)`
+                  : timelineUnit === 'week'
+                  ? `Weekly revenue velocity across ${periodLabel} (${money(o.money.cash)} total)`
+                  : `Monthly settled revenue trajectory over the past year (${money(o.money.cash)} total)`;
+
+              const granularityBadge =
+                timelineUnit === 'hour'
+                  ? 'Hourly View'
+                  : timelineUnit === 'day'
+                  ? 'Daily View'
+                  : timelineUnit === 'week'
+                  ? 'Weekly View'
+                  : 'Monthly View';
+
+              return (
+                <>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                    <Panel
+                      title={bookingsTitle}
+                      note={bookingsNote}
+                      className="lg:col-span-2"
+                      actions={
+                        <div className="flex items-center gap-2.5 text-[11px] font-bold">
+                          <span className="rounded-full bg-[#EEF2FF] px-2 py-0.5 text-[10px] font-bold text-[#4338CA]">
+                            {granularityBadge}
+                          </span>
+                          <span className="flex items-center gap-1 text-[#16A34A]"><span className="h-2 w-2 rounded-full bg-[#16A34A]" /> Completed</span>
+                          <span className="flex items-center gap-1 text-[#635BFF]"><span className="h-2 w-2 rounded-full bg-[#635BFF]" /> Open</span>
+                          <span className="flex items-center gap-1 text-[#F59E0B]"><span className="h-2 w-2 rounded-full bg-[#F59E0B]" /> Cancelled</span>
+                        </div>
+                      }
+                    >
+                      <BookingsTrendChart
+                        data={bookingsData}
+                        selectedDate={selectedDate}
+                        onSelectDate={handleDateChange}
+                        days={days}
+                        unit={timelineUnit}
+                      />
+                    </Panel>
+
+                    <Panel
+                      title={`Appointment Outcomes (${periodShort} View)`}
+                      note={`${count(o.bookings.total)} bookings across network in ${periodLabel}`}
+                    >
+                      <DonutBreakdownChart
+                        centreLabel="Bookings"
+                        total={o.bookings.total}
+                        parts={[
+                          { name: 'Completed', value: o.bookings.completed, color: '#16A34A' },
+                          { name: 'Open / Upcoming', value: o.bookings.open, color: '#635BFF' },
+                          { name: 'Cancelled', value: o.bookings.cancelled, color: '#F59E0B' },
+                          { name: 'No-Show', value: o.bookings.noShow, color: '#EF4444' },
+                        ]}
+                      />
+                    </Panel>
                   </div>
 
-                  <div className="space-y-2 text-[12px]">
-                    <div className="flex items-center justify-between py-1 border-b border-[#F1F5F9]">
-                      <span className="text-[#64748B]">Average Order Ticket:</span>
-                      <b className="text-[#1E293B] tabular-nums">{money(o.money.averageTicket)}</b>
-                    </div>
-                    <div className="flex items-center justify-between py-1 border-b border-[#F1F5F9]">
-                      <span className="text-[#64748B]">Coupon Discounts Given:</span>
-                      <b className="text-[#1E293B] tabular-nums">{money(o.money.couponDiscounts)}</b>
-                    </div>
-                    <div className="flex items-center justify-between py-1 border-b border-[#F1F5F9]">
-                      <span className="text-[#64748B]">Gift Card Balances Owed:</span>
-                      <b className="text-[#1E293B] tabular-nums">{money(o.money.giftCardsOwed)}</b>
-                    </div>
-                    <div className="flex items-center justify-between py-1">
-                      <span className="text-[#64748B]">All-Time Network Cash:</span>
-                      <b className="text-[#15803D] tabular-nums">{money(o.money.allTime)}</b>
-                    </div>
+                  {/* Visual Analytics Row 2: Revenue Velocity & Financial Overview (Filter-wise) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                    <Panel
+                      title={cashTitle}
+                      note={cashNote}
+                      className="lg:col-span-2"
+                      actions={
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[10px] font-bold text-[#15803D]">
+                            {granularityBadge}
+                          </span>
+                          <Link href="/money" className="text-[12px] font-bold text-[#16A34A] hover:underline">
+                            View Ledger <ArrowUpRight className="inline h-3 w-3" />
+                          </Link>
+                        </div>
+                      }
+                    >
+                      <RevenueTrendChart
+                        data={moneyData}
+                        selectedDate={selectedDate}
+                        onSelectDate={handleDateChange}
+                        days={days}
+                        unit={timelineUnit}
+                      />
+                    </Panel>
+
+                    <Panel title={`Financial Pulse (${periodShort} View)`} note={`Settlements and platform velocity in ${periodLabel}`}>
+                      <div className="space-y-3 font-manrope">
+                        <div className="rounded-lg bg-[#F8FAFC] p-3 flex items-center justify-between">
+                          <div>
+                            <span className="text-[11px] font-bold text-[#64748B] uppercase">Total Cash ({periodShort})</span>
+                            <p className="text-xl font-extrabold text-[#15803D] tabular-nums">{money(o.money.cash)}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[11px] font-bold text-[#64748B] uppercase">Transactions</span>
+                            <p className="text-lg font-bold text-[#1E293B] tabular-nums">{count(o.money.payments)}</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 text-[12px]">
+                          <div className="flex items-center justify-between py-1 border-b border-[#F1F5F9]">
+                            <span className="text-[#64748B]">Average Order Ticket:</span>
+                            <b className="text-[#1E293B] tabular-nums">{money(o.money.averageTicket)}</b>
+                          </div>
+                          <div className="flex items-center justify-between py-1 border-b border-[#F1F5F9]">
+                            <span className="text-[#64748B]">Coupon Discounts Given:</span>
+                            <b className="text-[#1E293B] tabular-nums">{money(o.money.couponDiscounts)}</b>
+                          </div>
+                          <div className="flex items-center justify-between py-1 border-b border-[#F1F5F9]">
+                            <span className="text-[#64748B]">Gift Card Balances Owed:</span>
+                            <b className="text-[#1E293B] tabular-nums">{money(o.money.giftCardsOwed)}</b>
+                          </div>
+                          <div className="flex items-center justify-between py-1">
+                            <span className="text-[#64748B]">All-Time Network Cash:</span>
+                            <b className="text-[#15803D] tabular-nums">{money(o.money.allTime)}</b>
+                          </div>
+                        </div>
+                      </div>
+                    </Panel>
                   </div>
-                </div>
-              </Panel>
-            </div>
+                </>
+              );
+            })()}
 
             {/* Visual Analytics Row 3: User Ecosystem & Signups Trajectory */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
