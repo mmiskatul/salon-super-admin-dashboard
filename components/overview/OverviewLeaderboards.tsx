@@ -33,7 +33,7 @@ interface OverviewLeaderboardsProps {
 type TabFilter = 'all' | 'shops' | 'barbers' | 'services' | 'customers';
 
 function formatLastBooking(iso: string | null | undefined): string {
-  if (!iso) return 'Recently active';
+  if (!iso) return 'Active';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
 
@@ -50,14 +50,14 @@ function formatLastBooking(iso: string | null | undefined): string {
 
   const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
-  if (isToday) return `Today at ${timeStr}`;
-  if (isYesterday) return `Yesterday at ${timeStr}`;
+  if (isToday) return `Today ${timeStr}`;
+  if (isYesterday) return `Ystd ${timeStr}`;
 
-  return `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${timeStr}`;
+  return `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 }
 
 export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderboardsProps) {
-  const [showDetailed, setShowDetailed] = useState(true);
+  const [itemLimit, setItemLimit] = useState<number>(5); // Default to compact 5 items to keep length small
   const [activeTab, setActiveTab] = useState<TabFilter>('all');
 
   // Fallbacks to guarantee data even if cached response is used
@@ -103,8 +103,6 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
   const maxServiceBookings = Math.max(1, ...topServices.map((s) => s.bookings));
   const maxCustomerBookings = Math.max(1, ...topCustomers.map((c) => c.bookings));
 
-  const totalBookings = overview.bookings.total || 1;
-
   const formattedSelectedDate = useMemo(() => {
     if (!overview.selectedDate) return null;
     const d = new Date(`${overview.selectedDate}T00:00:00`);
@@ -113,7 +111,7 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
   }, [overview.selectedDate]);
 
   return (
-    <div className="space-y-4 font-manrope">
+    <div className="space-y-3 font-manrope">
       {/* Section Header with Mode Switcher & Category Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] pb-2 pt-1">
         <div className="flex items-center gap-2">
@@ -122,14 +120,14 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-[15px] font-bold text-[#1E293B]">Platform Leaderboards</h2>
+              <h2 className="text-[14px] font-bold text-[#1E293B]">Platform Leaderboards</h2>
               <span className="inline-flex items-center gap-1 rounded-full bg-[#FAFBFD] px-2 py-0.5 text-[10px] font-bold text-[#64748B] border border-[#E2E8F0]">
                 <Calendar className="h-3 w-3 text-[#635BFF]" />
-                {formattedSelectedDate ? `Period: ${periodLabel} (${formattedSelectedDate})` : `Period: ${periodLabel}`}
+                {formattedSelectedDate ? `${periodLabel} (${formattedSelectedDate})` : periodLabel}
               </span>
             </div>
             <p className="text-[11px] font-medium text-[#64748B]">
-              Top salons, barbers, trending treatments, and highest frequency VIP clients with activity dates
+              Top performing salons, barbers, catalog services, and VIP clients
             </p>
           </div>
         </div>
@@ -145,7 +143,7 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                 activeTab === 'all' ? 'bg-[#635BFF] text-white shadow-2xs' : 'text-[#64748B] hover:text-[#1E293B]'
               }`}
             >
-              All Leaderboards
+              All (4)
             </button>
             <button
               type="button"
@@ -154,7 +152,7 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                 activeTab === 'shops' ? 'bg-[#635BFF] text-white shadow-2xs' : 'text-[#64748B] hover:text-[#1E293B]'
               }`}
             >
-              Top Salons
+              Salons
             </button>
             <button
               type="button"
@@ -163,7 +161,7 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                 activeTab === 'barbers' ? 'bg-[#635BFF] text-white shadow-2xs' : 'text-[#64748B] hover:text-[#1E293B]'
               }`}
             >
-              Top Barbers
+              Barbers
             </button>
             <button
               type="button"
@@ -172,7 +170,7 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                 activeTab === 'services' ? 'bg-[#635BFF] text-white shadow-2xs' : 'text-[#64748B] hover:text-[#1E293B]'
               }`}
             >
-              Top Services
+              Services
             </button>
             <button
               type="button"
@@ -181,27 +179,28 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                 activeTab === 'customers' ? 'bg-[#635BFF] text-white shadow-2xs' : 'text-[#64748B] hover:text-[#1E293B]'
               }`}
             >
-              Top VIPs
+              VIP Clients
             </button>
           </div>
 
-          {/* Toggle Detailed Metrics */}
+          {/* Toggle Length: Top 5 vs Top 8 */}
           <button
             type="button"
-            onClick={() => setShowDetailed(!showDetailed)}
+            onClick={() => setItemLimit(itemLimit === 5 ? 8 : 5)}
             className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1 text-[11px] font-bold text-[#64748B] transition-all hover:border-[#635BFF]/40 hover:text-[#1E293B]"
+            title="Toggle list height"
           >
             <SlidersHorizontal className="h-3 w-3 text-[#635BFF]" />
-            <span>{showDetailed ? 'Details: On' : 'Details: Off'}</span>
+            <span>{itemLimit === 5 ? 'Top 5 (Compact)' : 'Top 8 (Extended)'}</span>
           </button>
         </div>
       </div>
 
-      {/* Leaderboard Cards Grid */}
+      {/* Leaderboard Cards Grid (Smaller, Sleeker, Compact Height) */}
       <div
-        className={`grid gap-5 ${
+        className={`grid gap-4 ${
           activeTab === 'all'
-            ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-4'
+            ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4'
             : 'grid-cols-1 md:grid-cols-2 max-w-4xl'
         }`}
       >
@@ -209,37 +208,36 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
         {(activeTab === 'all' || activeTab === 'shops') && (
           <Panel
             title="Top Salon Shops"
-            note={`Highest booking salon stores in ${periodLabel}`}
+            note={`Ranked by bookings in ${periodLabel}`}
             actions={
               <Link
                 href="/readiness"
-                className="inline-flex items-center gap-1 rounded-md bg-[#FAFBFD] px-2 py-0.5 text-[11px] font-bold text-[#635BFF] border border-[#E2E8F0] hover:bg-[#EEF2FF] hover:border-[#635BFF]/30 transition-colors"
+                className="inline-flex items-center gap-1 rounded-md bg-[#FAFBFD] px-2 py-0.5 text-[10px] font-bold text-[#635BFF] border border-[#E2E8F0] hover:bg-[#EEF2FF] transition-colors"
               >
                 <span>All Salons</span>
-                <ArrowUpRight className="h-3 w-3" />
+                <ArrowUpRight className="h-2.5 w-2.5" />
               </Link>
             }
           >
-            <div className="space-y-3">
+            <div className="space-y-2">
               {!topShops.length ? (
-                <p className="py-8 text-center text-[12px] text-[#94A3B8]">No salon bookings recorded.</p>
+                <p className="py-6 text-center text-[11px] text-[#94A3B8]">No salon bookings recorded.</p>
               ) : (
-                <div className="space-y-2.5">
-                  {topShops.map((shop, idx) => {
+                <div className="space-y-1.5">
+                  {topShops.slice(0, itemLimit).map((shop, idx) => {
                     const rank = idx + 1;
                     const pct = Math.max(6, Math.round((shop.bookings / maxShopBookings) * 100));
-                    const shareOfTotal = Math.round((shop.bookings / totalBookings) * 100);
                     const href = placeHref(shop.id);
 
                     return (
                       <div
                         key={shop.id}
-                        className="group rounded-xl border border-[#F1F5F9] bg-[#FAFBFD] p-3 transition-all hover:border-[#635BFF]/30 hover:bg-white hover:shadow-xs"
+                        className="group rounded-lg border border-[#F1F5F9] bg-[#FAFBFD] px-2.5 py-2 transition-all hover:border-[#635BFF]/30 hover:bg-white hover:shadow-2xs"
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <span
-                              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-extrabold ${
+                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-extrabold ${
                                 rank === 1
                                   ? 'bg-[#FEF3C7] text-[#B45309]'
                                   : rank === 2
@@ -252,21 +250,22 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                               #{rank}
                             </span>
 
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white border border-[#E2E8F0] text-[#635BFF]">
-                              <Store className="h-3.5 w-3.5" />
-                            </div>
-
                             <div className="min-w-0">
-                              <p className="truncate text-[13px] font-bold text-[#1E293B] group-hover:text-[#635BFF] transition-colors">
+                              <p className="truncate text-[12px] font-bold text-[#1E293B] group-hover:text-[#635BFF] transition-colors leading-tight">
                                 {shop.name}
                               </p>
-                              <div className="flex items-center gap-1.5 text-[10px] text-[#64748B]">
-                                <span className="font-semibold text-[#635BFF]">{shareOfTotal}% volume</span>
-                                {shop.lastBookingAt && (
+                              <div className="flex items-center gap-1 text-[10px] text-[#64748B] mt-0.5">
+                                <span className="font-semibold text-[#15803D]">{shop.completed} done</span>
+                                {shop.revenue > 0 && (
                                   <>
                                     <span>·</span>
-                                    <span className="flex items-center gap-0.5 truncate text-[#64748B]">
-                                      <Clock className="h-2.5 w-2.5" />
+                                    <span className="font-extrabold text-[#1E293B]">{money(shop.revenue)}</span>
+                                  </>
+                                )}
+                                {shop.lastBookingAt && (
+                                  <>
+                                    <span className="hidden xl:inline">·</span>
+                                    <span className="hidden xl:inline text-[#94A3B8] truncate max-w-[85px]">
                                       {formatLastBooking(shop.lastBookingAt)}
                                     </span>
                                   </>
@@ -275,44 +274,27 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                             </div>
                           </div>
 
-                          <div className="text-right shrink-0">
-                            <span className="text-[14px] font-extrabold text-[#1E293B] tabular-nums">
-                              {count(shop.bookings)}
-                            </span>
-                            <span className="block text-[10px] font-bold text-[#64748B] uppercase">Bookings</span>
-                          </div>
-                        </div>
-
-                        {showDetailed && (
-                          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-[#F1F5F9] pt-2 text-[11px]">
-                            <div className="flex items-center gap-2 text-[#64748B]">
-                              <span className="flex items-center gap-1 font-semibold text-[#15803D]">
-                                <CheckCircle2 className="h-3 w-3" />
-                                {shop.completed} done
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <div className="text-right">
+                              <span className="text-[12px] font-extrabold text-[#1E293B] tabular-nums">
+                                {count(shop.bookings)}
                               </span>
-                              {shop.revenue > 0 && (
-                                <>
-                                  <span>·</span>
-                                  <span className="font-extrabold text-[#15803D] tabular-nums">
-                                    {money(shop.revenue)}
-                                  </span>
-                                </>
-                              )}
+                              <span className="block text-[9px] font-bold text-[#94A3B8] uppercase leading-none">bks</span>
                             </div>
-
                             <Link
                               href={href}
-                              className="inline-flex items-center gap-1 rounded-md bg-white border border-[#E2E8F0] px-2 py-0.5 text-[11px] font-bold text-[#635BFF] shadow-2xs hover:bg-[#635BFF] hover:text-white hover:border-[#635BFF] transition-all"
+                              className="flex h-5.5 w-5.5 items-center justify-center rounded-md border border-[#E2E8F0] bg-white text-[#635BFF] hover:bg-[#635BFF] hover:text-white transition-colors"
+                              title="Inspect Salon"
                             >
-                              <span>Inspect</span>
                               <ArrowUpRight className="h-3 w-3" />
                             </Link>
                           </div>
-                        )}
+                        </div>
 
-                        <div className="mt-2 h-1.5 w-full rounded-full bg-[#E2E8F0] overflow-hidden">
+                        {/* Thin volume bar */}
+                        <div className="mt-1.5 h-1 w-full rounded-full bg-[#E2E8F0] overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-[#635BFF] transition-all duration-500"
+                            className="h-full rounded-full bg-[#635BFF] transition-all duration-300"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -322,13 +304,23 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                 </div>
               )}
 
-              <div className="pt-1">
+              {/* Bottom toggle / link */}
+              <div className="pt-0.5 flex items-center justify-between text-[11px] font-bold">
+                {topShops.length > 5 && (
+                  <button
+                    type="button"
+                    onClick={() => setItemLimit(itemLimit === 5 ? 8 : 5)}
+                    className="cursor-pointer text-[#635BFF] hover:underline"
+                  >
+                    {itemLimit === 5 ? `+${topShops.length - 5} more` : 'Show fewer'}
+                  </button>
+                )}
                 <Link
                   href="/readiness"
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-[#FAFBFD] py-2 text-[11px] font-bold text-[#635BFF] transition-all hover:bg-[#EEF2FF] hover:border-[#635BFF]/30"
+                  className="ml-auto inline-flex items-center gap-0.5 text-[#64748B] hover:text-[#635BFF]"
                 >
-                  <span>Explore Salon Readiness Pipeline</span>
-                  <ChevronRight className="h-3.5 w-3.5" />
+                  <span>Pipeline</span>
+                  <ChevronRight className="h-3 w-3" />
                 </Link>
               </div>
             </div>
@@ -343,19 +335,19 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
             actions={
               <Link
                 href="/barbers"
-                className="inline-flex items-center gap-1 rounded-md bg-[#FAFBFD] px-2 py-0.5 text-[11px] font-bold text-[#7C3AED] border border-[#E2E8F0] hover:bg-[#EDE9FE] hover:border-[#7C3AED]/30 transition-colors"
+                className="inline-flex items-center gap-1 rounded-md bg-[#FAFBFD] px-2 py-0.5 text-[10px] font-bold text-[#7C3AED] border border-[#E2E8F0] hover:bg-[#EDE9FE] transition-colors"
               >
                 <span>All Barbers</span>
-                <ArrowUpRight className="h-3 w-3" />
+                <ArrowUpRight className="h-2.5 w-2.5" />
               </Link>
             }
           >
-            <div className="space-y-3">
+            <div className="space-y-2">
               {!topBarbers.length ? (
-                <p className="py-8 text-center text-[12px] text-[#94A3B8]">No barber bookings recorded.</p>
+                <p className="py-6 text-center text-[11px] text-[#94A3B8]">No barber bookings recorded.</p>
               ) : (
-                <div className="space-y-2.5">
-                  {topBarbers.map((barber, idx) => {
+                <div className="space-y-1.5">
+                  {topBarbers.slice(0, itemLimit).map((barber, idx) => {
                     const rank = idx + 1;
                     const pct = Math.max(6, Math.round((barber.bookings / maxBarberBookings) * 100));
                     const href = `/barbers/${encodeURIComponent(barber.id)}`;
@@ -363,12 +355,12 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                     return (
                       <div
                         key={barber.id}
-                        className="group rounded-xl border border-[#F1F5F9] bg-[#FAFBFD] p-3 transition-all hover:border-[#7C3AED]/30 hover:bg-white hover:shadow-xs"
+                        className="group rounded-lg border border-[#F1F5F9] bg-[#FAFBFD] px-2.5 py-2 transition-all hover:border-[#7C3AED]/30 hover:bg-white hover:shadow-2xs"
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <span
-                              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-extrabold ${
+                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-extrabold ${
                                 rank === 1
                                   ? 'bg-[#FEF3C7] text-[#B45309]'
                                   : rank === 2
@@ -381,69 +373,47 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                               #{rank}
                             </span>
 
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white border border-[#E2E8F0] text-[#7C3AED]">
-                              <Scissors className="h-3.5 w-3.5" />
-                            </div>
-
                             <div className="min-w-0">
-                              <p className="truncate text-[13px] font-bold text-[#1E293B] group-hover:text-[#7C3AED] transition-colors">
+                              <p className="truncate text-[12px] font-bold text-[#1E293B] group-hover:text-[#7C3AED] transition-colors leading-tight">
                                 {barber.name}
                               </p>
-                              <div className="flex items-center gap-1.5 text-[10px] text-[#64748B]">
-                                <span className="font-semibold text-[#7C3AED]">
-                                  {barber.shopName || (barber.isIndependent ? 'Freelance' : 'Shop Barber')}
+                              <div className="flex items-center gap-1 text-[10px] text-[#64748B] mt-0.5">
+                                <span className="font-semibold text-[#7C3AED] truncate max-w-[70px]">
+                                  {barber.shopName || (barber.isIndependent ? 'Freelance' : 'Shop')}
                                 </span>
-                                {barber.lastBookingAt && (
+                                <span>·</span>
+                                <span className="font-semibold text-[#15803D]">{barber.completed} done</span>
+                                {barber.revenue > 0 && (
                                   <>
                                     <span>·</span>
-                                    <span className="flex items-center gap-0.5 truncate text-[#64748B]">
-                                      <Clock className="h-2.5 w-2.5" />
-                                      {formatLastBooking(barber.lastBookingAt)}
-                                    </span>
+                                    <span className="font-extrabold text-[#1E293B]">{money(barber.revenue)}</span>
                                   </>
                                 )}
                               </div>
                             </div>
                           </div>
 
-                          <div className="text-right shrink-0">
-                            <span className="text-[14px] font-extrabold text-[#7C3AED] tabular-nums">
-                              {count(barber.bookings)}
-                            </span>
-                            <span className="block text-[10px] font-bold text-[#64748B] uppercase">Cuts</span>
-                          </div>
-                        </div>
-
-                        {showDetailed && (
-                          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-[#F1F5F9] pt-2 text-[11px]">
-                            <div className="flex items-center gap-2 text-[#64748B]">
-                              <span className="flex items-center gap-1 font-semibold text-[#15803D]">
-                                <CheckCircle2 className="h-3 w-3" />
-                                {barber.completed} done
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <div className="text-right">
+                              <span className="text-[12px] font-extrabold text-[#7C3AED] tabular-nums">
+                                {count(barber.bookings)}
                               </span>
-                              {barber.revenue > 0 && (
-                                <>
-                                  <span>·</span>
-                                  <span className="font-extrabold text-[#15803D] tabular-nums">
-                                    {money(barber.revenue)}
-                                  </span>
-                                </>
-                              )}
+                              <span className="block text-[9px] font-bold text-[#94A3B8] uppercase leading-none">cuts</span>
                             </div>
-
                             <Link
                               href={href}
-                              className="inline-flex items-center gap-1 rounded-md bg-white border border-[#E2E8F0] px-2 py-0.5 text-[11px] font-bold text-[#7C3AED] shadow-2xs hover:bg-[#7C3AED] hover:text-white hover:border-[#7C3AED] transition-all"
+                              className="flex h-5.5 w-5.5 items-center justify-center rounded-md border border-[#E2E8F0] bg-white text-[#7C3AED] hover:bg-[#7C3AED] hover:text-white transition-colors"
+                              title="Barber Profile"
                             >
-                              <span>Profile</span>
                               <ArrowUpRight className="h-3 w-3" />
                             </Link>
                           </div>
-                        )}
+                        </div>
 
-                        <div className="mt-2 h-1.5 w-full rounded-full bg-[#E2E8F0] overflow-hidden">
+                        {/* Thin volume bar */}
+                        <div className="mt-1.5 h-1 w-full rounded-full bg-[#E2E8F0] overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-[#7C3AED] transition-all duration-500"
+                            className="h-full rounded-full bg-[#7C3AED] transition-all duration-300"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -453,13 +423,23 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                 </div>
               )}
 
-              <div className="pt-1">
+              {/* Bottom toggle / link */}
+              <div className="pt-0.5 flex items-center justify-between text-[11px] font-bold">
+                {topBarbers.length > 5 && (
+                  <button
+                    type="button"
+                    onClick={() => setItemLimit(itemLimit === 5 ? 8 : 5)}
+                    className="cursor-pointer text-[#7C3AED] hover:underline"
+                  >
+                    {itemLimit === 5 ? `+${topBarbers.length - 5} more` : 'Show fewer'}
+                  </button>
+                )}
                 <Link
                   href="/barbers"
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-[#FAFBFD] py-2 text-[11px] font-bold text-[#7C3AED] transition-all hover:bg-[#EDE9FE] hover:border-[#7C3AED]/30"
+                  className="ml-auto inline-flex items-center gap-0.5 text-[#64748B] hover:text-[#7C3AED]"
                 >
-                  <span>View All Network Barbers</span>
-                  <ChevronRight className="h-3.5 w-3.5" />
+                  <span>Barbers Directory</span>
+                  <ChevronRight className="h-3 w-3" />
                 </Link>
               </div>
             </div>
@@ -470,23 +450,23 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
         {(activeTab === 'all' || activeTab === 'services') && (
           <Panel
             title="Top Booked Services"
-            note={`Most requested treatments in ${periodLabel}`}
+            note={`Most popular treatments in ${periodLabel}`}
             actions={
               <Link
                 href="/bookings"
-                className="inline-flex items-center gap-1 rounded-md bg-[#FAFBFD] px-2 py-0.5 text-[11px] font-bold text-[#16A34A] border border-[#E2E8F0] hover:bg-[#DCFCE7] hover:border-[#16A34A]/30 transition-colors"
+                className="inline-flex items-center gap-1 rounded-md bg-[#FAFBFD] px-2 py-0.5 text-[10px] font-bold text-[#16A34A] border border-[#E2E8F0] hover:bg-[#DCFCE7] transition-colors"
               >
                 <span>Bookings</span>
-                <ArrowUpRight className="h-3 w-3" />
+                <ArrowUpRight className="h-2.5 w-2.5" />
               </Link>
             }
           >
-            <div className="space-y-3">
+            <div className="space-y-2">
               {!topServices.length ? (
-                <p className="py-8 text-center text-[12px] text-[#94A3B8]">No service treatments recorded.</p>
+                <p className="py-6 text-center text-[11px] text-[#94A3B8]">No service treatments recorded.</p>
               ) : (
-                <div className="space-y-2.5">
-                  {topServices.map((service, idx) => {
+                <div className="space-y-1.5">
+                  {topServices.slice(0, itemLimit).map((service, idx) => {
                     const rank = idx + 1;
                     const pct = Math.max(6, Math.round((service.bookings / maxServiceBookings) * 100));
                     const searchHref = `/bookings?search=${encodeURIComponent(service.name)}`;
@@ -494,12 +474,12 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                     return (
                       <div
                         key={service.name}
-                        className="group rounded-xl border border-[#F1F5F9] bg-[#FAFBFD] p-3 transition-all hover:border-[#16A34A]/30 hover:bg-white hover:shadow-xs"
+                        className="group rounded-lg border border-[#F1F5F9] bg-[#FAFBFD] px-2.5 py-2 transition-all hover:border-[#16A34A]/30 hover:bg-white hover:shadow-2xs"
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <span
-                              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-extrabold ${
+                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-extrabold ${
                                 rank === 1
                                   ? 'bg-[#FEF3C7] text-[#B45309]'
                                   : rank === 2
@@ -512,69 +492,43 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                               #{rank}
                             </span>
 
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white border border-[#E2E8F0] text-[#16A34A]">
-                              <Tag className="h-3.5 w-3.5" />
-                            </div>
-
                             <div className="min-w-0">
-                              <p className="truncate text-[13px] font-bold text-[#1E293B] group-hover:text-[#16A34A] transition-colors">
+                              <p className="truncate text-[12px] font-bold text-[#1E293B] group-hover:text-[#16A34A] transition-colors leading-tight">
                                 {service.name}
                               </p>
-                              <div className="flex items-center gap-1.5 text-[10px] text-[#64748B]">
-                                <span className="font-semibold text-[#16A34A]">Catalog Service</span>
-                                {service.lastBookingAt && (
+                              <div className="flex items-center gap-1 text-[10px] text-[#64748B] mt-0.5">
+                                <span className="font-semibold text-[#15803D]">{service.completed} done</span>
+                                {service.revenue !== undefined && service.revenue > 0 && (
                                   <>
                                     <span>·</span>
-                                    <span className="flex items-center gap-0.5 truncate text-[#64748B]">
-                                      <Clock className="h-2.5 w-2.5" />
-                                      {formatLastBooking(service.lastBookingAt)}
-                                    </span>
+                                    <span className="font-extrabold text-[#1E293B]">{money(service.revenue)}</span>
                                   </>
                                 )}
                               </div>
                             </div>
                           </div>
 
-                          <div className="text-right shrink-0">
-                            <span className="text-[14px] font-extrabold text-[#15803D] tabular-nums">
-                              {count(service.bookings)}
-                            </span>
-                            <span className="block text-[10px] font-bold text-[#64748B] uppercase">Booked</span>
-                          </div>
-                        </div>
-
-                        {showDetailed && (
-                          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-[#F1F5F9] pt-2 text-[11px]">
-                            <div className="flex items-center gap-2 text-[#64748B]">
-                              {service.completed !== undefined && (
-                                <span className="flex items-center gap-1 font-semibold text-[#15803D]">
-                                  <CheckCircle2 className="h-3 w-3" />
-                                  {service.completed} done
-                                </span>
-                              )}
-                              {service.revenue !== undefined && service.revenue > 0 && (
-                                <>
-                                  <span>·</span>
-                                  <span className="font-extrabold text-[#15803D] tabular-nums">
-                                    {money(service.revenue)}
-                                  </span>
-                                </>
-                              )}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <div className="text-right">
+                              <span className="text-[12px] font-extrabold text-[#15803D] tabular-nums">
+                                {count(service.bookings)}
+                              </span>
+                              <span className="block text-[9px] font-bold text-[#94A3B8] uppercase leading-none">bks</span>
                             </div>
-
                             <Link
                               href={searchHref}
-                              className="inline-flex items-center gap-1 rounded-md bg-white border border-[#E2E8F0] px-2 py-0.5 text-[11px] font-bold text-[#16A34A] shadow-2xs hover:bg-[#16A34A] hover:text-white hover:border-[#16A34A] transition-all"
+                              className="flex h-5.5 w-5.5 items-center justify-center rounded-md border border-[#E2E8F0] bg-white text-[#16A34A] hover:bg-[#16A34A] hover:text-white transition-colors"
+                              title="Filter Bookings"
                             >
-                              <span>Filter</span>
                               <ArrowUpRight className="h-3 w-3" />
                             </Link>
                           </div>
-                        )}
+                        </div>
 
-                        <div className="mt-2 h-1.5 w-full rounded-full bg-[#E2E8F0] overflow-hidden">
+                        {/* Thin volume bar */}
+                        <div className="mt-1.5 h-1 w-full rounded-full bg-[#E2E8F0] overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-[#16A34A] transition-all duration-500"
+                            className="h-full rounded-full bg-[#16A34A] transition-all duration-300"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -584,13 +538,23 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                 </div>
               )}
 
-              <div className="pt-1">
+              {/* Bottom toggle / link */}
+              <div className="pt-0.5 flex items-center justify-between text-[11px] font-bold">
+                {topServices.length > 5 && (
+                  <button
+                    type="button"
+                    onClick={() => setItemLimit(itemLimit === 5 ? 8 : 5)}
+                    className="cursor-pointer text-[#16A34A] hover:underline"
+                  >
+                    {itemLimit === 5 ? `+${topServices.length - 5} more` : 'Show fewer'}
+                  </button>
+                )}
                 <Link
                   href="/bookings"
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-[#FAFBFD] py-2 text-[11px] font-bold text-[#16A34A] transition-all hover:bg-[#DCFCE7] hover:border-[#16A34A]/30"
+                  className="ml-auto inline-flex items-center gap-0.5 text-[#64748B] hover:text-[#16A34A]"
                 >
-                  <span>View Appointments Ledger</span>
-                  <ChevronRight className="h-3.5 w-3.5" />
+                  <span>Bookings Ledger</span>
+                  <ChevronRight className="h-3 w-3" />
                 </Link>
               </div>
             </div>
@@ -605,19 +569,19 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
             actions={
               <Link
                 href="/users?role=CUSTOMER"
-                className="inline-flex items-center gap-1 rounded-md bg-[#FAFBFD] px-2 py-0.5 text-[11px] font-bold text-[#0EA5E9] border border-[#E2E8F0] hover:bg-[#E0F2FE] hover:border-[#0EA5E9]/30 transition-colors"
+                className="inline-flex items-center gap-1 rounded-md bg-[#FAFBFD] px-2 py-0.5 text-[10px] font-bold text-[#0EA5E9] border border-[#E2E8F0] hover:bg-[#E0F2FE] transition-colors"
               >
                 <span>Clients</span>
-                <ArrowUpRight className="h-3 w-3" />
+                <ArrowUpRight className="h-2.5 w-2.5" />
               </Link>
             }
           >
-            <div className="space-y-3">
+            <div className="space-y-2">
               {!topCustomers.length ? (
-                <p className="py-8 text-center text-[12px] text-[#94A3B8]">No customer activity recorded.</p>
+                <p className="py-6 text-center text-[11px] text-[#94A3B8]">No customer activity recorded.</p>
               ) : (
-                <div className="space-y-2.5">
-                  {topCustomers.map((customer, idx) => {
+                <div className="space-y-1.5">
+                  {topCustomers.slice(0, itemLimit).map((customer, idx) => {
                     const rank = idx + 1;
                     const pct = Math.max(6, Math.round((customer.bookings / maxCustomerBookings) * 100));
                     const profileHref = `/customers/${encodeURIComponent(customer.userId)}`;
@@ -626,12 +590,12 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                     return (
                       <div
                         key={customer.userId}
-                        className="group rounded-xl border border-[#F1F5F9] bg-[#FAFBFD] p-3 transition-all hover:border-[#0EA5E9]/30 hover:bg-white hover:shadow-xs"
+                        className="group rounded-lg border border-[#F1F5F9] bg-[#FAFBFD] px-2.5 py-2 transition-all hover:border-[#0EA5E9]/30 hover:bg-white hover:shadow-2xs"
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <span
-                              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-extrabold ${
+                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-extrabold ${
                                 rank === 1
                                   ? 'bg-[#FEF3C7] text-[#B45309]'
                                   : rank === 2
@@ -644,69 +608,43 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                               #{rank}
                             </span>
 
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white border border-[#E2E8F0] text-[#0EA5E9]">
-                              {rank === 1 ? <Crown className="h-3.5 w-3.5 text-[#F59E0B]" /> : <User className="h-3.5 w-3.5" />}
-                            </div>
-
                             <div className="min-w-0">
-                              <p className="truncate text-[13px] font-bold text-[#1E293B] group-hover:text-[#0EA5E9] transition-colors">
+                              <p className="truncate text-[12px] font-bold text-[#1E293B] group-hover:text-[#0EA5E9] transition-colors leading-tight">
                                 {displayName}
                               </p>
-                              <div className="flex items-center gap-1.5 text-[10px] text-[#64748B]">
-                                <span className="font-semibold text-[#0EA5E9]">VIP Client</span>
-                                {customer.lastBookingAt && (
+                              <div className="flex items-center gap-1 text-[10px] text-[#64748B] mt-0.5">
+                                <span className="font-semibold text-[#15803D]">{customer.completed} done</span>
+                                {customer.spent !== undefined && customer.spent > 0 && (
                                   <>
                                     <span>·</span>
-                                    <span className="flex items-center gap-0.5 truncate text-[#64748B]">
-                                      <Clock className="h-2.5 w-2.5" />
-                                      {formatLastBooking(customer.lastBookingAt)}
-                                    </span>
+                                    <span className="font-extrabold text-[#1E293B]">{money(customer.spent)}</span>
                                   </>
                                 )}
                               </div>
                             </div>
                           </div>
 
-                          <div className="text-right shrink-0">
-                            <span className="text-[14px] font-extrabold text-[#0284C7] tabular-nums">
-                              {count(customer.bookings)}
-                            </span>
-                            <span className="block text-[10px] font-bold text-[#64748B] uppercase">Visits</span>
-                          </div>
-                        </div>
-
-                        {showDetailed && (
-                          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-[#F1F5F9] pt-2 text-[11px]">
-                            <div className="flex items-center gap-2 text-[#64748B]">
-                              {customer.completed !== undefined && (
-                                <span className="flex items-center gap-1 font-semibold text-[#15803D]">
-                                  <CheckCircle2 className="h-3 w-3" />
-                                  {customer.completed} done
-                                </span>
-                              )}
-                              {customer.spent !== undefined && customer.spent > 0 && (
-                                <>
-                                  <span>·</span>
-                                  <span className="font-extrabold text-[#15803D] tabular-nums">
-                                    {money(customer.spent)} spent
-                                  </span>
-                                </>
-                              )}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <div className="text-right">
+                              <span className="text-[12px] font-extrabold text-[#0284C7] tabular-nums">
+                                {count(customer.bookings)}
+                              </span>
+                              <span className="block text-[9px] font-bold text-[#94A3B8] uppercase leading-none">vsts</span>
                             </div>
-
                             <Link
                               href={profileHref}
-                              className="inline-flex items-center gap-1 rounded-md bg-white border border-[#E2E8F0] px-2 py-0.5 text-[11px] font-bold text-[#0EA5E9] shadow-2xs hover:bg-[#0EA5E9] hover:text-white hover:border-[#0EA5E9] transition-all"
+                              className="flex h-5.5 w-5.5 items-center justify-center rounded-md border border-[#E2E8F0] bg-white text-[#0EA5E9] hover:bg-[#0EA5E9] hover:text-white transition-colors"
+                              title="Customer Profile"
                             >
-                              <span>Profile</span>
                               <ArrowUpRight className="h-3 w-3" />
                             </Link>
                           </div>
-                        )}
+                        </div>
 
-                        <div className="mt-2 h-1.5 w-full rounded-full bg-[#E2E8F0] overflow-hidden">
+                        {/* Thin volume bar */}
+                        <div className="mt-1.5 h-1 w-full rounded-full bg-[#E2E8F0] overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-[#0EA5E9] transition-all duration-500"
+                            className="h-full rounded-full bg-[#0EA5E9] transition-all duration-300"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -716,13 +654,23 @@ export function OverviewLeaderboards({ overview, periodLabel }: OverviewLeaderbo
                 </div>
               )}
 
-              <div className="pt-1">
+              {/* Bottom toggle / link */}
+              <div className="pt-0.5 flex items-center justify-between text-[11px] font-bold">
+                {topCustomers.length > 5 && (
+                  <button
+                    type="button"
+                    onClick={() => setItemLimit(itemLimit === 5 ? 8 : 5)}
+                    className="cursor-pointer text-[#0EA5E9] hover:underline"
+                  >
+                    {itemLimit === 5 ? `+${topCustomers.length - 5} more` : 'Show fewer'}
+                  </button>
+                )}
                 <Link
                   href="/users?role=CUSTOMER"
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-[#FAFBFD] py-2 text-[11px] font-bold text-[#0EA5E9] transition-all hover:bg-[#E0F2FE] hover:border-[#0EA5E9]/30"
+                  className="ml-auto inline-flex items-center gap-0.5 text-[#64748B] hover:text-[#0EA5E9]"
                 >
-                  <span>Browse All Registered Clients</span>
-                  <ChevronRight className="h-3.5 w-3.5" />
+                  <span>Clients Directory</span>
+                  <ChevronRight className="h-3 w-3" />
                 </Link>
               </div>
             </div>
