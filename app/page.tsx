@@ -481,7 +481,7 @@ export default function OverviewPage() {
                 title="Account Breakdown"
                 note={`${count(o.people.total)} registered accounts across all roles`}
                 actions={
-                  <Link href="/users" className="text-[11px] font-bold text-[#635BFF] hover:underline">
+                  <Link href={`/users?days=${days}&date=${selectedDate}`} className="text-[11px] font-bold text-[#635BFF] hover:underline">
                     Users Directory <ArrowUpRight className="inline h-3 w-3" />
                   </Link>
                 }
@@ -499,20 +499,29 @@ export default function OverviewPage() {
                     ]}
                   />
 
-                  {/* Account Quality & Status Tags */}
+                  {/* Account Quality & Status Tags with Direct Links */}
                   <div className="grid grid-cols-3 gap-2 border-t border-[#F1F5F9] pt-3 text-center text-[11px]">
-                    <div className="rounded-lg bg-[#FAFBFD] p-2 border border-[#F1F5F9]">
+                    <Link
+                      href={`/users?days=${days}&date=${selectedDate}`}
+                      className="rounded-lg bg-[#FAFBFD] p-2 border border-[#F1F5F9] transition-all hover:border-[#635BFF]/30 hover:bg-[#EEF2FF]/40"
+                    >
                       <span className="block text-[10px] font-bold text-[#64748B] uppercase">New ({periodShort})</span>
                       <span className="text-sm font-extrabold text-[#635BFF] tabular-nums">+{count(o.people.newInPeriod)}</span>
-                    </div>
-                    <div className="rounded-lg bg-[#FAFBFD] p-2 border border-[#F1F5F9]">
+                    </Link>
+                    <Link
+                      href="/users?status=unverified"
+                      className="rounded-lg bg-[#FAFBFD] p-2 border border-[#F1F5F9] transition-all hover:border-[#F59E0B]/30 hover:bg-[#FEF3C7]/40"
+                    >
                       <span className="block text-[10px] font-bold text-[#64748B] uppercase">Unverified</span>
                       <span className="text-sm font-extrabold text-[#F59E0B] tabular-nums">{count(o.people.unverified)}</span>
-                    </div>
-                    <div className="rounded-lg bg-[#FAFBFD] p-2 border border-[#F1F5F9]">
+                    </Link>
+                    <Link
+                      href="/users?status=banned"
+                      className="rounded-lg bg-[#FAFBFD] p-2 border border-[#F1F5F9] transition-all hover:border-[#EF4444]/30 hover:bg-[#FEE2E2]/40"
+                    >
                       <span className="block text-[10px] font-bold text-[#64748B] uppercase">Banned</span>
                       <span className="text-sm font-extrabold text-[#EF4444] tabular-nums">{count(o.people.banned)}</span>
-                    </div>
+                    </Link>
                   </div>
                 </div>
               </Panel>
