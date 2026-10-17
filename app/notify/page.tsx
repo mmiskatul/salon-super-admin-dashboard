@@ -36,8 +36,6 @@ const ROLE_BADGES: Record<string, 'primary' | 'signal' | 'live' | 'quiet' | 'war
   CUSTOMER: 'primary',
   BARBER: 'signal',
   OWNER: 'warning',
-  STAFF: 'live',
-  SUPER_ADMIN: 'quiet',
 };
 
 /** Send an in-app (and push) notification to anyone: chosen people, a shop's team, a group or everyone. */
@@ -316,8 +314,6 @@ export default function NotifyPage() {
                         <option value="CUSTOMER">Customer</option>
                         <option value="BARBER">Barber</option>
                         <option value="OWNER">Shop Owner</option>
-                        <option value="STAFF">Staff</option>
-                        <option value="SUPER_ADMIN">Admin</option>
                       </select>
                     </div>
                   </div>

@@ -147,7 +147,7 @@ export default function BroadcastsPage() {
               {filtered.length === 0 ? (
                 <Empty
                   title="No broadcasts found"
-                  hint="Platform announcements sent to customers, staff, or owners will appear here."
+                  hint="Platform announcements sent to customers, barbers, or shop owners will appear here."
                 />
               ) : (
                 <Scroll>

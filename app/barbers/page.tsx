@@ -337,8 +337,8 @@ export default function BarbersDirectoryPage() {
                       }`}
                     >
                       {t === 'ALL' && 'All Types'}
-                      {t === 'SHOP_STAFF' && 'Shop Stylists'}
-                      {t === 'SOLO' && 'Solo Masters'}
+                      {t === 'SHOP_STAFF' && 'Shop Barbers'}
+                      {t === 'SOLO' && 'Solo Barbers'}
                     </button>
                   ))}
 
@@ -729,7 +729,7 @@ export default function BarbersDirectoryPage() {
                               {b.type === 'SHOP_STAFF' ? (
                                 <Badge tone="plain">
                                   <Store size={10} className="mr-1" />
-                                  Shop Stylist
+                                  Shop Barber
                                 </Badge>
                               ) : (
                                 <Badge tone="live">

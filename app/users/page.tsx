@@ -57,7 +57,7 @@ import { UsersAnalyticsSuite } from '@/components/users/UsersAnalyticsCharts';
 import { UserInspectionDrawer } from '@/components/users/UserInspectionDrawer';
 import { BanUserModal, UnbanUserModal } from '@/components/users/BanUserModal';
 
-const ROLES = ['ALL', 'CUSTOMER', 'OWNER', 'BARBER', 'STAFF', 'SUPER_ADMIN'] as const;
+const ROLES = ['ALL', 'CUSTOMER', 'OWNER', 'BARBER'] as const;
 type RoleFilter = (typeof ROLES)[number];
 
 const STATUS_FILTERS = ['ALL', 'verified', 'unverified', 'banned'] as const;
@@ -77,13 +77,6 @@ type SortOption = (typeof SORT_OPTIONS)[number]['key'];
 export function UserRoleBadge({ role }: { role?: string }) {
   const normalized = (role || '').toUpperCase();
   switch (normalized) {
-    case 'SUPER_ADMIN':
-      return (
-        <span className="inline-flex items-center gap-1 rounded-md bg-[#EDE9FE] px-2 py-0.5 text-[11px] font-extrabold text-[#6D28D9] border border-[#DDD6FE]">
-          <Crown className="h-3 w-3" />
-          Super Admin
-        </span>
-      );
     case 'OWNER':
       return (
         <span className="inline-flex items-center gap-1 rounded-md bg-[#E0F2FE] px-2 py-0.5 text-[11px] font-extrabold text-[#0369A1] border border-[#BAE6FD]">
@@ -91,14 +84,8 @@ export function UserRoleBadge({ role }: { role?: string }) {
           Shop Owner
         </span>
       );
-    case 'STAFF':
-      return (
-        <span className="inline-flex items-center gap-1 rounded-md bg-[#DCFCE7] px-2 py-0.5 text-[11px] font-extrabold text-[#15803D] border border-[#BBF7D0]">
-          <Scissors className="h-3 w-3" />
-          Staff Barber
-        </span>
-      );
     case 'BARBER':
+    case 'STAFF':
       return (
         <span className="inline-flex items-center gap-1 rounded-md bg-[#FEF3C7] px-2 py-0.5 text-[11px] font-extrabold text-[#B45309] border border-[#FDE68A]">
           <Scissors className="h-3 w-3" />
@@ -114,8 +101,8 @@ export function UserRoleBadge({ role }: { role?: string }) {
       );
     default:
       return (
-        <span className="inline-flex items-center gap-1 rounded-md bg-[#F1F5F9] px-2 py-0.5 text-[11px] font-semibold text-[#64748B] border border-[#E2E8F0]">
-          {role || 'Unknown'}
+        <span className="inline-flex items-center gap-1 rounded-md bg-[#F1F5F9] px-2 py-0.5 text-[11px] font-bold text-[#64748B] border border-[#E2E8F0]">
+          {role || 'User'}
         </span>
       );
   }
@@ -241,8 +228,9 @@ function UsersPageInner() {
   const usersData = usersApi.data;
   const rawRows: PlatformUser[] = useMemo(() => {
     if (!usersData) return [];
-    if (Array.isArray(usersData)) return usersData;
-    return usersData.data ?? [];
+    const list = Array.isArray(usersData) ? usersData : (usersData.data ?? []);
+    // Only platform users: Shop Owners, Barbers, and Customers. Exclude internal Super Admins
+    return list.filter((u) => u.role !== 'SUPER_ADMIN' && u.role !== 'ADMIN');
   }, [usersData]);
 
   // Client-side additional filtering and sorting
@@ -444,15 +432,14 @@ function UsersPageInner() {
     affiliationFilter !== 'ALL' ||
     Boolean(search);
 
-  // Compute analytics segments for Recharts
+  // Compute analytics segments for Recharts (Shop Owners, Barbers, Customers)
   const compositionSegments = useMemo(() => {
     if (!o) return [];
+    const barberCount = (o.people.shopBarbers || 0) + (o.people.independentBarbers || 0);
     return [
       { name: 'Customers', value: o.people.customers, color: '#635BFF', roleKey: 'CUSTOMER' },
       { name: 'Shop Owners', value: o.people.owners, color: '#0EA5E9', roleKey: 'OWNER' },
-      { name: 'Shop Stylists', value: o.people.shopBarbers, color: '#16A34A', roleKey: 'STAFF' },
-      { name: 'Individual Barbers', value: o.people.independentBarbers, color: '#F59E0B', roleKey: 'BARBER' },
-      { name: 'Super Admins', value: o.people.admins, color: '#8B5CF6', roleKey: 'SUPER_ADMIN' },
+      { name: 'Barbers', value: barberCount, color: '#16A34A', roleKey: 'BARBER' },
     ];
   }, [o]);
 
@@ -485,7 +472,7 @@ function UsersPageInner() {
       <PageHead
         eyebrow="Platform Governance & Identity"
         title="All Accounts Directory"
-        lede="Comprehensive directory and real-time governance of all registered platform accounts across Customers, Shop Owners, Stylists, and Super Admins."
+        lede="Comprehensive directory and real-time governance of registered platform accounts across Shop Owners, Barbers, and Customers."
         actions={
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Timeframe Chips */}
@@ -554,115 +541,118 @@ function UsersPageInner() {
           )}
 
           {/* Hero KPI Stat Metric Cards */}
-          {o && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Card 1: Total Platform Accounts */}
-              <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-xs transition-all hover:shadow-md hover:border-[#CBD5E1]">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B]">
-                    Total Accounts
-                  </span>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#635BFF]/10 text-[#635BFF]">
-                    <Users className="h-4 w-4" />
+          {o && (() => {
+            const totalPlatformUsers = (o.people.customers || 0) + (o.people.owners || 0) + (o.people.shopBarbers || 0) + (o.people.independentBarbers || 0);
+            return (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Card 1: Total Platform Users */}
+                  <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-xs transition-all hover:shadow-md hover:border-[#CBD5E1]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B]">
+                        Total Users
+                      </span>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#635BFF]/10 text-[#635BFF]">
+                        <Users className="h-4 w-4" />
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-baseline gap-2">
+                      <span className="text-3xl font-black text-[#1E293B] tabular-nums">
+                        {count(totalPlatformUsers)}
+                      </span>
+                      <span className="inline-flex items-center rounded-md bg-[#EEF2FF] px-2 py-0.5 text-[11px] font-extrabold text-[#635BFF]">
+                        +{count(o.people.newInPeriod)} new
+                      </span>
+                    </div>
+                    <p className="mt-2 text-[12px] font-medium text-[#64748B]">
+                      {Math.round(((totalPlatformUsers - o.people.unverified) / Math.max(1, totalPlatformUsers)) * 100)}% email verified
+                    </p>
+                  </div>
+
+                  {/* Card 2: Customers Base */}
+                  <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-xs transition-all hover:shadow-md hover:border-[#CBD5E1]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#635BFF]">
+                        Customers
+                      </span>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#635BFF]/10 text-[#635BFF]">
+                        <UserCheck className="h-4 w-4" />
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-baseline gap-2">
+                      <span className="text-3xl font-black text-[#4338CA] tabular-nums">
+                        {count(o.people.customers)}
+                      </span>
+                      <span className="text-[12px] font-bold text-[#64748B]">
+                        {Math.round((o.people.customers / Math.max(1, totalPlatformUsers)) * 100)}% share
+                      </span>
+                    </div>
+                    <p className="mt-2 text-[12px] font-medium text-[#64748B]">
+                      +{count(o.people.newCustomers)} new registered in timeframe
+                    </p>
+                  </div>
+
+                  {/* Card 3: Providers & Partners */}
+                  <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-xs transition-all hover:shadow-md hover:border-[#CBD5E1]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#0284C7]">
+                        Shop Owners & Barbers
+                      </span>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0284C7]/10 text-[#0284C7]">
+                        <Store className="h-4 w-4" />
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-baseline gap-2">
+                      <span className="text-3xl font-black text-[#0369A1] tabular-nums">
+                        {count(o.people.owners + o.people.shopBarbers + o.people.independentBarbers)}
+                      </span>
+                      <span className="inline-flex items-center rounded-md bg-[#E0F2FE] px-2 py-0.5 text-[11px] font-extrabold text-[#0284C7]">
+                        +{count(o.people.newPartners)} new
+                      </span>
+                    </div>
+                    <p className="mt-2 text-[12px] font-medium text-[#64748B]">
+                      {o.places.shops} salons · {o.people.shopBarbers + o.people.independentBarbers} barbers
+                    </p>
+                  </div>
+
+                  {/* Card 4: Active Engagement Pulse */}
+                  <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-xs transition-all hover:shadow-md hover:border-[#CBD5E1]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#16A34A]">
+                        Active Engagement
+                      </span>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#16A34A]/10 text-[#16A34A]">
+                        <Activity className="h-4 w-4" />
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-baseline gap-2">
+                      <span className="text-3xl font-black text-[#15803D] tabular-nums">
+                        {count(o.active.day.total)}
+                      </span>
+                      <span className="flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[10px] font-black text-[#15803D]">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A] animate-pulse" />
+                        DAU Today
+                      </span>
+                    </div>
+                    <p className="mt-2 text-[12px] font-medium text-[#64748B]">
+                      WAU: <b className="text-[#1E293B]">{count(o.active.week.total)}</b> &middot; MAU: <b className="text-[#1E293B]">{count(o.active.month.total)}</b>
+                    </p>
                   </div>
                 </div>
-                <div className="mt-3 flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-[#1E293B] tabular-nums">
-                    {count(o.people.total)}
-                  </span>
-                  <span className="inline-flex items-center rounded-md bg-[#EEF2FF] px-2 py-0.5 text-[11px] font-extrabold text-[#635BFF]">
-                    +{count(o.people.newInPeriod)} new
-                  </span>
-                </div>
-                <p className="mt-2 text-[12px] font-medium text-[#64748B]">
-                  {Math.round(((o.people.total - o.people.unverified) / Math.max(1, o.people.total)) * 100)}% email verified
-                </p>
-              </div>
 
-              {/* Card 2: Customers Base */}
-              <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-xs transition-all hover:shadow-md hover:border-[#CBD5E1]">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#635BFF]">
-                    Customers
-                  </span>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#635BFF]/10 text-[#635BFF]">
-                    <UserCheck className="h-4 w-4" />
-                  </div>
-                </div>
-                <div className="mt-3 flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-[#4338CA] tabular-nums">
-                    {count(o.people.customers)}
-                  </span>
-                  <span className="text-[12px] font-bold text-[#64748B]">
-                    {Math.round((o.people.customers / Math.max(1, o.people.total)) * 100)}% share
-                  </span>
-                </div>
-                <p className="mt-2 text-[12px] font-medium text-[#64748B]">
-                  +{count(o.people.newCustomers)} new registered in timeframe
-                </p>
-              </div>
-
-              {/* Card 3: Providers & Partners */}
-              <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-xs transition-all hover:shadow-md hover:border-[#CBD5E1]">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#0284C7]">
-                    Service Providers
-                  </span>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0284C7]/10 text-[#0284C7]">
-                    <Store className="h-4 w-4" />
-                  </div>
-                </div>
-                <div className="mt-3 flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-[#0369A1] tabular-nums">
-                    {count(o.people.owners + o.people.shopBarbers + o.people.independentBarbers)}
-                  </span>
-                  <span className="inline-flex items-center rounded-md bg-[#E0F2FE] px-2 py-0.5 text-[11px] font-extrabold text-[#0284C7]">
-                    +{count(o.people.newPartners)} new
-                  </span>
-                </div>
-                <p className="mt-2 text-[12px] font-medium text-[#64748B]">
-                  {o.places.shops} salons · {o.people.shopBarbers} shop stylists · {o.people.independentBarbers} individual
-                </p>
-              </div>
-
-              {/* Card 4: Active Engagement Pulse */}
-              <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-xs transition-all hover:shadow-md hover:border-[#CBD5E1]">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#16A34A]">
-                    Active Engagement
-                  </span>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#16A34A]/10 text-[#16A34A]">
-                    <Activity className="h-4 w-4" />
-                  </div>
-                </div>
-                <div className="mt-3 flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-[#15803D] tabular-nums">
-                    {count(o.active.day.total)}
-                  </span>
-                  <span className="flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[10px] font-black text-[#15803D]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A] animate-pulse" />
-                    DAU Today
-                  </span>
-                </div>
-                <p className="mt-2 text-[12px] font-medium text-[#64748B]">
-                  WAU: <b className="text-[#1E293B]">{count(o.active.week.total)}</b> &middot; MAU: <b className="text-[#1E293B]">{count(o.active.month.total)}</b>
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Interactive Recharts Analytics Suite */}
-          {o && (
-            <UsersAnalyticsSuite
-              totalUsers={o.people.total}
-              segments={compositionSegments}
-              signupPoints={signupTrendPoints}
-              unverifiedCount={o.people.unverified}
-              bannedCount={o.people.banned}
-              activeRoleFilter={roleFilter === 'ALL' ? undefined : roleFilter}
-              onSelectRole={(r) => selectRole(r as RoleFilter)}
-            />
-          )}
+                {/* Interactive Recharts Analytics Suite */}
+                <UsersAnalyticsSuite
+                  totalUsers={totalPlatformUsers}
+                  segments={compositionSegments}
+                  signupPoints={signupTrendPoints}
+                  unverifiedCount={o.people.unverified}
+                  bannedCount={o.people.banned}
+                  activeRoleFilter={roleFilter === 'ALL' ? undefined : roleFilter}
+                  onSelectRole={(r) => selectRole(r as RoleFilter)}
+                />
+              </>
+            );
+          })()}
 
           {/* Interactive Category Filter Ribbon */}
           {o && (
@@ -682,30 +672,35 @@ function UsersPageInner() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-                {/* 1. All Accounts */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    selectRole('ALL');
-                    selectStatus('ALL');
-                  }}
-                  className={`cursor-pointer rounded-2xl p-3.5 text-left transition-all border ${
-                    roleFilter === 'ALL' && statusFilter === 'ALL'
-                      ? 'border-[#635BFF] bg-[#EEF2FF]/60 shadow-xs ring-2 ring-[#635BFF]/30'
-                      : 'border-[#E2E8F0] bg-white hover:border-[#CBD5E1] hover:shadow-xs'
-                  }`}
-                >
-                  <span className="block text-[10px] font-extrabold uppercase text-[#64748B]">
-                    All Accounts
-                  </span>
-                  <span className="text-xl font-black text-[#1E293B] tabular-nums block mt-0.5">
-                    {count(o.people.total)}
-                  </span>
-                  <span className="block text-[10px] font-bold text-[#635BFF] mt-1">
-                    +{count(o.people.newInPeriod)} new
-                  </span>
-                </button>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {/* 1. All Users */}
+                {(() => {
+                  const totalPlatformUsers = (o.people.customers || 0) + (o.people.owners || 0) + (o.people.shopBarbers || 0) + (o.people.independentBarbers || 0);
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        selectRole('ALL');
+                        selectStatus('ALL');
+                      }}
+                      className={`cursor-pointer rounded-2xl p-3.5 text-left transition-all border ${
+                        roleFilter === 'ALL' && statusFilter === 'ALL'
+                          ? 'border-[#635BFF] bg-[#EEF2FF]/60 shadow-xs ring-2 ring-[#635BFF]/30'
+                          : 'border-[#E2E8F0] bg-white hover:border-[#CBD5E1] hover:shadow-xs'
+                      }`}
+                    >
+                      <span className="block text-[10px] font-extrabold uppercase text-[#64748B]">
+                        All Users
+                      </span>
+                      <span className="text-xl font-black text-[#1E293B] tabular-nums block mt-0.5">
+                        {count(totalPlatformUsers)}
+                      </span>
+                      <span className="block text-[10px] font-bold text-[#635BFF] mt-1">
+                        +{count(o.people.newInPeriod)} new
+                      </span>
+                    </button>
+                  );
+                })()}
 
                 {/* 2. Customers */}
                 <button
@@ -724,7 +719,7 @@ function UsersPageInner() {
                     {count(o.people.customers)}
                   </span>
                   <span className="block text-[10px] font-semibold text-[#64748B] mt-1">
-                    {Math.round((o.people.customers / Math.max(1, o.people.total)) * 100)}% of total
+                    {Math.round((o.people.customers / Math.max(1, (o.people.customers || 0) + (o.people.owners || 0) + (o.people.shopBarbers || 0) + (o.people.independentBarbers || 0))) * 100)}% of total
                   </span>
                 </button>
 
@@ -749,49 +744,28 @@ function UsersPageInner() {
                   </span>
                 </button>
 
-                {/* 4. Barbers & Staff */}
+                {/* 4. Barbers */}
                 <button
                   type="button"
                   onClick={() => selectRole('BARBER')}
                   className={`cursor-pointer rounded-2xl p-3.5 text-left transition-all border ${
-                    roleFilter === 'BARBER' || roleFilter === 'STAFF'
+                    roleFilter === 'BARBER'
                       ? 'border-[#16A34A] bg-[#DCFCE7]/60 shadow-xs ring-2 ring-[#16A34A]/30'
                       : 'border-[#E2E8F0] bg-white hover:border-[#CBD5E1] hover:shadow-xs'
                   }`}
                 >
                   <span className="block text-[10px] font-extrabold uppercase text-[#16A34A]">
-                    Stylists
+                    Barbers
                   </span>
                   <span className="text-xl font-black text-[#15803D] tabular-nums block mt-0.5">
-                    {count(o.people.shopBarbers + o.people.independentBarbers)}
+                    {count((o.people.shopBarbers || 0) + (o.people.independentBarbers || 0))}
                   </span>
                   <span className="block text-[10px] font-semibold text-[#64748B] mt-1">
                     {o.people.shopBarbers} shop · {o.people.independentBarbers} individual
                   </span>
                 </button>
 
-                {/* 5. Super Admins */}
-                <button
-                  type="button"
-                  onClick={() => selectRole('SUPER_ADMIN')}
-                  className={`cursor-pointer rounded-2xl p-3.5 text-left transition-all border ${
-                    roleFilter === 'SUPER_ADMIN'
-                      ? 'border-[#8B5CF6] bg-[#EDE9FE]/60 shadow-xs ring-2 ring-[#8B5CF6]/30'
-                      : 'border-[#E2E8F0] bg-white hover:border-[#CBD5E1] hover:shadow-xs'
-                  }`}
-                >
-                  <span className="block text-[10px] font-extrabold uppercase text-[#6D28D9]">
-                    Admins
-                  </span>
-                  <span className="text-xl font-black text-[#6D28D9] tabular-nums block mt-0.5">
-                    {count(o.people.admins)}
-                  </span>
-                  <span className="block text-[10px] font-semibold text-[#64748B] mt-1">
-                    Super admins
-                  </span>
-                </button>
-
-                {/* 6. Unverified Accounts */}
+                {/* 5. Unverified Accounts */}
                 <button
                   type="button"
                   onClick={() => selectStatus('unverified')}
@@ -812,7 +786,7 @@ function UsersPageInner() {
                   </span>
                 </button>
 
-                {/* 7. Banned Accounts */}
+                {/* 6. Banned Accounts */}
                 <button
                   type="button"
                   onClick={() => selectStatus('banned')}
@@ -922,7 +896,7 @@ function UsersPageInner() {
                         : 'bg-white border border-[#E2E8F0] text-[#64748B] hover:text-[#1E293B]'
                     }`}
                   >
-                    {r === 'ALL' ? 'All Roles' : r === 'SUPER_ADMIN' ? 'Admins' : r.toLowerCase()}
+                    {r === 'ALL' ? 'All Roles' : r === 'OWNER' ? 'Shop Owners' : r === 'BARBER' ? 'Barbers' : 'Customers'}
                   </button>
                 ))}
               </div>

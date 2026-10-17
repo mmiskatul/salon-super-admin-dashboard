@@ -282,7 +282,7 @@ export default function OverviewPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-xl border border-[#E2E8F0] bg-[#FAFBFD] p-3 text-[12px]">
               <div className="flex items-center justify-between px-2">
                 <span className="text-[#64748B] font-semibold">Total Accounts:</span>
-                <b className="text-[#1E293B] tabular-nums">{count(o.people.total)} (+{o.people.newInPeriod} new)</b>
+                <b className="text-[#1E293B] tabular-nums">{count(o.people.customers + o.people.owners + o.people.shopBarbers + o.people.independentBarbers)} (+{o.people.newInPeriod} new)</b>
               </div>
               <div className="flex items-center justify-between px-2 sm:border-l sm:border-[#E2E8F0]">
                 <span className="text-[#64748B] font-semibold">Rating Quality:</span>
@@ -480,7 +480,7 @@ export default function OverviewPage() {
               {/* Account Composition (Role Breakdown Donut Requested) */}
               <Panel
                 title="Account Breakdown"
-                note={`${count(o.people.total)} registered accounts across all roles`}
+                note={`${count(o.people.customers + o.people.owners + o.people.shopBarbers + o.people.independentBarbers)} registered accounts (Shop owners, Barbers, Customers)`}
                 actions={
                   <Link href={`/users?days=${days}&date=${selectedDate}`} className="text-[11px] font-bold text-[#635BFF] hover:underline">
                     Users Directory <ArrowUpRight className="inline h-3 w-3" />
@@ -490,13 +490,11 @@ export default function OverviewPage() {
                 <div className="space-y-3.5">
                   <DonutBreakdownChart
                     centreLabel="Accounts"
-                    total={o.people.total}
+                    total={o.people.customers + o.people.owners + o.people.shopBarbers + o.people.independentBarbers}
                     parts={[
                       { name: 'Customers', value: o.people.customers, color: '#635BFF' },
                       { name: 'Shop Owners', value: o.people.owners, color: '#0EA5E9' },
-                      { name: 'Shop Barbers', value: o.people.shopBarbers, color: '#16A34A' },
-                      { name: 'Independent Barbers', value: o.people.independentBarbers, color: '#F59E0B' },
-                      { name: 'Admins', value: o.people.admins, color: '#94A3B8' },
+                      { name: 'Barbers', value: (o.people.shopBarbers || 0) + (o.people.independentBarbers || 0), color: '#16A34A' },
                     ]}
                   />
 

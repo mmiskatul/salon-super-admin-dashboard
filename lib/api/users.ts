@@ -3,7 +3,7 @@ import { apiFetch } from '../api-client';
 export interface PlatformUser {
   id: string;
   email: string;
-  role: 'CUSTOMER' | 'BARBER' | 'STAFF' | 'OWNER' | 'SUPER_ADMIN' | string;
+  role: 'CUSTOMER' | 'BARBER' | 'OWNER' | string;
   tenantId: string | null;
   emailVerified: boolean;
   isBanned: boolean;

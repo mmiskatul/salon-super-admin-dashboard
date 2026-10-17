@@ -60,8 +60,6 @@ const ROLE_ONE: Record<string, string> = {
   CUSTOMER: 'Customer',
   BARBER: 'Barber',
   OWNER: 'Shop Owner',
-  STAFF: 'Staff Barber',
-  SUPER_ADMIN: 'Super Admin',
 };
 
 const METHOD_COLORS: Record<string, string> = {
@@ -130,13 +128,6 @@ const hourLabel = (h: number) => (h === 0 ? '12am' : h < 12 ? `${h}am` : h === 1
 function RoleBadge({ role }: { role?: string }) {
   const norm = (role || '').toUpperCase();
   switch (norm) {
-    case 'SUPER_ADMIN':
-      return (
-        <span className="inline-flex items-center gap-1 rounded-md bg-[#EDE9FE] px-2 py-0.5 text-[11px] font-extrabold text-[#6D28D9] border border-[#DDD6FE]">
-          <Crown className="h-3 w-3" />
-          Admin
-        </span>
-      );
     case 'OWNER':
       return (
         <span className="inline-flex items-center gap-1 rounded-md bg-[#E0F2FE] px-2 py-0.5 text-[11px] font-extrabold text-[#0369A1] border border-[#BAE6FD]">
@@ -144,14 +135,8 @@ function RoleBadge({ role }: { role?: string }) {
           Owner
         </span>
       );
-    case 'STAFF':
-      return (
-        <span className="inline-flex items-center gap-1 rounded-md bg-[#DCFCE7] px-2 py-0.5 text-[11px] font-extrabold text-[#15803D] border border-[#BBF7D0]">
-          <Scissors className="h-3 w-3" />
-          Staff
-        </span>
-      );
     case 'BARBER':
+    case 'STAFF':
       return (
         <span className="inline-flex items-center gap-1 rounded-md bg-[#FEF3C7] px-2 py-0.5 text-[11px] font-extrabold text-[#B45309] border border-[#FDE68A]">
           <Scissors className="h-3 w-3" />
@@ -167,8 +152,8 @@ function RoleBadge({ role }: { role?: string }) {
       );
     default:
       return (
-        <span className="inline-flex items-center gap-1 rounded-md bg-[#F1F5F9] px-2 py-0.5 text-[11px] font-semibold text-[#64748B] border border-[#E2E8F0]">
-          {role || 'Unknown'}
+        <span className="inline-flex items-center gap-1 rounded-md bg-[#F1F5F9] px-2 py-0.5 text-[11px] font-bold text-[#64748B] border border-[#E2E8F0]">
+          {role || 'User'}
         </span>
       );
   }
@@ -731,8 +716,6 @@ export default function LoginsPage() {
       'Customers',
       'Barbers',
       'Shop Owners',
-      'Staff Barbers',
-      'Admins',
     ];
 
     const rows = d.series.map((s) => [
@@ -744,8 +727,6 @@ export default function LoginsPage() {
       s.byRole['CUSTOMER'] || 0,
       s.byRole['BARBER'] || 0,
       s.byRole['OWNER'] || 0,
-      s.byRole['STAFF'] || 0,
-      s.byRole['SUPER_ADMIN'] || 0,
     ]);
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');

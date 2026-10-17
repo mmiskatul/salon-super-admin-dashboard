@@ -48,9 +48,8 @@ import { Field, FormError, Modal, TextArea, TextInput } from '@/components/ui/Fo
 
 const ROLE_LABEL: Record<string, string> = {
   CUSTOMER: 'Customer',
-  BARBER: 'Barber / Stylist',
+  BARBER: 'Barber',
   OWNER: 'Shop Owner',
-  STAFF: 'Shop Staff',
 };
 
 function getUserRole(r: DeletionRequest): string {
