@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node scripts/next-free-port.mjs dev",
-    "build": "next build",
-    "start": "node scripts/next-free-port.mjs start",
+    "dev": "node api.js && node scripts/next-free-port.mjs dev",
+    "build": "node api.js && next build",
+    "start": "node api.js && node scripts/next-free-port.mjs start",
     "lint": "eslint"
   },
   "dependencies": {
