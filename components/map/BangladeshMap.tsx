@@ -51,29 +51,120 @@ export const BANGLADESH_AREAS: QuickArea[] = [
   { id: 'cumilla', name: 'Cumilla City', division: 'Chattogram', lat: 23.4682, lng: 91.1788, zoom: 13 },
 ];
 
-type TileTheme = 'voyager' | 'streets' | 'dark' | 'satellite';
+// Map API Keys from environment variables
+const GOOGLE_KEY =
+  process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+  (process.env.NEXT_PUBLIC_MAP_API_KEY?.startsWith('AIza') ? process.env.NEXT_PUBLIC_MAP_API_KEY : '') ||
+  '';
 
-const TILE_PROVIDERS: Record<TileTheme, { name: string; url: string; attribution: string }> = {
+const MAPBOX_TOKEN =
+  process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
+  process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
+  (process.env.NEXT_PUBLIC_MAP_API_KEY?.startsWith('pk.') ? process.env.NEXT_PUBLIC_MAP_API_KEY : '') ||
+  '';
+
+export interface TileProviderSpec {
+  name: string;
+  url: string;
+  attribution: string;
+  subdomains?: string[] | string;
+  maxZoom?: number;
+  tileSize?: number;
+  zoomOffset?: number;
+}
+
+export const TILE_PROVIDERS: Record<string, TileProviderSpec> = {
+  // Google Maps options
+  google_roadmap: {
+    name: 'Google Maps (Roadmap)',
+    url: `https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}${GOOGLE_KEY ? `&key=${GOOGLE_KEY}` : ''}`,
+    subdomains: ['0', '1', '2', '3'],
+    attribution: '&copy; Google Maps',
+    maxZoom: 20,
+  },
+  google_satellite: {
+    name: 'Google Maps (Hybrid Satellite)',
+    url: `https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}${GOOGLE_KEY ? `&key=${GOOGLE_KEY}` : ''}`,
+    subdomains: ['0', '1', '2', '3'],
+    attribution: '&copy; Google Maps',
+    maxZoom: 20,
+  },
+  google_terrain: {
+    name: 'Google Maps (Terrain)',
+    url: `https://mt{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}${GOOGLE_KEY ? `&key=${GOOGLE_KEY}` : ''}`,
+    subdomains: ['0', '1', '2', '3'],
+    attribution: '&copy; Google Maps',
+    maxZoom: 20,
+  },
+
+  // Mapbox HD options (High-performance vector rasterization)
+  mapbox_streets: {
+    name: 'Mapbox Streets (Default)',
+    url: `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`,
+    attribution: '&copy; Mapbox &copy; OpenStreetMap',
+    maxZoom: 20,
+  },
+  mapbox_outdoors: {
+    name: 'Mapbox Outdoors',
+    url: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`,
+    attribution: '&copy; Mapbox &copy; OpenStreetMap',
+    maxZoom: 20,
+  },
+  mapbox_satellite: {
+    name: 'Mapbox Satellite Hybrid',
+    url: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`,
+    attribution: '&copy; Mapbox &copy; OpenStreetMap',
+    maxZoom: 20,
+  },
+  mapbox_dark: {
+    name: 'Mapbox Dark Mode',
+    url: `https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`,
+    attribution: '&copy; Mapbox &copy; OpenStreetMap',
+    maxZoom: 20,
+  },
+
+
+  // Standard Open Providers
   voyager: {
-    name: 'CartoDB Voyager',
+    name: 'CartoDB Voyager (Clean)',
     url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
     attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    subdomains: 'abcd',
+    maxZoom: 19,
   },
   streets: {
-    name: 'OpenStreetMap Streets',
+    name: 'OpenStreetMap Standard',
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '&copy; OpenStreetMap contributors',
+    subdomains: 'abc',
+    maxZoom: 19,
   },
   dark: {
     name: 'Dark Matter',
     url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    subdomains: 'abcd',
+    maxZoom: 19,
   },
   satellite: {
     name: 'Satellite Terrain',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+    attribution: 'Tiles &copy; Esri &mdash; Sources: Esri, USGS, NOAA',
+    maxZoom: 19,
   },
+};
+
+const createLeafletTileLayer = (themeKey: string) => {
+  const provider = TILE_PROVIDERS[themeKey] || TILE_PROVIDERS.voyager;
+  const options: any = {
+    attribution: provider.attribution,
+    maxZoom: provider.maxZoom ?? 19,
+  };
+  if (provider.subdomains) options.subdomains = provider.subdomains;
+  if (provider.tileSize) options.tileSize = provider.tileSize;
+  if (provider.zoomOffset !== undefined) options.zoomOffset = provider.zoomOffset;
+
+  return L.tileLayer(provider.url, options);
 };
 
 interface BangladeshMapProps {
@@ -95,7 +186,9 @@ export default function BangladeshMap({
   const markersLayerRef = useRef<any>(null);
   const demandLayerRef = useRef<any>(null);
 
-  const [theme, setTheme] = useState<TileTheme>('voyager');
+  // Auto-detect best default provider (Mapbox preferred, Google secondary, Voyager fallback)
+  const defaultTheme = MAPBOX_TOKEN ? 'mapbox_streets' : GOOGLE_KEY ? 'google_roadmap' : 'voyager';
+  const [theme, setTheme] = useState<string>(defaultTheme);
   const [showVisible, setShowVisible] = useState(true);
   const [showHidden, setShowHidden] = useState(true);
   const [showDemand, setShowDemand] = useState(true);
@@ -113,16 +206,12 @@ export default function BangladeshMap({
         center: [23.6850, 90.3563],
         zoom: 7,
         minZoom: 6,
-        maxZoom: 18,
+        maxZoom: 19,
         zoomControl: false, // We use custom styled controls
       });
 
-      // Default Voyager tile layer
-      const tile = L.tileLayer(TILE_PROVIDERS.voyager.url, {
-        attribution: TILE_PROVIDERS.voyager.attribution,
-        maxZoom: 19,
-      }).addTo(map);
-
+      // Add default tile layer
+      const tile = createLeafletTileLayer(defaultTheme).addTo(map);
       tileLayerRef.current = tile;
 
       const markersGroup = L.layerGroup().addTo(map);
@@ -151,10 +240,7 @@ export default function BangladeshMap({
     if (tileLayerRef.current) {
       mapInstanceRef.current.removeLayer(tileLayerRef.current);
     }
-    const newTile = L.tileLayer(TILE_PROVIDERS[theme].url, {
-      attribution: TILE_PROVIDERS[theme].attribution,
-      maxZoom: 19,
-    }).addTo(mapInstanceRef.current);
+    const newTile = createLeafletTileLayer(theme).addTo(mapInstanceRef.current);
     tileLayerRef.current = newTile;
   }, [theme]);
 
@@ -373,18 +459,47 @@ export default function BangladeshMap({
         {/* Right Side: Map Theme & Layer Toggles */}
         <div className="flex items-center gap-2 pointer-events-auto bg-white/95 backdrop-blur-md p-1.5 rounded-2xl border border-[#E2E8F0] shadow-lg">
           {/* Tile Layer Selector */}
-          <div className="flex items-center gap-1 border-r border-[#E2E8F0] pr-2 mr-1">
-            <Layers className="h-4 w-4 text-[#64748B] ml-1" />
+          <div className="flex items-center gap-1.5 border-r border-[#E2E8F0] pr-2.5 mr-1">
+            <Layers className="h-4 w-4 text-[#635BFF] ml-1" />
             <select
               value={theme}
-              onChange={(e) => setTheme(e.target.value as TileTheme)}
-              className="rounded-lg border-none bg-transparent text-[11px] font-bold text-[#1E293B] focus:outline-none cursor-pointer"
+              onChange={(e) => setTheme(e.target.value)}
+              className="rounded-lg border-none bg-transparent text-[11px] font-extrabold text-[#1E293B] focus:outline-none cursor-pointer"
             >
-              <option value="voyager">Voyager (Clean)</option>
-              <option value="streets">OpenStreetMap</option>
-              <option value="dark">Dark Matter</option>
-              <option value="satellite">Satellite</option>
+              <optgroup label="Mapbox HD (Active)">
+                <option value="mapbox_streets">Mapbox Streets (Default)</option>
+                <option value="mapbox_outdoors">Mapbox Outdoors</option>
+                <option value="mapbox_satellite">Mapbox Satellite Hybrid</option>
+                <option value="mapbox_dark">Mapbox Dark</option>
+              </optgroup>
+
+              {GOOGLE_KEY && (
+                <optgroup label="Google Maps (API Key Active)">
+                  <option value="google_roadmap">Google Maps Roadmap</option>
+                  <option value="google_satellite">Google Hybrid Satellite</option>
+                  <option value="google_terrain">Google Terrain</option>
+                </optgroup>
+              )}
+
+              <optgroup label="Open Providers">
+                <option value="voyager">CartoDB Voyager (Clean)</option>
+                <option value="streets">OpenStreetMap Standard</option>
+                <option value="dark">Dark Matter</option>
+                <option value="satellite">Esri Satellite</option>
+              </optgroup>
             </select>
+
+            {MAPBOX_TOKEN ? (
+              <span className="hidden xl:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#635BFF] animate-pulse" />
+                Mapbox Active
+              </span>
+            ) : GOOGLE_KEY ? (
+              <span className="hidden xl:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+                Google Maps
+              </span>
+            ) : null}
           </div>
 
           {/* Layer Visibility Pills */}
@@ -453,7 +568,13 @@ export default function BangladeshMap({
       <div className="absolute bottom-4 left-4 z-[1000] flex items-center gap-2 pointer-events-auto bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-[#E2E8F0] shadow-md text-[11px] font-bold text-[#64748B]">
         <span>Zoom: {currentZoom}x</span>
         <span>·</span>
-        <span>Lat/Lng: Real OpenStreetMap GPS</span>
+        <span>
+          {theme.startsWith('mapbox')
+            ? 'Mapbox Vector Tiles HD'
+            : theme.startsWith('google')
+            ? 'Google Maps Tiles'
+            : 'OpenStreetMap / CartoDB'}
+        </span>
       </div>
 
       {/* Floating Bottom Right: Navigation Controls */}

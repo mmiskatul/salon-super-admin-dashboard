@@ -43,7 +43,7 @@ const BangladeshMap = dynamic(() => import('@/components/map/BangladeshMap'), {
       <div className="flex flex-col items-center gap-3">
         <div className="h-8 w-8 animate-spin rounded-full border-3 border-[#635BFF] border-t-transparent" />
         <p className="text-[13px] font-bold text-[#64748B]">
-          Initializing real Bangladesh OpenStreetMap & CartoDB tiles...
+          Initializing real Bangladesh Mapbox HD & geospatial tiles...
         </p>
       </div>
     </div>
