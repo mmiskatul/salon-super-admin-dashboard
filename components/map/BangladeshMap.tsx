@@ -51,8 +51,10 @@ export const BANGLADESH_AREAS: QuickArea[] = [
   { id: 'cumilla', name: 'Cumilla City', division: 'Chattogram', lat: 23.4682, lng: 91.1788, zoom: 13 },
 ];
 
-// Mapbox Access Token for geospatial supply & demand map
+// Map API Keys for geospatial supply & demand map
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+const CARTO_API_KEY = process.env.NEXT_PUBLIC_CARTO_API_KEY || '';
+const cartoKeyParam = CARTO_API_KEY ? `?api_key=${CARTO_API_KEY}` : '';
 
 export interface TileProviderSpec {
   name: string;
@@ -96,7 +98,7 @@ export const TILE_PROVIDERS: Record<string, TileProviderSpec> = {
   // Standard Open Providers
   voyager: {
     name: 'CartoDB Voyager (Clean)',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    url: `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png${cartoKeyParam}`,
     attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
     subdomains: 'abcd',
     maxZoom: 19,
@@ -110,7 +112,7 @@ export const TILE_PROVIDERS: Record<string, TileProviderSpec> = {
   },
   dark: {
     name: 'Dark Matter',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    url: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png${cartoKeyParam}`,
     attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
     subdomains: 'abcd',
     maxZoom: 19,
