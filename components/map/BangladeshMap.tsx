@@ -54,7 +54,7 @@ export const BANGLADESH_AREAS: QuickArea[] = [
 // Map API Keys for geospatial supply & demand map
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 const CARTO_API_KEY = process.env.NEXT_PUBLIC_CARTO_API_KEY || '';
-const cartoKeyParam = CARTO_API_KEY ? `?api_key=${CARTO_API_KEY}` : '';
+const cartoKeyParam = CARTO_API_KEY ? `?key=${CARTO_API_KEY}` : '';
 
 export interface TileProviderSpec {
   name: string;
