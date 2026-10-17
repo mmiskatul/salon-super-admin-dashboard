@@ -51,17 +51,8 @@ export const BANGLADESH_AREAS: QuickArea[] = [
   { id: 'cumilla', name: 'Cumilla City', division: 'Chattogram', lat: 23.4682, lng: 91.1788, zoom: 13 },
 ];
 
-// Map API Keys from environment variables
-const GOOGLE_KEY =
-  process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
-  (process.env.NEXT_PUBLIC_MAP_API_KEY?.startsWith('AIza') ? process.env.NEXT_PUBLIC_MAP_API_KEY : '') ||
-  '';
-
-const MAPBOX_TOKEN =
-  process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
-  process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
-  (process.env.NEXT_PUBLIC_MAP_API_KEY?.startsWith('pk.') ? process.env.NEXT_PUBLIC_MAP_API_KEY : '') ||
-  '';
+// Mapbox Access Token for geospatial supply & demand map
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
 export interface TileProviderSpec {
   name: string;
@@ -74,28 +65,6 @@ export interface TileProviderSpec {
 }
 
 export const TILE_PROVIDERS: Record<string, TileProviderSpec> = {
-  // Google Maps options
-  google_roadmap: {
-    name: 'Google Maps (Roadmap)',
-    url: `https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}${GOOGLE_KEY ? `&key=${GOOGLE_KEY}` : ''}`,
-    subdomains: ['0', '1', '2', '3'],
-    attribution: '&copy; Google Maps',
-    maxZoom: 20,
-  },
-  google_satellite: {
-    name: 'Google Maps (Hybrid Satellite)',
-    url: `https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}${GOOGLE_KEY ? `&key=${GOOGLE_KEY}` : ''}`,
-    subdomains: ['0', '1', '2', '3'],
-    attribution: '&copy; Google Maps',
-    maxZoom: 20,
-  },
-  google_terrain: {
-    name: 'Google Maps (Terrain)',
-    url: `https://mt{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}${GOOGLE_KEY ? `&key=${GOOGLE_KEY}` : ''}`,
-    subdomains: ['0', '1', '2', '3'],
-    attribution: '&copy; Google Maps',
-    maxZoom: 20,
-  },
 
   // Mapbox HD options (High-performance vector rasterization)
   mapbox_streets: {
@@ -186,8 +155,8 @@ export default function BangladeshMap({
   const markersLayerRef = useRef<any>(null);
   const demandLayerRef = useRef<any>(null);
 
-  // Auto-detect best default provider (Mapbox preferred, Google secondary, Voyager fallback)
-  const defaultTheme = MAPBOX_TOKEN ? 'mapbox_streets' : GOOGLE_KEY ? 'google_roadmap' : 'voyager';
+  // Default to Mapbox if token is present, else Voyager
+  const defaultTheme = MAPBOX_TOKEN ? 'mapbox_streets' : 'voyager';
   const [theme, setTheme] = useState<string>(defaultTheme);
   const [showVisible, setShowVisible] = useState(true);
   const [showHidden, setShowHidden] = useState(true);
@@ -473,14 +442,6 @@ export default function BangladeshMap({
                 <option value="mapbox_dark">Mapbox Dark</option>
               </optgroup>
 
-              {GOOGLE_KEY && (
-                <optgroup label="Google Maps (API Key Active)">
-                  <option value="google_roadmap">Google Maps Roadmap</option>
-                  <option value="google_satellite">Google Hybrid Satellite</option>
-                  <option value="google_terrain">Google Terrain</option>
-                </optgroup>
-              )}
-
               <optgroup label="Open Providers">
                 <option value="voyager">CartoDB Voyager (Clean)</option>
                 <option value="streets">OpenStreetMap Standard</option>
@@ -489,17 +450,12 @@ export default function BangladeshMap({
               </optgroup>
             </select>
 
-            {MAPBOX_TOKEN ? (
+            {MAPBOX_TOKEN && (
               <span className="hidden xl:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#635BFF] animate-pulse" />
                 Mapbox Active
               </span>
-            ) : GOOGLE_KEY ? (
-              <span className="hidden xl:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
-                <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
-                Google Maps
-              </span>
-            ) : null}
+            )}
           </div>
 
           {/* Layer Visibility Pills */}
@@ -571,8 +527,6 @@ export default function BangladeshMap({
         <span>
           {theme.startsWith('mapbox')
             ? 'Mapbox Vector Tiles HD'
-            : theme.startsWith('google')
-            ? 'Google Maps Tiles'
             : 'OpenStreetMap / CartoDB'}
         </span>
       </div>
